@@ -19,6 +19,7 @@ class AdminLearningController extends Controller
         return view('admin.schedule', [
             'lessons'=>ScheduleLesson::with('studio')->orderByDesc('lesson_date')->orderBy('starts_at')->get(),
             'studios'=>Studio::orderBy('sort_order')->get(),
+            'groups'=>\App\Models\StudyGroup::where('is_active',true)->orderBy('study_year')->orderBy('name')->get(),
         ]);
     }
 
@@ -26,6 +27,7 @@ class AdminLearningController extends Controller
     {
         $data=$request->validate([
             'studio_id'=>'nullable|exists:studios,id',
+            'study_group_id'=>'nullable|exists:study_groups,id',
             'title'=>'required|string|max:220',
             'teacher_name'=>'nullable|string|max:180',
             'lesson_date'=>'required|date',
