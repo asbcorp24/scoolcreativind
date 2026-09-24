@@ -33,4 +33,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(HomeworkSubmission::class,'student_id');
     }
+
+    public function competitionRegistrations()
+    {
+        return $this->hasMany(CompetitionRegistration::class);
+    }
+
+    public function quizAttempts()
+    {
+        return $this->hasMany(QuizAttempt::class);
+    }
 }
