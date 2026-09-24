@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\AdmissionApplication;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -31,8 +32,20 @@ class AuthController extends Controller
         ]);
         $data['password']=Hash::make($data['password']);
         $user=User::create($data);
+
+        AdmissionApplication::firstOrCreate(
+            ['user_id'=>$user->id],
+            [
+                'name'=>$user->name,
+                'phone'=>$user->phone,
+                'email'=>$user->email,
+                'status'=>'new',
+                'message'=>'Регистрация на сайте',
+            ]
+        );
+
         Auth::login($user);
-        return redirect('/cabinet');
+        return redirect('/cabinet')->with('success','Регистрация завершена. Ваша запись передана администратору.');
     }
 
     public function logout(Request $request)
