@@ -30,7 +30,7 @@
  <div class="container-fluid px-lg-5">
   <div class="section-head"><div><div class="eyebrow">Photo lab</div><h2>Фотогалерея</h2></div></div>
   <div class="media-masonry" data-paginated-list data-page-size="6">
-   @foreach($photos as $m)<button class="media-tile" data-page-item data-bs-toggle="modal" data-bs-target="#photoModal" data-src="{{ $m->display_url }}"><img src="{{ $m->display_url }}" alt="{{ $m->title }}"><span>{{ $m->title }}</span></button>@endforeach
+   @foreach($photos as $m)<button class="media-tile" data-page-item data-lightbox-photo data-src="{{ $m->display_url }}" data-title="{{ $m->title }}"><img src="{{ $m->display_url }}" alt="{{ $m->title }}"><span>{{ $m->title }}</span></button>@endforeach
   </div>
   @if($photos->count()>6)<div class="media-pagination media-pagination-hitech mt-4" data-pagination></div>@endif
  </div>
@@ -57,6 +57,7 @@
    <div class="media-slider-controls">
     <button class="media-slider-nav prev" type="button" data-slider-prev aria-label="Предыдущая панорама"><span>←</span><small>ПРЕДЫДУЩАЯ</small></button>
     <div class="media-slider-counter" data-slider-counter>01 / {{ str_pad($panos->count(),2,'0',STR_PAD_LEFT) }}</div>
+    <button class="media-fullscreen-btn" type="button" data-slider-fullscreen><span>⛶</span><small>НА ВЕСЬ ЭКРАН</small></button>
     <button class="media-slider-nav next" type="button" data-slider-next aria-label="Следующая панорама"><small>СЛЕДУЮЩАЯ</small><span>→</span></button>
    </div>
   </div>
@@ -93,6 +94,7 @@
    <div class="media-slider-controls">
     <button class="media-slider-nav prev" type="button" data-slider-prev aria-label="Предыдущая модель"><span>←</span><small>ПРЕДЫДУЩАЯ</small></button>
     <div class="media-slider-counter" data-slider-counter>01 / {{ str_pad($models->count(),2,'0',STR_PAD_LEFT) }}</div>
+    <button class="media-fullscreen-btn" type="button" data-slider-fullscreen><span>⛶</span><small>НА ВЕСЬ ЭКРАН</small></button>
     <button class="media-slider-nav next" type="button" data-slider-next aria-label="Следующая модель"><small>СЛЕДУЮЩАЯ</small><span>→</span></button>
    </div>
   </div>
@@ -197,10 +199,16 @@
 
 <section class="cta-section"><div class="container text-center"><div class="eyebrow justify-content-center">Хочу в эту студию</div><h2>Попробуй себя<br>в {{ mb_strtolower($studio->title) }}.</h2><a href="{{ route('apply') }}?studio={{ $studio->id }}" class="btn btn-neon btn-lg mt-4">Подать заявку</a></div></section>
 
-<div class="modal fade" id="photoModal" tabindex="-1"><div class="modal-dialog modal-fullscreen"><div class="modal-content bg-black"><button type="button" class="btn-close btn-close-white modal-x" data-bs-dismiss="modal"></button><div class="modal-body d-flex align-items-center justify-content-center"><img id="modalPhoto" class="img-fluid mh-100" alt=""></div></div></div></div>
+<div class="photo-lightbox" data-photo-lightbox aria-hidden="true">
+ <button class="photo-lightbox-close" type="button" data-lightbox-close aria-label="Закрыть">×</button>
+ <button class="photo-lightbox-nav prev" type="button" data-lightbox-prev aria-label="Предыдущее фото">←</button>
+ <div class="photo-lightbox-stage">
+  <img data-lightbox-image alt="">
+  <div class="photo-lightbox-bottom">
+   <div class="photo-lightbox-title" data-lightbox-title></div>
+   <div class="photo-lightbox-counter" data-lightbox-counter></div>
+  </div>
+ </div>
+ <button class="photo-lightbox-nav next" type="button" data-lightbox-next aria-label="Следующее фото">→</button>
+</div>
 @endsection
-@push('scripts')
-<script>
-document.querySelectorAll('[data-src]').forEach(el=>el.addEventListener('click',()=>document.getElementById('modalPhoto').src=el.dataset.src));
-</script>
-@endpush
