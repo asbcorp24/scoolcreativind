@@ -56,7 +56,7 @@
    </div>
    <div class="col-lg-7 reveal">
     @php($pano=$featuredMedia->firstWhere('type','panorama'))
-    <div class="pano-shell" @if($pano) data-panorama="{{ $pano->url }}" @endif>
+    <div class="pano-shell" @if($pano) data-panorama="{{ $pano->display_url }}" @endif>
       <div class="pano-placeholder">
        <div class="pano-orbit"></div><strong>360°</strong><span>Перетащите, чтобы осмотреться</span>
       </div>
