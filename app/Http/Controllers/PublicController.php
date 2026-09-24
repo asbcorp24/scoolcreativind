@@ -17,7 +17,7 @@ class PublicController extends Controller
     {
         return view('home', [
             'studios' => Studio::where('is_active', true)->orderBy('sort_order')->get(),
-            'featuredMedia' => MediaItem::where('is_featured', true)->latest()->take(12)->get(),
+            'featuredMedia' => MediaItem::where('is_visible',true)->where('is_featured', true)->latest()->take(12)->get(),
             'projects' => StudentProject::where('is_featured', true)->latest()->take(8)->get(),
             'news' => NewsPost::where('is_published', true)->latest('published_at')->take(6)->get(),
             'events' => Event::where('is_published', true)->where('starts_at','>=',now()->subDay())->orderBy('starts_at')->take(4)->get(),
@@ -29,7 +29,7 @@ class PublicController extends Controller
     public function studio(Studio $studio)
     {
         abort_unless($studio->is_active, 404);
-        $studio->load('media','projects','team','equipment');
+        $studio->load(['media'=>fn($q)=>$q->where('is_visible',true)->orderBy('sort_order'),'projects','team','equipment']);
         return view('studio', compact('studio'));
     }
 
