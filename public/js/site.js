@@ -470,8 +470,8 @@ function initMediaPagination(){
       pager.innerHTML='';
       const prev=document.createElement('button');
       prev.type='button';
-      prev.className='btn btn-sm btn-ghost';
-      prev.textContent='←';
+      prev.className='media-page-btn media-page-arrow';
+      prev.innerHTML='<span>←</span><small>НАЗАД</small>';
       prev.disabled=current===1;
       prev.addEventListener('click',()=>{ if(current>1){current--;render();list.scrollIntoView({behavior:'smooth',block:'start'});} });
       pager.appendChild(prev);
@@ -479,16 +479,16 @@ function initMediaPagination(){
       for(let p=1;p<=pages;p++){
         const b=document.createElement('button');
         b.type='button';
-        b.className='btn btn-sm '+(p===current?'btn-neon':'btn-ghost');
-        b.textContent=String(p);
+        b.className='media-page-btn '+(p===current?'active':'');
+        b.textContent=String(p).padStart(2,'0');
         b.addEventListener('click',()=>{ current=p;render();list.scrollIntoView({behavior:'smooth',block:'start'}); });
         pager.appendChild(b);
       }
 
       const next=document.createElement('button');
       next.type='button';
-      next.className='btn btn-sm btn-ghost';
-      next.textContent='→';
+      next.className='media-page-btn media-page-arrow';
+      next.innerHTML='<small>ВПЕРЁД</small><span>→</span>';
       next.disabled=current===pages;
       next.addEventListener('click',()=>{ if(current<pages){current++;render();list.scrollIntoView({behavior:'smooth',block:'start'});} });
       pager.appendChild(next);
@@ -503,6 +503,8 @@ function initMediaSliders(){
     const track=slider.querySelector('[data-slider-track]');
     const prev=slider.querySelector('[data-slider-prev]');
     const next=slider.querySelector('[data-slider-next]');
+    const counter=slider.querySelector('[data-slider-counter]');
+    const slides=[...track?.querySelectorAll('.media-slider-slide')||[]];
     if(!track)return;
 
     const step=()=>Math.max(track.clientWidth*.92,280);
@@ -512,6 +514,18 @@ function initMediaSliders(){
     const refresh=()=>{
       if(prev)prev.disabled=track.scrollLeft<=4;
       if(next)next.disabled=track.scrollLeft+track.clientWidth>=track.scrollWidth-4;
+
+      if(counter && slides.length){
+        const center=track.scrollLeft+track.clientWidth/2;
+        let active=0;
+        let best=Infinity;
+        slides.forEach((slide,i)=>{
+          const pos=slide.offsetLeft+slide.offsetWidth/2;
+          const d=Math.abs(pos-center);
+          if(d<best){best=d;active=i;}
+        });
+        counter.textContent=String(active+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0');
+      }
     };
 
     track.addEventListener('scroll',refresh,{passive:true});
