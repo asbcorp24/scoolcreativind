@@ -7,6 +7,7 @@
 <ul class="nav nav-pills gap-2 mb-4" role="tablist">
  <li class="nav-item"><button class="btn btn-ghost active" data-bs-toggle="pill" data-bs-target="#homeSettings" type="button">Главная страница</button></li>
  <li class="nav-item"><button class="btn btn-ghost" data-bs-toggle="pill" data-bs-target="#seoSettings" type="button">SEO</button></li>
+ <li class="nav-item"><button class="btn btn-ghost" data-bs-toggle="pill" data-bs-target="#storageSettings" type="button">Хранилище</button></li>
 </ul>
 <div class="tab-content">
 <div class="tab-pane fade show active" id="homeSettings">
@@ -48,6 +49,42 @@
   <div class="col-12"><label class="form-label">OG Description</label><textarea class="form-control" rows="3" name="seo_og_description">{{ old('seo_og_description',$settings['seo_og_description'] ?? '') }}</textarea></div>
   <div class="col-12"><label class="form-label">OG Image URL</label><input class="form-control" name="seo_og_image" value="{{ old('seo_og_image',$settings['seo_og_image'] ?? '') }}"></div>
   <div class="col-md-6"><label class="form-label">Twitter Card</label><input class="form-control" name="seo_twitter_card" value="{{ old('seo_twitter_card',$settings['seo_twitter_card'] ?? 'summary_large_image') }}"></div>
+ </div>
+</div>
+
+<div class="tab-pane fade" id="storageSettings">
+ <div class="row g-4">
+  <div class="col-12"><h3>Выделенное место для файлов</h3><p class="text-white-50 mb-0">Лимит применяется к файлам, которые загружаются в локальное хранилище сайта. Если свободного места по заданному лимиту недостаточно, новый файл и запись медиа не будут созданы.</p></div>
+  <div class="col-lg-4">
+   <div class="glass-card p-4 h-100">
+    <div class="small text-white-50">Выделено</div>
+    <div class="display-6 fw-bold">{{ $storageStats['quota_human'] }}</div>
+   </div>
+  </div>
+  <div class="col-lg-4">
+   <div class="glass-card p-4 h-100">
+    <div class="small text-white-50">Занято</div>
+    <div class="display-6 fw-bold">{{ $storageStats['used_human'] }}</div>
+   </div>
+  </div>
+  <div class="col-lg-4">
+   <div class="glass-card p-4 h-100">
+    <div class="small text-white-50">Свободно</div>
+    <div class="display-6 fw-bold">{{ $storageStats['remaining_human'] }}</div>
+   </div>
+  </div>
+  @if($storageStats['quota'] > 0)
+  <div class="col-12">
+   <div class="progress" style="height:14px;background:rgba(255,255,255,.08)">
+    <div class="progress-bar" role="progressbar" style="width:{{ $storageStats['percent'] }}%">{{ $storageStats['percent'] }}%</div>
+   </div>
+  </div>
+  @endif
+  <div class="col-md-6">
+   <label class="form-label">Выделено места, МБ</label>
+   <input type="number" min="0" step="1" class="form-control" name="storage_quota_mb" value="{{ old('storage_quota_mb',$settings['storage_quota_mb'] ?? 0) }}" required>
+   <div class="form-text text-white-50">0 = без программного ограничения. Например: 1024 = 1 ГБ, 10240 = 10 ГБ.</div>
+  </div>
  </div>
 </div>
 </div>
