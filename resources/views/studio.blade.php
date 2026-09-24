@@ -30,7 +30,7 @@
  <div class="container-fluid px-lg-5">
   <div class="section-head"><div><div class="eyebrow">Photo lab</div><h2>Фотогалерея</h2></div></div>
   <div class="media-masonry">
-   @foreach($photos as $m)<button class="media-tile" data-bs-toggle="modal" data-bs-target="#photoModal" data-src="{{ $m->url }}"><img src="{{ $m->url }}" alt="{{ $m->title }}"><span>{{ $m->title }}</span></button>@endforeach
+   @foreach($photos as $m)<button class="media-tile" data-bs-toggle="modal" data-bs-target="#photoModal" data-src="{{ $m->display_url }}"><img src="{{ $m->display_url }}" alt="{{ $m->title }}"><span>{{ $m->title }}</span></button>@endforeach
   </div>
  </div>
 </section>
@@ -43,7 +43,7 @@
   <div class="section-head"><div><div class="eyebrow">Immersive spaces</div><h2>360° галерея</h2></div><p>Осмотрите пространство мышью или пальцем.</p></div>
   @foreach($panos as $m)
    <div class="pano-shell mb-4"
-        data-panorama="{{ $m->url }}"
+        data-panorama="{{ $m->display_url }}"
         data-hotspots='{{ $m->hotspots_json ? e($m->hotspots_json) : "[]" }}'>
       <div class="pano-placeholder"><strong>360°</strong><span>{{ $m->title ?: 'Панорама студии' }}</span></div>
    </div>
@@ -66,7 +66,7 @@
    <div class="col-lg-6">
     <article class="model-card">
       <model-viewer
-        src="{{ $m->url }}"
+        src="{{ $m->display_url }}"
         alt="{{ $m->title ?: '3D модель' }}"
         camera-controls
         touch-action="pan-y"
