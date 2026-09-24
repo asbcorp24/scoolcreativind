@@ -1,3 +1,7 @@
+import * as THREE from '/assets/vendor/three/three.module.min.js';
+import { GLTFLoader } from '/assets/vendor/three/GLTFLoader.js';
+import { OrbitControls } from '/assets/vendor/three/OrbitControls.js';
+
 document.addEventListener('DOMContentLoaded',()=>{
   const glow=document.getElementById('cursorGlow');
   window.addEventListener('pointermove',e=>{
@@ -12,6 +16,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   initPageTransitions();
   initTiltCards();
   initAudioPlayers();
+  initModelViewers();
   initHero();
   document.querySelectorAll('.pano-shell[data-panorama]').forEach(initPanorama);
 });
@@ -50,7 +55,7 @@ function initPageTransitions(){
 
 function initHero(){
   const canvas=document.getElementById('heroCanvas');
-  if(!canvas||!window.THREE)return;
+  if(!canvas||!THREE)return;
 
   const scene=new THREE.Scene();
   const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,100);
@@ -118,7 +123,7 @@ function initHero(){
 
 function initPanorama(el){
   const url=el.dataset.panorama;
-  if(!url||!window.THREE)return;
+  if(!url||!THREE)return;
 
   const scene=new THREE.Scene();
   const camera=new THREE.PerspectiveCamera(70,el.clientWidth/el.clientHeight,.1,1000);
@@ -339,5 +344,83 @@ function initAudioPlayers(){
       const r=bar.getBoundingClientRect();
       audio.currentTime=((e.clientX-r.left)/r.width)*audio.duration;
     });
+  });
+}
+
+
+function initModelViewers(){
+  document.querySelectorAll('[data-model-viewer]').forEach(el=>{
+    const url=el.dataset.modelUrl;
+    if(!url)return;
+
+    const scene=new THREE.Scene();
+    const camera=new THREE.PerspectiveCamera(45,el.clientWidth/Math.max(el.clientHeight,1),0.01,1000);
+    camera.position.set(2.8,1.8,3.8);
+
+    const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));
+    renderer.setSize(el.clientWidth,el.clientHeight);
+    renderer.outputColorSpace=THREE.SRGBColorSpace;
+    renderer.toneMapping=THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure=1.1;
+    el.appendChild(renderer.domElement);
+
+    const hemi=new THREE.HemisphereLight(0xffffff,0x222233,2.2);
+    scene.add(hemi);
+    const key=new THREE.DirectionalLight(0xffffff,2.6);
+    key.position.set(4,6,5);
+    scene.add(key);
+    const rim=new THREE.DirectionalLight(0x8a5cff,1.4);
+    rim.position.set(-4,2,-4);
+    scene.add(rim);
+
+    const controls=new OrbitControls(camera,renderer.domElement);
+    controls.enableDamping=true;
+    controls.dampingFactor=.06;
+    controls.autoRotate=true;
+    controls.autoRotateSpeed=1.1;
+
+    const loader=new GLTFLoader();
+    loader.load(url,gltf=>{
+      const model=gltf.scene;
+      scene.add(model);
+
+      const box=new THREE.Box3().setFromObject(model);
+      const size=box.getSize(new THREE.Vector3());
+      const center=box.getCenter(new THREE.Vector3());
+      model.position.sub(center);
+
+      const maxDim=Math.max(size.x,size.y,size.z)||1;
+      const distance=maxDim*2.2;
+      camera.position.set(distance*.8,distance*.45,distance);
+      camera.near=Math.max(distance/1000,.01);
+      camera.far=distance*20;
+      camera.updateProjectionMatrix();
+      controls.target.set(0,0,0);
+      controls.update();
+
+      el.classList.add('loaded');
+      const loading=el.querySelector('.model-loading');
+      if(loading)loading.remove();
+    },undefined,err=>{
+      console.error('GLTF load error',err);
+      const loading=el.querySelector('.model-loading');
+      if(loading)loading.textContent='Не удалось загрузить 3D-модель';
+    });
+
+    const ro=new ResizeObserver(()=>{
+      const w=el.clientWidth,h=el.clientHeight;
+      camera.aspect=w/Math.max(h,1);
+      camera.updateProjectionMatrix();
+      renderer.setSize(w,h);
+    });
+    ro.observe(el);
+
+    function draw(){
+      requestAnimationFrame(draw);
+      controls.update();
+      renderer.render(scene,camera);
+    }
+    draw();
   });
 }
