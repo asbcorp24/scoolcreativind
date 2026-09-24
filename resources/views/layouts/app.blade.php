@@ -22,7 +22,7 @@
       <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
         <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#studios">Студии</a></li>
         <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#works">Работы</a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ route('team') }}">Команда</a></li><li class="nav-item"><a class="nav-link" href="{{ route('equipment') }}">Оборудование</a></li><li class="nav-item"><a class="nav-link" href="{{ route('news.index') }}">Новости</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ route('schedule') }}">Расписание</a></li><li class="nav-item"><a class="nav-link" href="{{ route('competitions') }}">Достижения</a></li><li class="nav-item"><a class="nav-link" href="{{ route('team') }}">Команда</a></li><li class="nav-item"><a class="nav-link" href="{{ route('equipment') }}">Оборудование</a></li><li class="nav-item"><a class="nav-link" href="{{ route('news.index') }}">Новости</a></li>
         <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#campus360">360°</a></li>
         <li class="nav-item ms-lg-2"><a class="btn btn-neon" href="{{ route('apply') }}">Поступить</a></li>
         @auth
