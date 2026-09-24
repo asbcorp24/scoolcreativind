@@ -27,5 +27,6 @@ class DatabaseSeeder extends Seeder
             'password'=>Hash::make(env('ADMIN_PASSWORD','ChangeMe123!')),
             'is_admin'=>true
         ]);
+        $this->call(QuizSeeder::class);
     }
 }
