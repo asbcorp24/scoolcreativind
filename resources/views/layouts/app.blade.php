@@ -58,6 +58,10 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
           @auth
             <a class="dropdown-item" href="{{ route('cabinet') }}">Личный кабинет</a>
             @if(auth()->user()->is_admin)<a class="dropdown-item" href="{{ route('admin.dashboard') }}">Админ-панель</a>@endif
+            <div class="dropdown-divider"></div>
+            <form method="post" action="{{ route('logout') }}" class="m-0">@csrf
+              <button type="submit" class="dropdown-item sci-logout-item">Выйти из аккаунта</button>
+            </form>
           @else
             <a class="dropdown-item" href="{{ route('login') }}">Войти</a>
           @endauth
@@ -94,6 +98,12 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
 </nav>
 
 @auth
+<form method="post" action="{{ request()->routeIs('admin.*') ? route('admin.logout') : route('logout') }}" class="mobile-logout-fab">@csrf
+  <button type="submit" aria-label="Выйти из аккаунта"><span>↪</span></button>
+</form>
+@endauth
+
+@auth
 @if(request()->routeIs('admin.*') && !request()->routeIs('admin.login*'))
 <nav class="admin-subnav">
   <div class="container-fluid px-lg-5">
@@ -121,6 +131,9 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
         <a class="admin-nav-link {{ request()->routeIs('admin.settings*') ? 'active' : '' }}" href="{{ route('admin.settings') }}">Главная / SEO</a>
       @endif
       <a class="admin-nav-link admin-nav-site" href="{{ route('home') }}" target="_blank">Открыть сайт ↗</a>
+      <form method="post" action="{{ route('admin.logout') }}" class="admin-logout-form">@csrf
+        <button type="submit" class="admin-nav-link admin-nav-logout">Выйти</button>
+      </form>
     </div>
   </div>
 </nav>
