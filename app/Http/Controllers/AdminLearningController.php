@@ -118,6 +118,7 @@ class AdminLearningController extends Controller
             'type'=>'required|string|max:80',
             'description'=>'nullable|string|max:5000',
             'cover'=>'nullable|image|max:10240',
+            'project_file'=>'nullable|file|max:102400',
             'project_url'=>'nullable|string|max:2000',
             'video_url'=>'nullable|string|max:2000',
             'completed_at'=>'nullable|date',
@@ -132,8 +133,19 @@ class AdminLearningController extends Controller
             if ($item->cover && !preg_match('~^(https?:)?//~i',$item->cover)) {
                 Storage::disk('public')->delete($item->cover);
             }
-            $data['cover']=$request->file('cover')->store('portfolio','public');
+            $data['cover']=$request->file('cover')->store('projects/covers','public');
         }
+
+        if ($request->hasFile('project_file')) {
+            if ($item->file_path) Storage::disk('public')->delete($item->file_path);
+            $file=$request->file('project_file');
+            $data['file_path']=$file->store('projects/files','public');
+            $data['file_name']=$file->getClientOriginalName();
+            $data['mime_type']=$file->getMimeType();
+            $data['file_size']=$file->getSize();
+        }
+
+        unset($data['project_file']);
 
         $data['is_featured']=$request->boolean('is_featured');
         $data['is_public']=$request->boolean('is_public');
@@ -147,6 +159,7 @@ class AdminLearningController extends Controller
         if ($item->cover && !preg_match('~^(https?:)?//~i',$item->cover)) {
             Storage::disk('public')->delete($item->cover);
         }
+        if ($item->file_path) Storage::disk('public')->delete($item->file_path);
         $item->delete();
         return back()->with('success','Работа удалена.');
     }
