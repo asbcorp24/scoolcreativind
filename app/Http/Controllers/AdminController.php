@@ -54,8 +54,8 @@ class AdminController extends Controller
     public function addMedia(Request $request, Studio $studio)
     {
         $data=$request->validate([
-            'type'=>'required|in:photo,panorama,video','title'=>'nullable|string|max:180','url'=>'required|string|max:2000',
-            'thumbnail'=>'nullable|string|max:2000','caption'=>'nullable|string|max:2000','sort_order'=>'nullable|integer|min:0','is_featured'=>'nullable|boolean'
+            'type'=>'required|in:photo,panorama,video,model','title'=>'nullable|string|max:180','url'=>'required|string|max:2000',
+            'thumbnail'=>'nullable|string|max:2000','caption'=>'nullable|string|max:2000','hotspots_json'=>'nullable|json','sort_order'=>'nullable|integer|min:0','is_featured'=>'nullable|boolean'
         ]);
         $data['is_featured']=$request->boolean('is_featured');
         $studio->media()->create($data);
