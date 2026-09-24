@@ -117,6 +117,39 @@
  </div>
 </section>
 
+
+@if($studio->team->count() || $studio->equipment->count())
+<section class="section-space pt-0">
+ <div class="container">
+  @if($studio->team->count())
+  <div class="section-head"><div><div class="eyebrow">Mentors</div><h2>Наставники студии</h2></div><a href="{{ route('team') }}" class="btn btn-ghost">Вся команда</a></div>
+  <div class="row g-4 mb-5">
+   @foreach($studio->team as $m)
+   <div class="col-md-6 col-xl-4">
+    <article class="team-card">
+      <div class="team-photo">@if($m->photo_url)<img src="{{ $m->photo_url }}" alt="{{ $m->name }}">@else<div class="team-placeholder">{{ mb_substr($m->name,0,1) }}</div>@endif</div>
+      <div class="team-info"><h3>{{ $m->name }}</h3><div class="team-role">{{ $m->role }}</div>@if($m->bio)<p>{{ $m->bio }}</p>@endif</div>
+    </article>
+   </div>
+   @endforeach
+  </div>
+  @endif
+
+  @if($studio->equipment->count())
+  <div class="section-head mt-5"><div><div class="eyebrow">Tools</div><h2>Оборудование</h2></div><a href="{{ route('equipment') }}" class="btn btn-ghost">Весь каталог</a></div>
+  <div class="equipment-strip">
+   @foreach($studio->equipment->take(6) as $item)
+   <a href="{{ route('equipment') }}" class="equipment-mini">
+    <div class="equipment-mini-image">@if($item->image_url)<img src="{{ $item->image_url }}" alt="{{ $item->title }}">@endif</div>
+    <div><div class="small text-white-50">{{ $item->category }}</div><strong>{{ $item->title }}</strong><div class="small">{{ trim(($item->brand ?? '').' '.($item->model ?? '')) }}</div></div>
+   </a>
+   @endforeach
+  </div>
+  @endif
+ </div>
+</section>
+@endif
+
 <section class="cta-section"><div class="container text-center"><div class="eyebrow justify-content-center">Хочу в эту студию</div><h2>Попробуй себя<br>в {{ mb_strtolower($studio->title) }}.</h2><a href="{{ route('apply') }}?studio={{ $studio->id }}" class="btn btn-neon btn-lg mt-4">Подать заявку</a></div></section>
 
 <div class="modal fade" id="photoModal" tabindex="-1"><div class="modal-dialog modal-fullscreen"><div class="modal-content bg-black"><button type="button" class="btn-close btn-close-white modal-x" data-bs-dismiss="modal"></button><div class="modal-body d-flex align-items-center justify-content-center"><img id="modalPhoto" class="img-fluid mh-100" alt=""></div></div></div></div>
