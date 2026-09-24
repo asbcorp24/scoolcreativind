@@ -42,8 +42,48 @@
  <div class="container">
   <div class="section-head"><div><div class="eyebrow">Immersive spaces</div><h2>360° галерея</h2></div><p>Осмотрите пространство мышью или пальцем.</p></div>
   @foreach($panos as $m)
-   <div class="pano-shell mb-4" data-panorama="{{ $m->url }}"><div class="pano-placeholder"><strong>360°</strong><span>{{ $m->title ?: 'Панорама студии' }}</span></div></div>
+   <div class="pano-shell mb-4"
+        data-panorama="{{ $m->url }}"
+        data-hotspots='{{ $m->hotspots_json ? e($m->hotspots_json) : "[]" }}'>
+      <div class="pano-placeholder"><strong>360°</strong><span>{{ $m->title ?: 'Панорама студии' }}</span></div>
+   </div>
   @endforeach
+ </div>
+</section>
+@endif
+
+
+@php($models=$studio->media->where('type','model'))
+@if($models->count())
+<section class="section-space">
+ <div class="container-fluid px-lg-5">
+  <div class="section-head">
+   <div><div class="eyebrow">Realtime 3D</div><h2>3D-галерея</h2></div>
+   <p>Модели можно вращать, приближать и рассматривать прямо в браузере. Поддерживаются GLB и GLTF.</p>
+  </div>
+  <div class="row g-4">
+   @foreach($models as $m)
+   <div class="col-lg-6">
+    <article class="model-card">
+      <model-viewer
+        src="{{ $m->url }}"
+        alt="{{ $m->title ?: '3D модель' }}"
+        camera-controls
+        touch-action="pan-y"
+        auto-rotate
+        shadow-intensity="1"
+        exposure="1"
+        interaction-prompt="auto">
+      </model-viewer>
+      <div class="model-meta">
+        <div class="eyebrow">3D object</div>
+        <h3>{{ $m->title ?: '3D модель' }}</h3>
+        @if($m->caption)<p>{{ $m->caption }}</p>@endif
+      </div>
+    </article>
+   </div>
+   @endforeach
+  </div>
  </div>
 </section>
 @endif
