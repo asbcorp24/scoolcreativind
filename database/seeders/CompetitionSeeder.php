@@ -4,11 +4,20 @@ namespace Database\Seeders;
 
 use App\Models\Competition;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 
 class CompetitionSeeder extends Seeder
 {
     public function run(): void
     {
+        $supportsDocuments = Schema::hasColumn('competitions', 'required_documents_json');
+
+        $standardDocuments = [
+            ['key'=>'doc_1','label'=>'Заявка участника'],
+            ['key'=>'doc_2','label'=>'Согласие на обработку персональных данных'],
+            ['key'=>'doc_3','label'=>'Согласие родителя / законного представителя'],
+        ];
+
         $competitions = [
             [
                 'title'=>'Digital Art Challenge 2026',
@@ -16,15 +25,8 @@ class CompetitionSeeder extends Seeder
                 'starts_on'=>'2026-10-01',
                 'ends_on'=>'2026-10-31',
                 'location'=>'Онлайн',
-                'description'=>'Конкурс цифрового искусства для учеников школы. Можно представить постер, иллюстрацию, фирменный стиль, цифровой коллаж или экспериментальную графику.',
-                'required_documents_json'=>[
-                    ['key'=>'doc_1','label'=>'Заявка участника'],
-                    ['key'=>'doc_2','label'=>'Согласие на обработку персональных данных'],
-                    ['key'=>'doc_3','label'=>'Согласие родителя / законного представителя'],
-                ],
-                'url'=>null,
-                'cover'=>null,
-                'is_published'=>true,
+                'description'=>'Конкурс цифрового искусства: постеры, иллюстрации, айдентика, цифровые коллажи и экспериментальная графика.',
+                'documents'=>$standardDocuments,
             ],
             [
                 'title'=>'3D Future Worlds',
@@ -32,14 +34,11 @@ class CompetitionSeeder extends Seeder
                 'starts_on'=>'2026-10-10',
                 'ends_on'=>'2026-11-15',
                 'location'=>'ШКИ, Волжск',
-                'description'=>'Создайте авторскую 3D-сцену будущего: город, транспорт, персонажа, архитектурный объект или фантастический мир. Можно приложить GLB/GLTF, рендеры и видео.',
-                'required_documents_json'=>[
-                    ['key'=>'doc_1','label'=>'Заявка участника'],
-                    ['key'=>'doc_2','label'=>'Согласие на обработку персональных данных'],
+                'description'=>'Создание авторской 3D-сцены будущего: город, транспорт, персонаж, архитектурный объект или фантастический мир.',
+                'documents'=>[
+                    ...$standardDocuments,
+                    ['key'=>'doc_4','label'=>'Краткое описание 3D-проекта'],
                 ],
-                'url'=>null,
-                'cover'=>null,
-                'is_published'=>true,
             ],
             [
                 'title'=>'VR / AR Experience',
@@ -47,15 +46,12 @@ class CompetitionSeeder extends Seeder
                 'starts_on'=>'2026-11-01',
                 'ends_on'=>'2026-12-05',
                 'location'=>'Онлайн + очный финал',
-                'description'=>'Конкурс интерактивных проектов, VR-сцен и AR-прототипов. Оцениваются идея, интерактивность, визуальная подача и качество пользовательского опыта.',
-                'required_documents_json'=>[
-                    ['key'=>'doc_1','label'=>'Заявка участника'],
-                    ['key'=>'doc_2','label'=>'Согласие на обработку персональных данных'],
-                    ['key'=>'doc_3','label'=>'Краткое описание проекта'],
+                'description'=>'Конкурс интерактивных проектов, VR-сцен и AR-прототипов. Оцениваются идея, интерактивность и пользовательский опыт.',
+                'documents'=>[
+                    ...$standardDocuments,
+                    ['key'=>'doc_4','label'=>'Описание проекта'],
+                    ['key'=>'doc_5','label'=>'Ссылка на демонстрацию / видео проекта'],
                 ],
-                'url'=>null,
-                'cover'=>null,
-                'is_published'=>true,
             ],
             [
                 'title'=>'Sound Design Battle',
@@ -63,14 +59,11 @@ class CompetitionSeeder extends Seeder
                 'starts_on'=>'2026-10-15',
                 'ends_on'=>'2026-11-20',
                 'location'=>'ШКИ, Волжск',
-                'description'=>'Создайте звуковую атмосферу, саунд-дизайн для короткой сцены или авторскую композицию. Можно отправить MP3/WAV, ссылку на проект и описание идеи.',
-                'required_documents_json'=>[
-                    ['key'=>'doc_1','label'=>'Заявка участника'],
-                    ['key'=>'doc_2','label'=>'Согласие на обработку персональных данных'],
+                'description'=>'Конкурс саунд-дизайна, звуковых атмосфер и авторских композиций.',
+                'documents'=>[
+                    ...$standardDocuments,
+                    ['key'=>'doc_4','label'=>'Описание музыкальной / звуковой работы'],
                 ],
-                'url'=>null,
-                'cover'=>null,
-                'is_published'=>true,
             ],
             [
                 'title'=>'Short Film / Reels',
@@ -78,15 +71,12 @@ class CompetitionSeeder extends Seeder
                 'starts_on'=>'2026-11-10',
                 'ends_on'=>'2026-12-20',
                 'location'=>'Онлайн',
-                'description'=>'Короткий фильм, клип, репортаж или вертикальное видео до 3 минут. Важны история, монтаж, работа с камерой и визуальная выразительность.',
-                'required_documents_json'=>[
-                    ['key'=>'doc_1','label'=>'Заявка участника'],
-                    ['key'=>'doc_2','label'=>'Согласие на обработку персональных данных'],
-                    ['key'=>'doc_3','label'=>'Согласие на публикацию фото и видео'],
+                'description'=>'Короткий фильм, клип, репортаж или вертикальное видео до 3 минут.',
+                'documents'=>[
+                    ...$standardDocuments,
+                    ['key'=>'doc_4','label'=>'Согласие на публикацию фото и видео'],
+                    ['key'=>'doc_5','label'=>'Краткое описание видеоработы'],
                 ],
-                'url'=>null,
-                'cover'=>null,
-                'is_published'=>true,
             ],
             [
                 'title'=>'Creative Identity',
@@ -94,21 +84,33 @@ class CompetitionSeeder extends Seeder
                 'starts_on'=>'2027-01-15',
                 'ends_on'=>'2027-02-28',
                 'location'=>'ШКИ, Волжск',
-                'description'=>'Разработайте айдентику вымышленного бренда: логотип, цветовую палитру, типографику, ключевые носители и презентацию концепции.',
-                'required_documents_json'=>[
-                    ['key'=>'doc_1','label'=>'Заявка участника'],
-                    ['key'=>'doc_2','label'=>'Согласие на обработку персональных данных'],
+                'description'=>'Конкурс айдентики: логотип, цветовая палитра, типографика и ключевые носители бренда.',
+                'documents'=>[
+                    ...$standardDocuments,
+                    ['key'=>'doc_4','label'=>'Описание концепции фирменного стиля'],
                 ],
-                'url'=>null,
-                'cover'=>null,
-                'is_published'=>true,
             ],
         ];
 
-        foreach ($competitions as $competition) {
+        foreach ($competitions as $item) {
+            $data = [
+                'organizer'=>$item['organizer'],
+                'starts_on'=>$item['starts_on'],
+                'ends_on'=>$item['ends_on'],
+                'location'=>$item['location'],
+                'description'=>$item['description'],
+                'url'=>null,
+                'cover'=>null,
+                'is_published'=>true,
+            ];
+
+            if ($supportsDocuments) {
+                $data['required_documents_json']=$item['documents'];
+            }
+
             Competition::updateOrCreate(
-                ['title'=>$competition['title']],
-                $competition
+                ['title'=>$item['title']],
+                $data
             );
         }
     }
