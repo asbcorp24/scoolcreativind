@@ -4,19 +4,23 @@
 <section class="page-top"><div class="container"><div class="eyebrow">Админ / конкурсы</div><div class="d-flex justify-content-between align-items-end flex-wrap gap-3"><h1 class="display-3 fw-bold m-0">Конкурсы и достижения</h1><a href="{{ route('admin.dashboard') }}" class="btn btn-ghost">← Админка</a></div></div></section>
 <section class="pb-5"><div class="container">
 <div class="row g-5">
-<div class="col-xl-6"><form class="glass-card p-4" method="post" action="{{ route('admin.competitions.save') }}">@csrf
-<h3 class="mb-4">Добавить конкурс</h3>
+@php($editing=$editCompetition ?? null)
+<div class="col-xl-6"><form class="glass-card p-4" method="post" action="{{ route('admin.competitions.save',$editing) }}">@csrf
+<h3 class="mb-4">{{ $editing ? 'Редактировать конкурс' : 'Добавить конкурс' }}</h3>
 <div class="row g-3">
-<div class="col-12"><label class="form-label">Название</label><input class="form-control" name="title" required></div>
-<div class="col-12"><label class="form-label">Организатор</label><input class="form-control" name="organizer"></div>
-<div class="col-md-6"><label class="form-label">Начало</label><input type="date" class="form-control" name="starts_on"></div>
-<div class="col-md-6"><label class="form-label">Окончание</label><input type="date" class="form-control" name="ends_on"></div>
-<div class="col-12"><label class="form-label">Место</label><input class="form-control" name="location"></div>
-<div class="col-12"><label class="form-label">Ссылка</label><input class="form-control" name="url"></div>
-<div class="col-12"><label class="form-label">Описание</label><textarea class="form-control" rows="5" name="description"></textarea></div>
-<div class="col-12"><label class="form-label">Какие документы должен загрузить участник</label><textarea class="form-control" rows="6" name="required_documents" placeholder="Согласие на обработку персональных данных&#10;Заявка участника&#10;Скан паспорта / свидетельства&#10;Согласие родителя"></textarea><div class="form-text text-white-50">Каждый документ — с новой строки. После записи участник увидит этот список в личном кабинете.</div></div>
-<div class="col-md-6"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_published" value="1" checked><label class="form-check-label">Опубликовать</label></div></div>
-<div class="col-md-6 text-end"><button class="btn btn-neon">Добавить конкурс</button></div>
+<div class="col-12"><label class="form-label">Название</label><input class="form-control" name="title" value="{{ old('title',$editing->title ?? '') }}" required></div>
+<div class="col-12"><label class="form-label">Организатор</label><input class="form-control" name="organizer" value="{{ old('organizer',$editing->organizer ?? '') }}"></div>
+<div class="col-md-6"><label class="form-label">Начало</label><input type="date" class="form-control" name="starts_on" value="{{ old('starts_on',optional($editing?->starts_on)->format('Y-m-d')) }}"></div>
+<div class="col-md-6"><label class="form-label">Окончание</label><input type="date" class="form-control" name="ends_on" value="{{ old('ends_on',optional($editing?->ends_on)->format('Y-m-d')) }}"></div>
+<div class="col-12"><label class="form-label">Место</label><input class="form-control" name="location" value="{{ old('location',$editing->location ?? '') }}"></div>
+<div class="col-12"><label class="form-label">Ссылка</label><input class="form-control" name="url" value="{{ old('url',$editing->url ?? '') }}"></div>
+<div class="col-12"><label class="form-label">Описание</label><textarea class="form-control" rows="5" name="description">{{ old('description',$editing->description ?? '') }}</textarea></div>
+<div class="col-12"><label class="form-label">Какие документы должен загрузить участник</label><textarea class="form-control" rows="6" name="required_documents" placeholder="Согласие на обработку персональных данных&#10;Заявка участника&#10;Скан паспорта / свидетельства&#10;Согласие родителя">{{ old('required_documents',$editing ? collect($editing->required_documents_json ?: [])->pluck('label')->implode(PHP_EOL) : '') }}</textarea><div class="form-text text-white-50">Каждый документ — с новой строки. После записи участник увидит этот список в личном кабинете.</div></div>
+<div class="col-md-6"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_published" value="1" {{ old('is_published',$editing->is_published ?? true) ? 'checked' : '' }}><label class="form-check-label">Опубликовать</label></div></div>
+<div class="col-md-6 text-end d-flex gap-2 justify-content-end">
+ @if($editing)<a href="{{ route('admin.competitions') }}" class="btn btn-ghost">Отмена</a>@endif
+ <button class="btn btn-neon">{{ $editing ? 'Сохранить изменения' : 'Добавить конкурс' }}</button>
+</div>
 </div></form></div>
 <div class="col-xl-6"><form class="glass-card p-4" enctype="multipart/form-data" method="post" action="{{ route('admin.achievements.save') }}">@csrf
 <h3 class="mb-4">Добавить достижение</h3>
@@ -35,7 +39,7 @@
 </div>
 
 <div class="glass-card p-4 mt-5"><h3 class="mb-4">Конкурсы</h3><div class="table-responsive"><table class="table admin-table align-middle"><thead><tr><th>Название</th><th>Период</th><th>Организатор</th><th></th></tr></thead><tbody>
-@forelse($competitions as $c)<tr><td><strong>{{ $c->title }}</strong><div class="small text-white-50">Участников: {{ $c->registrations_count }}</div></td><td>{{ optional($c->starts_on)->format('d.m.Y') }} @if($c->ends_on) — {{ $c->ends_on->format('d.m.Y') }} @endif</td><td>{{ $c->organizer ?: '—' }}</td><td class="text-end"><form method="post" action="{{ route('admin.competitions.delete',$c) }}">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">Удалить</button></form></td></tr>
+@forelse($competitions as $c)<tr><td><strong>{{ $c->title }}</strong><div class="small text-white-50">Участников: {{ $c->registrations_count }}</div></td><td>{{ optional($c->starts_on)->format('d.m.Y') }} @if($c->ends_on) — {{ $c->ends_on->format('d.m.Y') }} @endif</td><td>{{ $c->organizer ?: '—' }}</td><td class="text-end"><div class="d-flex gap-2 justify-content-end flex-wrap"><a href="{{ route('admin.competitions.edit',$c) }}" class="btn btn-sm btn-ghost">Редактировать</a><form method="post" action="{{ route('admin.competitions.delete',$c) }}">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">Удалить</button></form></div></td></tr>
 @if($c->registrations->count())<tr><td colspan="4"><div class="p-3 rounded-3" style="background:rgba(255,255,255,.025)"><strong>Участники</strong><div class="table-responsive mt-2"><table class="table admin-table table-sm"><thead><tr><th>Ученик</th><th>Статус</th><th>Документы</th><th>Работа</th></tr></thead><tbody>
 @foreach($c->registrations as $r)
  @php($requirements=collect($c->required_documents_json ?: []))
