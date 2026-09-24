@@ -54,10 +54,10 @@ class AdminController extends Controller
     public function addMedia(Request $request, Studio $studio)
     {
         $data=$request->validate([
-            'type'=>'required|in:photo,panorama,video,model',
+            'type'=>'required|in:photo,panorama,video,model,audio',
             'title'=>'nullable|string|max:180',
             'url'=>'nullable|string|max:2000',
-            'file'=>'nullable|file|max:51200|mimes:jpg,jpeg,png,webp,glb,gltf',
+            'file'=>'nullable|file|max:51200|mimes:jpg,jpeg,png,webp,glb,gltf,mp3,wav,ogg,m4a,aac',
             'thumbnail'=>'nullable|string|max:2000',
             'caption'=>'nullable|string|max:2000',
             'hotspots_json'=>'nullable|json',
