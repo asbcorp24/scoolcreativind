@@ -31,6 +31,8 @@ Route::middleware('auth')->group(function(){
     Route::get('/quiz-results/{attempt}',[QuizController::class,'result'])->name('quizzes.result');
     Route::post('/competitions/{competition}/register',[CompetitionParticipationController::class,'register'])->name('competitions.register');
     Route::post('/competitions/{competition}/submit',[CompetitionParticipationController::class,'submit'])->name('competitions.submit');
+    Route::post('/competitions/{competition}/documents/{documentKey}',[CompetitionParticipationController::class,'uploadDocument'])->name('competitions.documents.upload');
+    Route::delete('/competitions/{competition}/documents/{documentKey}',[CompetitionParticipationController::class,'deleteDocument'])->name('competitions.documents.delete');
     Route::delete('/competitions/{competition}/register',[CompetitionParticipationController::class,'cancel'])->name('competitions.cancel');
     Route::get('/study',[AcademicController::class,'dashboard'])->name('academic.dashboard');
     Route::get('/study/homework/{assignment}',[AcademicController::class,'homework'])->name('academic.homework');
