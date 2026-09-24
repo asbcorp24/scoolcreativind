@@ -26,7 +26,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
 <meta property="og:url" content="{{ url()->current() }}">
 @if($ogImage)<meta property="og:image" content="{{ $ogImage }}">@endif
 <meta name="twitter:card" content="{{ $twitterCard }}">
-@vite(['resources/css/app.css','resources/js/app.js'])
+<link rel="stylesheet" href="{{ asset('assets/vendor/bootstrap/bootstrap.min.css') }}">
 <link rel="stylesheet" href="{{ asset('css/site.css') }}">
 @stack('head')
 </head>
@@ -75,6 +75,8 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
   <hr><div class="small opacity-50">© {{ date('Y') }} Школа креативных индустрий</div>
  </div>
 </footer>
+<script src="{{ asset('assets/vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
+<script type="module" src="{{ asset('js/site.js') }}"></script>
 @stack('scripts')
 </body>
 </html>
