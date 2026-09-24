@@ -6,6 +6,8 @@ use App\Http\Controllers\AdminPeopleEquipmentController;
 use App\Http\Controllers\AdminLearningController;
 use App\Http\Controllers\AdminSettingsController;
 use App\Http\Controllers\LearningController;
+use App\Http\Controllers\AcademicController;
+use App\Http\Controllers\AdminAcademicController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SeoController;
@@ -20,6 +22,11 @@ Route::get('/equipment', [PublicController::class,'equipment'])->name('equipment
 Route::get('/schedule',[LearningController::class,'schedule'])->name('schedule');
 Route::get('/portfolio/{profile}',[LearningController::class,'portfolio'])->name('portfolio.show');
 Route::get('/my-portfolio',[LearningController::class,'myPortfolio'])->middleware('auth')->name('portfolio.mine');
+Route::middleware('auth')->group(function(){
+    Route::get('/study',[AcademicController::class,'dashboard'])->name('academic.dashboard');
+    Route::get('/study/homework/{assignment}',[AcademicController::class,'homework'])->name('academic.homework');
+    Route::post('/study/homework/{assignment}',[AcademicController::class,'submitHomework'])->name('academic.homework.submit');
+});
 Route::get('/competitions',[LearningController::class,'competitions'])->name('competitions');
 Route::get('/news', [PublicController::class,'news'])->name('news.index');
 Route::get('/news/{post}', [PublicController::class,'newsShow'])->name('news.show');
@@ -43,6 +50,20 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::middleware('admin')->group(function(){
     Route::get('/',[AdminController::class,'dashboard'])->name('dashboard');
     Route::get('/settings',[AdminSettingsController::class,'edit'])->name('settings');
+    Route::get('/groups',[AdminAcademicController::class,'groups'])->name('groups');
+    Route::post('/groups/save/{group?}',[AdminAcademicController::class,'saveGroup'])->name('groups.save');
+    Route::post('/groups/{group}/members',[AdminAcademicController::class,'addMember'])->name('groups.members.add');
+    Route::delete('/groups/{group}/members/{user}/{role}',[AdminAcademicController::class,'removeMember'])->name('groups.members.remove');
+    Route::get('/subjects',[AdminAcademicController::class,'subjects'])->name('subjects');
+    Route::post('/subjects/save/{subject?}',[AdminAcademicController::class,'saveSubject'])->name('subjects.save');
+    Route::post('/groups/{group}/subjects',[AdminAcademicController::class,'attachSubject'])->name('groups.subjects.attach');
+    Route::get('/journal',[AdminAcademicController::class,'journal'])->name('journal');
+    Route::post('/journal/lessons',[AdminAcademicController::class,'createJournalLesson'])->name('journal.lessons.create');
+    Route::patch('/journal/entries/{entry}',[AdminAcademicController::class,'saveJournalEntry'])->name('journal.entries.update');
+    Route::get('/homework',[AdminAcademicController::class,'homework'])->name('homework');
+    Route::post('/homework/save/{assignment?}',[AdminAcademicController::class,'saveHomework'])->name('homework.save');
+    Route::get('/homework/{assignment}/submissions',[AdminAcademicController::class,'submissions'])->name('homework.submissions');
+    Route::patch('/homework/submissions/{submission}',[AdminAcademicController::class,'reviewSubmission'])->name('homework.submissions.review');
     Route::post('/settings',[AdminSettingsController::class,'update'])->name('settings.update');
     Route::get('/studios/create',[AdminController::class,'studioForm'])->name('studios.create');
     Route::get('/studios/{studio}/edit',[AdminController::class,'studioForm'])->name('studios.edit');
