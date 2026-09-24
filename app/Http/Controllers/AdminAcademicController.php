@@ -6,10 +6,13 @@ use App\Models\HomeworkSubmission;
 use App\Models\JournalEntry;
 use App\Models\JournalLesson;
 use App\Models\StudyGroup;
+use App\Models\StudentProfile;
 use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AdminAcademicController extends Controller
 {
@@ -48,6 +51,53 @@ class AdminAcademicController extends Controller
         $data['is_active']=$request->boolean('is_active');
         $group->fill($data)->save();
         return back()->with('success','Учебная группа сохранена.');
+    }
+
+
+    public function createStudent(Request $request, StudyGroup $group)
+    {
+        abort_unless(auth()->user()->is_admin,403);
+
+        $data=$request->validate([
+            'name'=>'required|string|max:160',
+            'email'=>'nullable|email|max:160|unique:users,email',
+            'password'=>'nullable|string|min:8|max:100',
+        ]);
+
+        $base=Str::slug($data['name']);
+        if(!$base) $base='student';
+        $email=$data['email'] ?: $base.'.'.random_int(100,999).'@student.local';
+        while(User::where('email',$email)->exists()){
+            $email=$base.'.'.random_int(1000,9999).'@student.local';
+        }
+
+        $password=$data['password'] ?: Str::password(10);
+
+        $user=User::create([
+            'name'=>$data['name'],
+            'email'=>$email,
+            'password'=>Hash::make($password),
+            'is_admin'=>false,
+        ]);
+
+        $group->users()->attach($user->id,['role'=>'student']);
+
+        StudentProfile::firstOrCreate(
+            ['user_id'=>$user->id],
+            [
+                'studio_id'=>$group->studio_id,
+                'class_name'=>$group->name,
+                'portfolio_slug'=>Str::slug($user->name).'-'.$user->id,
+                'is_public'=>false,
+            ]
+        );
+
+        return back()->with('success','Ученик создан и добавлен в группу.')
+            ->with('created_student_credentials',[
+                'name'=>$user->name,
+                'email'=>$email,
+                'password'=>$password,
+            ]);
     }
 
     public function addMember(Request $request, StudyGroup $group)
