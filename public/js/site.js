@@ -1,6 +1,7 @@
 import * as THREE from '/assets/vendor/three/three.module.min.js';
 import { GLTFLoader } from '/assets/vendor/three/GLTFLoader.js';
 import { OrbitControls } from '/assets/vendor/three/OrbitControls.js';
+import { MeshoptDecoder } from '/assets/vendor/three/meshopt_decoder.module.js';
 
 document.addEventListener('DOMContentLoaded',()=>{
   const glow=document.getElementById('cursorGlow');
@@ -381,6 +382,15 @@ function initModelViewers(){
     controls.autoRotateSpeed=1.1;
 
     const loader=new GLTFLoader();
+    loader.setMeshoptDecoder(MeshoptDecoder);
+
+    const loading=el.querySelector('.model-loading');
+    if(loading){
+      loading.innerHTML='<div><strong>Загрузка 3D-модели…</strong><div class="small mt-2 model-load-url"></div></div>';
+      const urlEl=loading.querySelector('.model-load-url');
+      if(urlEl)urlEl.textContent=url;
+    }
+
     loader.load(url,gltf=>{
       const model=gltf.scene;
       scene.add(model);
@@ -402,10 +412,24 @@ function initModelViewers(){
       el.classList.add('loaded');
       const loading=el.querySelector('.model-loading');
       if(loading)loading.remove();
-    },undefined,err=>{
+    },progress=>{
+      const loading=el.querySelector('.model-loading');
+      if(loading && progress.total){
+        const pct=Math.round((progress.loaded/progress.total)*100);
+        const strong=loading.querySelector('strong');
+        if(strong)strong.textContent='Загрузка 3D-модели… '+pct+'%';
+      }
+    },err=>{
       console.error('GLTF load error',err);
       const loading=el.querySelector('.model-loading');
-      if(loading)loading.textContent='Не удалось загрузить 3D-модель';
+      if(loading){
+        const msg=err?.message || String(err || 'Неизвестная ошибка');
+        loading.innerHTML='<div class="model-error"><strong>Не удалось загрузить 3D-модель</strong><div class="small mt-2"></div><a class="btn btn-sm btn-ghost mt-3" target="_blank" rel="noopener">Открыть файл</a></div>';
+        const text=loading.querySelector('.small');
+        if(text)text.textContent=msg;
+        const link=loading.querySelector('a');
+        if(link)link.href=url;
+      }
     });
 
     const ro=new ResizeObserver(()=>{
