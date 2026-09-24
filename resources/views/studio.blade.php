@@ -88,6 +88,38 @@
 </section>
 @endif
 
+
+@php($audioTracks=$studio->media->where('type','audio'))
+@if($audioTracks->count())
+<section class="section-space audio-section">
+ <div class="container">
+  <div class="section-head">
+   <div><div class="eyebrow">Listen</div><h2>Аудиотреки</h2></div>
+   <p>Музыка, саунд-дизайн, вокальные работы, подкасты и записи учеников студии.</p>
+  </div>
+  <div class="audio-playlist">
+   @foreach($audioTracks as $i=>$track)
+   <article class="audio-track" data-audio-track>
+    <button class="audio-play" type="button" aria-label="Воспроизвести" data-audio-button>▶</button>
+    <div class="audio-track-main">
+     <div class="audio-track-top">
+      <div>
+       <div class="small text-white-50">TRACK {{ str_pad($i+1,2,'0',STR_PAD_LEFT) }}</div>
+       <h3>{{ $track->title ?: 'Аудиотрек' }}</h3>
+      </div>
+      <span class="audio-time" data-audio-time>00:00</span>
+     </div>
+     @if($track->caption)<p>{{ $track->caption }}</p>@endif
+     <div class="audio-progress"><div class="audio-progress-fill" data-audio-progress></div></div>
+     <audio preload="metadata" src="{{ $track->display_url }}" data-audio></audio>
+    </div>
+   </article>
+   @endforeach
+  </div>
+ </div>
+</section>
+@endif
+
 @php($videos=$studio->media->where('type','video'))
 @if($videos->count())
 <section class="section-space">
