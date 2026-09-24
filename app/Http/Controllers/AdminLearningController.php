@@ -67,9 +67,10 @@ class AdminLearningController extends Controller
     public function students()
     {
         return view('admin.students', [
-            'profiles'=>StudentProfile::with(['user','studio'])->latest()->get(),
-            'users'=>User::orderBy('name')->get(),
-            'studios'=>Studio::orderBy('sort_order')->get(),
+            'students'=>User::whereHas('studyGroups',fn($q)=>$q->where('role','student'))
+                ->with(['studyGroups'=>fn($q)=>$q->wherePivot('role','student')])
+                ->orderBy('name')->get(),
+            'profiles'=>StudentProfile::with(['user','studio'])->get()->keyBy('user_id'),
         ]);
     }
 
