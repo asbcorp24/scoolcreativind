@@ -10,6 +10,7 @@
 @stack('head')
 </head>
 <body>
+<div id="pageTransition"><span>ШКИ</span></div>
 <div id="cursorGlow"></div>
 <nav class="navbar navbar-expand-lg navbar-dark fixed-top sci-nav">
   <div class="container-fluid px-lg-5">
@@ -55,6 +56,7 @@
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.min.js"></script>
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="{{ asset('js/site.js') }}"></script>
 @stack('scripts')
 </body>
