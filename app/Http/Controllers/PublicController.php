@@ -76,7 +76,7 @@ class PublicController extends Controller
     {
         return view('cabinet', [
             'applications'=>AdmissionApplication::where('user_id',auth()->id())->latest()->get(),
-            'competitionRegistrations'=>CompetitionRegistration::with('competition')->where('user_id',auth()->id())->latest()->get(),
+            'competitionRegistrations'=>CompetitionRegistration::with(['competition','documents'])->where('user_id',auth()->id())->latest()->get(),
             'quizCertificates'=>QuizAttempt::with('quiz')->where('user_id',auth()->id())->where('passed',true)->whereNotNull('certificate_code')->latest('completed_at')->get(),
         ]);
     }
