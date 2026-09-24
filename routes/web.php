@@ -20,6 +20,7 @@ Route::get('/studios/{studio}', [PublicController::class,'studio'])->name('studi
 Route::get('/team', [PublicController::class,'team'])->name('team');
 Route::get('/equipment', [PublicController::class,'equipment'])->name('equipment');
 Route::get('/schedule',[LearningController::class,'schedule'])->name('schedule');
+Route::get('/projects',[LearningController::class,'projects'])->name('projects.index');
 Route::get('/portfolio/{profile}',[LearningController::class,'portfolio'])->name('portfolio.show');
 Route::get('/my-portfolio',[LearningController::class,'myPortfolio'])->middleware('auth')->name('portfolio.mine');
 Route::middleware('auth')->group(function(){
@@ -52,6 +53,7 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::get('/settings',[AdminSettingsController::class,'edit'])->name('settings');
     Route::get('/groups',[AdminAcademicController::class,'groups'])->name('groups');
     Route::post('/groups/save/{group?}',[AdminAcademicController::class,'saveGroup'])->name('groups.save');
+    Route::post('/groups/{group}/students/create',[AdminAcademicController::class,'createStudent'])->name('groups.students.create');
     Route::post('/groups/{group}/members',[AdminAcademicController::class,'addMember'])->name('groups.members.add');
     Route::delete('/groups/{group}/members/{user}/{role}',[AdminAcademicController::class,'removeMember'])->name('groups.members.remove');
     Route::get('/subjects',[AdminAcademicController::class,'subjects'])->name('subjects');
