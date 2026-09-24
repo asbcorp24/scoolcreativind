@@ -43,7 +43,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
       <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
         <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#studios">Студии</a></li>
         <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#works">Работы</a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ route('schedule') }}">Расписание</a></li><li class="nav-item"><a class="nav-link" href="{{ route('competitions') }}">Достижения</a></li><li class="nav-item"><a class="nav-link" href="{{ route('team') }}">Команда</a></li><li class="nav-item"><a class="nav-link" href="{{ route('equipment') }}">Оборудование</a></li><li class="nav-item"><a class="nav-link" href="{{ route('news.index') }}">Новости</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ route('schedule') }}">Расписание</a></li><li class="nav-item"><a class="nav-link" href="{{ route('competitions') }}">Конкурсы</a></li><li class="nav-item"><a class="nav-link" href="{{ route('quizzes.index') }}">Викторины</a></li><li class="nav-item"><a class="nav-link" href="{{ route('team') }}">Команда</a></li><li class="nav-item"><a class="nav-link" href="{{ route('equipment') }}">Оборудование</a></li><li class="nav-item"><a class="nav-link" href="{{ route('news.index') }}">Новости</a></li>
         <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#campus360">360°</a></li>
         <li class="nav-item ms-lg-2"><a class="btn btn-neon" href="{{ route('apply') }}">Поступить</a></li>
         @auth
@@ -72,6 +72,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
         <a class="admin-nav-link {{ request()->routeIs('admin.equipment*') ? 'active' : '' }}" href="{{ route('admin.equipment') }}">Оборудование</a>
         <a class="admin-nav-link {{ request()->routeIs('admin.students') ? 'active' : '' }}" href="{{ route('admin.students') }}">Ученики</a>
         <a class="admin-nav-link {{ request()->routeIs('admin.competitions*') || request()->routeIs('admin.achievements*') ? 'active' : '' }}" href="{{ route('admin.competitions') }}">Конкурсы</a>
+        <a class="admin-nav-link {{ request()->routeIs('admin.quizzes*') ? 'active' : '' }}" href="{{ route('admin.quizzes') }}">Викторины</a>
         <span class="admin-nav-separator"></span>
         <a class="admin-nav-link {{ request()->routeIs('admin.groups*') ? 'active' : '' }}" href="{{ route('admin.groups') }}">Группы</a>
         <a class="admin-nav-link {{ request()->routeIs('admin.subjects*') ? 'active' : '' }}" href="{{ route('admin.subjects') }}">Предметы</a>
