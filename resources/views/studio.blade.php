@@ -65,16 +65,9 @@
    @foreach($models as $m)
    <div class="col-lg-6">
     <article class="model-card">
-      <model-viewer
-        src="{{ $m->display_url }}"
-        alt="{{ $m->title ?: '3D модель' }}"
-        camera-controls
-        touch-action="pan-y"
-        auto-rotate
-        shadow-intensity="1"
-        exposure="1"
-        interaction-prompt="auto">
-      </model-viewer>
+      <div class="model-viewer-local" data-model-viewer data-model-url="{{ $m->display_url }}">
+        <div class="model-loading">Загрузка 3D-модели…</div>
+      </div>
       <div class="model-meta">
         <div class="eyebrow">3D object</div>
         <h3>{{ $m->title ?: '3D модель' }}</h3>
