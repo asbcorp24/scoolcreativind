@@ -71,6 +71,7 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::delete('/studios/{studio}',[AdminController::class,'deleteStudio'])->name('studios.delete');
     Route::get('/studios/{studio}/media',[AdminController::class,'mediaForm'])->name('media');
     Route::post('/studios/{studio}/media',[AdminController::class,'addMedia'])->name('media.add');
+    Route::patch('/media/{media}/flags',[AdminController::class,'updateMediaFlags'])->name('media.flags');
     Route::delete('/media/{media}',[AdminController::class,'deleteMedia'])->name('media.delete');
     Route::get('/news/create',[AdminController::class,'newsForm'])->name('news.create');
     Route::get('/news/{post}/edit',[AdminController::class,'newsForm'])->name('news.edit');
