@@ -23,7 +23,7 @@ return new class extends Migration
             $table->unsignedBigInteger('file_size')->nullable();
             $table->timestamps();
 
-            $table->unique(['competition_registration_id','document_key']);
+            $table->unique(['competition_registration_id','document_key'],'comp_docs_reg_key_unique');
         });
     }
 
