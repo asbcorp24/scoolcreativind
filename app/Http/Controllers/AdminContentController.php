@@ -2,9 +2,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Event;
-use App\Models\StudentProject;
+use App\Models\PortfolioItem;
+use App\Models\StudentProfile;
 use App\Models\Studio;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class AdminContentController extends Controller
@@ -12,31 +14,61 @@ class AdminContentController extends Controller
     public function projects()
     {
         return view('admin.projects', [
-            'projects'=>StudentProject::with('studio')->latest()->get(),
+            'projects'=>PortfolioItem::with(['student.user','studio'])->latest()->get(),
+            'profiles'=>StudentProfile::with('user')->orderByDesc('id')->get(),
             'studios'=>Studio::orderBy('sort_order')->get(),
         ]);
     }
 
-    public function saveProject(Request $request, ?StudentProject $project=null)
+    public function saveProject(Request $request, ?PortfolioItem $project=null)
     {
         $data=$request->validate([
+            'student_profile_id'=>'required|exists:student_profiles,id',
             'studio_id'=>'nullable|exists:studios,id',
-            'title'=>'required|string|max:200',
-            'author'=>'nullable|string|max:160',
-            'year'=>'nullable|string|max:20',
-            'description'=>'nullable|string|max:3000',
-            'cover'=>'nullable|string|max:2000',
+            'title'=>'required|string|max:220',
+            'type'=>'required|string|max:80',
+            'description'=>'nullable|string|max:10000',
+            'cover'=>'nullable|image|max:10240',
+            'project_file'=>'nullable|file|max:102400',
             'project_url'=>'nullable|string|max:2000',
+            'video_url'=>'nullable|string|max:2000',
+            'completed_at'=>'nullable|date',
+            'is_public'=>'nullable|boolean',
             'is_featured'=>'nullable|boolean',
         ]);
+
+        $project ??= new PortfolioItem();
+
+        if($request->hasFile('cover')){
+            if($project->cover && !preg_match('~^(https?:)?//~i',$project->cover)){
+                Storage::disk('public')->delete($project->cover);
+            }
+            $data['cover']=$request->file('cover')->store('projects/covers','public');
+        }
+
+        if($request->hasFile('project_file')){
+            if($project->file_path) Storage::disk('public')->delete($project->file_path);
+            $file=$request->file('project_file');
+            $data['file_path']=$file->store('projects/files','public');
+            $data['file_name']=$file->getClientOriginalName();
+            $data['mime_type']=$file->getMimeType();
+            $data['file_size']=$file->getSize();
+        }
+
+        unset($data['project_file']);
+        $data['is_public']=$request->boolean('is_public');
         $data['is_featured']=$request->boolean('is_featured');
-        $project ??= new StudentProject();
         $project->fill($data)->save();
-        return back()->with('success','Проект сохранён.');
+
+        return back()->with('success','Проект / работа сохранён.');
     }
 
-    public function deleteProject(StudentProject $project)
+    public function deleteProject(PortfolioItem $project)
     {
+        if($project->cover && !preg_match('~^(https?:)?//~i',$project->cover)){
+            Storage::disk('public')->delete($project->cover);
+        }
+        if($project->file_path) Storage::disk('public')->delete($project->file_path);
         $project->delete();
         return back()->with('success','Проект удалён.');
     }
