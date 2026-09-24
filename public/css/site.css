@@ -261,3 +261,17 @@ linear-gradient(135deg,#0d1119,#080a0f)}
  .mobile-app-item small{font-size:.54rem}
  .mobile-app-icon{font-size:1.2rem}
 }
+
+
+/* Logout controls */
+.sci-logout-item{color:#ff9fbf!important}
+.sci-logout-item:hover{background:rgba(255,79,216,.1)!important;color:#fff!important}
+.admin-logout-form{margin:0}
+.admin-nav-logout{border:1px solid rgba(255,79,216,.18)!important;color:#ffb3ca!important;background:rgba(255,79,216,.04)!important;cursor:pointer}
+.admin-nav-logout:hover{border-color:rgba(255,79,216,.45)!important;background:rgba(255,79,216,.1)!important;color:#fff!important}
+.mobile-logout-fab{display:none}
+@media(max-width:991.98px){
+ .mobile-logout-fab{display:block;position:fixed;right:18px;bottom:calc(86px + env(safe-area-inset-bottom));z-index:9996}
+ .mobile-logout-fab button{width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,79,216,.28);background:rgba(10,13,20,.92);color:#ffb3ca;display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.35),0 0 24px rgba(255,79,216,.08);backdrop-filter:blur(16px)}
+ .mobile-logout-fab button span{font-size:1.25rem;transform:rotate(180deg)}
+}
