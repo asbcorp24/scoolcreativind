@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SiteSetting;
+use App\Services\StorageQuota;
 use Illuminate\Http\Request;
 
 class AdminSettingsController extends Controller
@@ -9,7 +10,11 @@ class AdminSettingsController extends Controller
     public function edit()
     {
         $settings=SiteSetting::pluck('value','key')->all();
-        return view('admin.settings',compact('settings'));
+        $storageStats=StorageQuota::stats();
+        $storageStats['used_human']=StorageQuota::formatBytes($storageStats['used']);
+        $storageStats['quota_human']=$storageStats['quota']>0 ? StorageQuota::formatBytes($storageStats['quota']) : 'Без лимита';
+        $storageStats['remaining_human']=$storageStats['remaining']===null ? 'Без лимита' : StorageQuota::formatBytes($storageStats['remaining']);
+        return view('admin.settings',compact('settings','storageStats'));
     }
 
     public function update(Request $request)
@@ -42,6 +47,7 @@ class AdminSettingsController extends Controller
             'seo_og_description'=>'nullable|string|max:500',
             'seo_og_image'=>'nullable|url|max:2000',
             'seo_twitter_card'=>'nullable|string|max:120',
+            'storage_quota_mb'=>'required|integer|min:0|max:10485760',
         ]);
 
         foreach($data as $key=>$value){
