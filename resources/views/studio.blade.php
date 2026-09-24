@@ -32,7 +32,7 @@
   <div class="media-masonry" data-paginated-list data-page-size="6">
    @foreach($photos as $m)<button class="media-tile" data-page-item data-bs-toggle="modal" data-bs-target="#photoModal" data-src="{{ $m->display_url }}"><img src="{{ $m->display_url }}" alt="{{ $m->title }}"><span>{{ $m->title }}</span></button>@endforeach
   </div>
-  @if($photos->count()>6)<div class="media-pagination mt-4" data-pagination></div>@endif
+  @if($photos->count()>6)<div class="media-pagination media-pagination-hitech mt-4" data-pagination></div>@endif
  </div>
 </section>
 @endif
@@ -43,7 +43,6 @@
  <div class="container">
   <div class="section-head"><div><div class="eyebrow">Immersive spaces</div><h2>360° галерея</h2></div><p>Осмотрите пространство мышью или пальцем.</p></div>
   <div class="media-slider-shell" data-media-slider>
-   <button class="media-slider-nav prev" type="button" data-slider-prev aria-label="Предыдущая панорама">←</button>
    <div class="media-slider-track" data-slider-track>
     @foreach($panos as $m)
     <div class="media-slider-slide">
@@ -55,7 +54,11 @@
     </div>
     @endforeach
    </div>
-   <button class="media-slider-nav next" type="button" data-slider-next aria-label="Следующая панорама">→</button>
+   <div class="media-slider-controls">
+    <button class="media-slider-nav prev" type="button" data-slider-prev aria-label="Предыдущая панорама"><span>←</span><small>ПРЕДЫДУЩАЯ</small></button>
+    <div class="media-slider-counter" data-slider-counter>01 / {{ str_pad($panos->count(),2,'0',STR_PAD_LEFT) }}</div>
+    <button class="media-slider-nav next" type="button" data-slider-next aria-label="Следующая панорама"><small>СЛЕДУЮЩАЯ</small><span>→</span></button>
+   </div>
   </div>
  </div>
 </section>
@@ -71,7 +74,6 @@
    <p>Модели можно вращать, приближать и рассматривать прямо в браузере. Поддерживаются GLB и GLTF.</p>
   </div>
   <div class="media-slider-shell" data-media-slider>
-   <button class="media-slider-nav prev" type="button" data-slider-prev aria-label="Предыдущая модель">←</button>
    <div class="media-slider-track" data-slider-track>
    @foreach($models as $m)
    <div class="media-slider-slide">
@@ -88,7 +90,11 @@
    </div>
    @endforeach
    </div>
-   <button class="media-slider-nav next" type="button" data-slider-next aria-label="Следующая модель">→</button>
+   <div class="media-slider-controls">
+    <button class="media-slider-nav prev" type="button" data-slider-prev aria-label="Предыдущая модель"><span>←</span><small>ПРЕДЫДУЩАЯ</small></button>
+    <div class="media-slider-counter" data-slider-counter>01 / {{ str_pad($models->count(),2,'0',STR_PAD_LEFT) }}</div>
+    <button class="media-slider-nav next" type="button" data-slider-next aria-label="Следующая модель"><small>СЛЕДУЮЩАЯ</small><span>→</span></button>
+   </div>
   </div>
  </div>
 </section>
