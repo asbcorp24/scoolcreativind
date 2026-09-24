@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   initPageTransitions();
   initTiltCards();
+  initScrollTitles();
   initAudioPlayers();
   initMediaPagination();
   initMediaSliders();
@@ -268,7 +269,7 @@ function initPanorama(el){
 
 
 function initTiltCards(){
-  document.querySelectorAll('.studio-card').forEach(card=>{
+  document.querySelectorAll('.studio-card,.tilt-card,.project-card,.team-card,.equipment-card,.cabinet-link').forEach(card=>{
     card.addEventListener('pointermove',e=>{
       if(window.matchMedia('(pointer:coarse)').matches)return;
       const r=card.getBoundingClientRect();
@@ -603,4 +604,24 @@ function initPhotoLightbox(){
     if(e.key==='ArrowLeft'){index=(index-1+photos.length)%photos.length;render();}
     if(e.key==='ArrowRight'){index=(index+1)%photos.length;render();}
   });
+}
+
+
+function initScrollTitles(){
+  const titles=[...document.querySelectorAll('.section-head h2,.scroll-title,.studio-title')];
+  if(!titles.length)return;
+
+  const update=()=>{
+    const vh=window.innerHeight||1;
+    titles.forEach(title=>{
+      const r=title.getBoundingClientRect();
+      const p=Math.max(-1,Math.min(1,(r.top+r.height/2-vh/2)/vh));
+      title.style.setProperty('--scroll-shift',(p*-18).toFixed(1)+'px');
+      title.style.setProperty('--scroll-skew',(p*1.4).toFixed(2)+'deg');
+    });
+  };
+
+  update();
+  window.addEventListener('scroll',update,{passive:true});
+  window.addEventListener('resize',update);
 }
