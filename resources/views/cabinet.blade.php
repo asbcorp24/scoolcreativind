@@ -39,7 +39,8 @@
       </div>
       <div class="competition-doc-actions">
        <form method="post" enctype="multipart/form-data" action="{{ route('competitions.documents.upload',[$r->competition,$req['key']]) }}" class="d-flex gap-2 flex-wrap">@csrf
-        <input type="file" name="document" class="form-control form-control-sm" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.zip" required>
+        <input type="file" name="document" class="form-control form-control-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" required>
+        <div class="small text-white-50 w-100">Только PDF или изображение. До 10 МБ. Изображения автоматически уменьшаются до 1024×1024 пропорционально и сохраняются как JPG.</div>
         <button class="btn btn-sm btn-neon">{{ $doc ? 'Заменить' : 'Загрузить' }}</button>
        </form>
        @if($doc)
