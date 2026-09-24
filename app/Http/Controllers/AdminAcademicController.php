@@ -13,10 +13,21 @@ use Illuminate\Support\Facades\Storage;
 
 class AdminAcademicController extends Controller
 {
+    private function allowedGroupIds()
+    {
+        if (auth()->user()->is_admin) return StudyGroup::pluck('id');
+        return auth()->user()->teacherGroups()->pluck('study_groups.id');
+    }
+
+    private function ensureGroupAllowed(int $groupId): void
+    {
+        abort_unless($this->allowedGroupIds()->contains($groupId),403);
+    }
+
     public function groups()
     {
         return view('admin.academic.groups',[
-            'groups'=>StudyGroup::with(['studio','students','teachers','subjects'])->orderBy('study_year')->orderBy('name')->get(),
+            'groups'=>StudyGroup::with(['studio','students','teachers','subjects'])->whereIn('id',$this->allowedGroupIds())->orderBy('study_year')->orderBy('name')->get(),
             'users'=>User::orderBy('name')->get(),
             'subjects'=>Subject::orderBy('title')->get(),
         ]);
@@ -46,6 +57,7 @@ class AdminAcademicController extends Controller
             'role'=>'required|in:student,teacher',
         ]);
 
+        abort_unless(auth()->user()->is_admin,403);
         $group->users()->syncWithoutDetaching([
             $data['user_id']=>['role'=>$data['role']]
         ]);
@@ -55,6 +67,7 @@ class AdminAcademicController extends Controller
 
     public function removeMember(StudyGroup $group, User $user, string $role)
     {
+        abort_unless(auth()->user()->is_admin,403);
         $group->users()->wherePivot('role',$role)->detach($user->id);
         return back()->with('success','Пользователь удалён из группы.');
     }
@@ -63,7 +76,7 @@ class AdminAcademicController extends Controller
     {
         return view('admin.academic.subjects',[
             'subjects'=>Subject::with('studio')->orderBy('title')->get(),
-            'groups'=>StudyGroup::where('is_active',true)->orderBy('name')->get(),
+            'groups'=>StudyGroup::where('is_active',true)->whereIn('id',$this->allowedGroupIds())->orderBy('name')->get(),
             'teachers'=>User::whereHas('studyGroups',fn($q)=>$q->where('role','teacher'))->orderBy('name')->get(),
         ]);
     }
@@ -86,6 +99,7 @@ class AdminAcademicController extends Controller
             'subject_id'=>'required|exists:subjects,id',
             'teacher_id'=>'nullable|exists:users,id',
         ]);
+        abort_unless(auth()->user()->is_admin,403);
         $group->subjects()->syncWithoutDetaching([
             $data['subject_id']=>['teacher_id'=>$data['teacher_id'] ?? null]
         ]);
@@ -97,7 +111,8 @@ class AdminAcademicController extends Controller
         $groupId=$request->integer('group_id');
         $subjectId=$request->integer('subject_id');
 
-        $groups=StudyGroup::with('subjects')->orderBy('name')->get();
+        $groups=StudyGroup::with('subjects')->whereIn('id',$this->allowedGroupIds())->orderBy('name')->get();
+        if($groupId) $this->ensureGroupAllowed($groupId);
         $group=$groupId ? StudyGroup::with('students')->find($groupId) : null;
         $subject=$subjectId ? Subject::find($subjectId) : null;
 
@@ -120,6 +135,7 @@ class AdminAcademicController extends Controller
             'notes'=>'nullable|string|max:5000',
         ]);
 
+        $this->ensureGroupAllowed((int)$data['study_group_id']);
         $data['teacher_id']=auth()->id();
         $lesson=JournalLesson::create($data);
 
@@ -142,6 +158,8 @@ class AdminAcademicController extends Controller
             'grade_label'=>'nullable|string|max:30',
             'comment'=>'nullable|string|max:1000',
         ]);
+        $entry->load('lesson');
+        $this->ensureGroupAllowed((int)$entry->lesson->study_group_id);
         $entry->update($data);
         return back()->with('success','Запись журнала сохранена.');
     }
@@ -149,8 +167,8 @@ class AdminAcademicController extends Controller
     public function homework()
     {
         return view('admin.academic.homework',[
-            'assignments'=>HomeworkAssignment::with(['group','subject','submissions'])->latest()->get(),
-            'groups'=>StudyGroup::with('subjects')->where('is_active',true)->orderBy('name')->get(),
+            'assignments'=>HomeworkAssignment::with(['group','subject','submissions'])->whereIn('study_group_id',$this->allowedGroupIds())->latest()->get(),
+            'groups'=>StudyGroup::with('subjects')->where('is_active',true)->whereIn('id',$this->allowedGroupIds())->orderBy('name')->get(),
             'subjects'=>Subject::orderBy('title')->get(),
         ]);
     }
@@ -169,6 +187,7 @@ class AdminAcademicController extends Controller
             'is_published'=>'nullable|boolean',
         ]);
 
+        $this->ensureGroupAllowed((int)$data['study_group_id']);
         $assignment ??= new HomeworkAssignment();
         if($request->hasFile('attachment')){
             if($assignment->attachment) Storage::disk('public')->delete($assignment->attachment);
@@ -183,12 +202,15 @@ class AdminAcademicController extends Controller
 
     public function submissions(HomeworkAssignment $assignment)
     {
+        $this->ensureGroupAllowed((int)$assignment->study_group_id);
         $assignment->load(['group','subject','submissions.student']);
         return view('admin.academic.submissions',compact('assignment'));
     }
 
     public function reviewSubmission(Request $request, HomeworkSubmission $submission)
     {
+        $submission->load('assignment');
+        $this->ensureGroupAllowed((int)$submission->assignment->study_group_id);
         $data=$request->validate([
             'score'=>'nullable|numeric|min:0',
             'teacher_comment'=>'nullable|string|max:5000',
