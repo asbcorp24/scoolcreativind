@@ -8,10 +8,10 @@ class MediaItem extends Model
 {
     protected $fillable=[
         'studio_id','type','title','url','thumbnail','caption',
-        'hotspots_json','sort_order','is_featured'
+        'hotspots_json','sort_order','is_visible','is_featured'
     ];
 
-    protected $casts=['is_featured'=>'boolean'];
+    protected $casts=['is_visible'=>'boolean','is_featured'=>'boolean'];
 
     protected $appends=['display_url'];
 
