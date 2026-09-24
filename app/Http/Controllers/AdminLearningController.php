@@ -168,7 +168,7 @@ class AdminLearningController extends Controller
     public function competitions()
     {
         return view('admin.competitions', [
-            'competitions'=>Competition::with(['registrations.user'])->withCount('registrations')->orderByDesc('starts_on')->get(),
+            'competitions'=>Competition::with(['registrations.user','registrations.documents'])->withCount('registrations')->orderByDesc('starts_on')->get(),
             'profiles'=>StudentProfile::with('user')->get(),
             'achievements'=>Achievement::with(['student.user','competition'])->latest('awarded_at')->get(),
         ]);
@@ -183,12 +183,26 @@ class AdminLearningController extends Controller
             'ends_on'=>'nullable|date',
             'location'=>'nullable|string|max:255',
             'description'=>'nullable|string|max:5000',
+            'required_documents'=>'nullable|string|max:10000',
             'url'=>'nullable|string|max:2000',
             'cover'=>'nullable|string|max:2000',
             'is_published'=>'nullable|boolean',
         ]);
 
         $competition ??= new Competition();
+
+        $requirements=collect(preg_split('/\r\n|\r|\n/', (string)($data['required_documents'] ?? '')))
+            ->map(fn($v)=>trim($v))
+            ->filter()
+            ->values()
+            ->map(fn($label,$i)=>[
+                'key'=>'doc_'.($i+1),
+                'label'=>$label,
+            ])
+            ->all();
+
+        unset($data['required_documents']);
+        $data['required_documents_json']=$requirements ?: null;
         $data['is_published']=$request->boolean('is_published');
         $competition->fill($data)->save();
 
