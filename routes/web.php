@@ -33,4 +33,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth','admin'])->group(func
     Route::get('/news/{post}/edit',[AdminController::class,'newsForm'])->name('news.edit');
     Route::post('/news/save/{post?}',[AdminController::class,'saveNews'])->name('news.save');
     Route::patch('/applications/{application}',[AdminController::class,'applicationStatus'])->name('applications.status');
+
+    Route::get('/projects',[AdminContentController::class,'projects'])->name('projects');
+    Route::post('/projects/save/{project?}',[AdminContentController::class,'saveProject'])->name('projects.save');
+    Route::delete('/projects/{project}',[AdminContentController::class,'deleteProject'])->name('projects.delete');
+
+    Route::get('/events',[AdminContentController::class,'events'])->name('events');
+    Route::post('/events/save/{event?}',[AdminContentController::class,'saveEvent'])->name('events.save');
+    Route::delete('/events/{event}',[AdminContentController::class,'deleteEvent'])->name('events.delete');
 });
