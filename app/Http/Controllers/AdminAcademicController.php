@@ -71,7 +71,7 @@ class AdminAcademicController extends Controller
             $email=$base.'.'.random_int(1000,9999).'@student.local';
         }
 
-        $password=$data['password'] ?: Str::password(10);
+        $password=$data['password'] ?: Str::random(10);
 
         $user=User::create([
             'name'=>$data['name'],
