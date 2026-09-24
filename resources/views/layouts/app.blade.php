@@ -57,6 +57,39 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
   </div>
 </nav>
 
+@auth
+@if(request()->routeIs('admin.*') && !request()->routeIs('admin.login*'))
+<nav class="admin-subnav">
+  <div class="container-fluid px-lg-5">
+    <div class="admin-subnav-scroll">
+      @if(auth()->user()->is_admin)
+        <a class="admin-nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">Обзор</a>
+        <a class="admin-nav-link {{ request()->routeIs('admin.studios.*') || request()->routeIs('admin.media*') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}#studiosAdmin">Студии</a>
+        <a class="admin-nav-link {{ request()->routeIs('admin.news.*') ? 'active' : '' }}" href="{{ route('admin.news.create') }}">Новости</a>
+        <a class="admin-nav-link {{ request()->routeIs('admin.projects*') ? 'active' : '' }}" href="{{ route('admin.projects') }}">Проекты</a>
+        <a class="admin-nav-link {{ request()->routeIs('admin.events*') ? 'active' : '' }}" href="{{ route('admin.events') }}">События</a>
+        <a class="admin-nav-link {{ request()->routeIs('admin.team*') ? 'active' : '' }}" href="{{ route('admin.team') }}">Команда</a>
+        <a class="admin-nav-link {{ request()->routeIs('admin.equipment*') ? 'active' : '' }}" href="{{ route('admin.equipment') }}">Оборудование</a>
+        <a class="admin-nav-link {{ request()->routeIs('admin.students*') || request()->routeIs('admin.portfolio*') ? 'active' : '' }}" href="{{ route('admin.students') }}">Ученики</a>
+        <a class="admin-nav-link {{ request()->routeIs('admin.competitions*') || request()->routeIs('admin.achievements*') ? 'active' : '' }}" href="{{ route('admin.competitions') }}">Конкурсы</a>
+        <span class="admin-nav-separator"></span>
+        <a class="admin-nav-link {{ request()->routeIs('admin.groups*') ? 'active' : '' }}" href="{{ route('admin.groups') }}">Группы</a>
+        <a class="admin-nav-link {{ request()->routeIs('admin.subjects*') ? 'active' : '' }}" href="{{ route('admin.subjects') }}">Предметы</a>
+      @endif
+      <a class="admin-nav-link {{ request()->routeIs('admin.schedule*') ? 'active' : '' }}" href="{{ route('admin.schedule') }}">Расписание</a>
+      <a class="admin-nav-link {{ request()->routeIs('admin.journal*') ? 'active' : '' }}" href="{{ route('admin.journal') }}">Журнал</a>
+      <a class="admin-nav-link {{ request()->routeIs('admin.homework*') ? 'active' : '' }}" href="{{ route('admin.homework') }}">Домашние задания</a>
+      @if(auth()->user()->is_admin)
+        <span class="admin-nav-separator"></span>
+        <a class="admin-nav-link {{ request()->routeIs('admin.settings*') ? 'active' : '' }}" href="{{ route('admin.settings') }}">Главная / SEO</a>
+      @endif
+      <a class="admin-nav-link admin-nav-site" href="{{ route('home') }}" target="_blank">Открыть сайт ↗</a>
+    </div>
+  </div>
+</nav>
+@endif
+@endauth
+
 @if(session('success'))<div class="toast-success">{{ session('success') }}</div>@endif
 <main>@yield('content')</main>
 
