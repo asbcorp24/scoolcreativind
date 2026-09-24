@@ -16,10 +16,19 @@ class AdminLearningController extends Controller
 {
     public function schedule()
     {
+        $groupsQuery=\App\Models\StudyGroup::where('is_active',true);
+        $lessonsQuery=ScheduleLesson::with(['studio','group']);
+
+        if (!auth()->user()->is_admin) {
+            $groupIds=auth()->user()->teacherGroups()->pluck('study_groups.id');
+            $groupsQuery->whereIn('id',$groupIds);
+            $lessonsQuery->whereIn('study_group_id',$groupIds);
+        }
+
         return view('admin.schedule', [
-            'lessons'=>ScheduleLesson::with('studio')->orderByDesc('lesson_date')->orderBy('starts_at')->get(),
+            'lessons'=>$lessonsQuery->orderByDesc('lesson_date')->orderBy('starts_at')->get(),
             'studios'=>Studio::orderBy('sort_order')->get(),
-            'groups'=>\App\Models\StudyGroup::where('is_active',true)->orderBy('study_year')->orderBy('name')->get(),
+            'groups'=>$groupsQuery->orderBy('study_year')->orderBy('name')->get(),
         ]);
     }
 
@@ -38,6 +47,10 @@ class AdminLearningController extends Controller
             'color'=>'nullable|string|max:32',
             'is_published'=>'nullable|boolean',
         ]);
+
+        if (!auth()->user()->is_admin && !empty($data['study_group_id'])) {
+            abort_unless(auth()->user()->teacherGroups()->where('study_groups.id',$data['study_group_id'])->exists(),403);
+        }
 
         $lesson ??= new ScheduleLesson();
         $data['is_published']=$request->boolean('is_published');
