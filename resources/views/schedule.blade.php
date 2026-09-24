@@ -3,10 +3,16 @@
 @section('content')
 <section class="page-top"><div class="container"><div class="eyebrow">Learning calendar</div><div class="d-flex justify-content-between align-items-end gap-3 flex-wrap"><div><h1 class="display-1 fw-bold">Расписание</h1><p class="lead text-white-50">Занятия, мастер-классы и студийная практика по дням.</p></div><form method="get" class="d-flex gap-2"><input type="month" class="form-control" name="month" value="{{ $month }}"><button class="btn btn-ghost">Показать</button></form></div></div></section>
 <section class="pb-5 mb-5"><div class="container">
-@php($days=$lessons->groupBy(fn($l)=>$l->lesson_date->format('Y-m-d')))
+@php
+$days=$lessons->groupBy(fn($l)=>$l->lesson_date->format('Y-m-d'));
+@endphp
 <div class="calendar-grid">
 @for($d=1;$d<=$start->daysInMonth;$d++)
- @php($date=$start->copy()->day($d); $key=$date->format('Y-m-d'); $dayLessons=$days->get($key,collect()))
+ @php
+  $date=$start->copy()->day($d);
+  $key=$date->format('Y-m-d');
+  $dayLessons=$days->get($key,collect());
+ @endphp
  <article class="calendar-day {{ $dayLessons->count()?'has-lessons':'' }}">
   <div class="calendar-day-head"><span>{{ $d }}</span><small>{{ mb_strtoupper($date->translatedFormat('D')) }}</small></div>
   <div class="calendar-lessons">
