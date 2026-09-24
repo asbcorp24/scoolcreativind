@@ -62,6 +62,7 @@ class AdminController extends Controller
             'caption'=>'nullable|string|max:2000',
             'hotspots_json'=>'nullable|json',
             'sort_order'=>'nullable|integer|min:0',
+            'is_visible'=>'nullable|boolean',
             'is_featured'=>'nullable|boolean'
         ]);
 
@@ -78,9 +79,25 @@ class AdminController extends Controller
         }
 
         unset($data['file']);
+        $data['is_visible']=$request->boolean('is_visible');
         $data['is_featured']=$request->boolean('is_featured');
         $studio->media()->create($data);
         return back()->with('success','Медиа добавлено.');
+    }
+
+    public function updateMediaFlags(Request $request, MediaItem $media)
+    {
+        $data=$request->validate([
+            'is_visible'=>'nullable|boolean',
+            'is_featured'=>'nullable|boolean',
+        ]);
+
+        $media->update([
+            'is_visible'=>$request->boolean('is_visible'),
+            'is_featured'=>$request->boolean('is_featured'),
+        ]);
+
+        return back()->with('success','Настройки медиа обновлены.');
     }
 
     public function deleteMedia(MediaItem $media)
