@@ -1,5 +1,6 @@
 <?php
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminContentController;
 use App\Http\Controllers\AdminPeopleEquipmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PublicController;
