@@ -121,6 +121,7 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::delete('/portfolio/{item}',[AdminLearningController::class,'deletePortfolio'])->name('portfolio.delete');
 
     Route::get('/competitions',[AdminLearningController::class,'competitions'])->name('competitions');
+    Route::get('/competitions/{competition}/edit',[AdminLearningController::class,'editCompetition'])->name('competitions.edit');
     Route::get('/quizzes',[AdminQuizController::class,'index'])->name('quizzes');
     Route::post('/quizzes/save/{quiz?}',[AdminQuizController::class,'save'])->name('quizzes.save');
     Route::delete('/quizzes/{quiz}',[AdminQuizController::class,'delete'])->name('quizzes.delete');
