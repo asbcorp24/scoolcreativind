@@ -8,5 +8,6 @@ class CompetitionRegistration extends Model {
  protected $appends=['file_url'];
  public function competition(){return $this->belongsTo(Competition::class);}
  public function user(){return $this->belongsTo(User::class);}
+ public function documents(){return $this->hasMany(CompetitionDocument::class);}
  public function getFileUrlAttribute(){return $this->file_path ? Storage::disk('public')->url($this->file_path) : null;}
 }
