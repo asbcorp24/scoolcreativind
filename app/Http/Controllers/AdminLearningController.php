@@ -174,6 +174,16 @@ class AdminLearningController extends Controller
         ]);
     }
 
+    public function editCompetition(Competition $competition)
+    {
+        return view('admin.competitions', [
+            'competitions'=>Competition::with(['registrations.user','registrations.documents'])->withCount('registrations')->orderByDesc('starts_on')->get(),
+            'profiles'=>StudentProfile::with('user')->get(),
+            'achievements'=>Achievement::with(['student.user','competition'])->latest('awarded_at')->get(),
+            'editCompetition'=>$competition,
+        ]);
+    }
+
     public function saveCompetition(Request $request, ?Competition $competition=null)
     {
         $data=$request->validate([
