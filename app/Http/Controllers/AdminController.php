@@ -5,9 +5,13 @@ use App\Models\AdmissionApplication;
 use App\Models\MediaItem;
 use App\Models\NewsPost;
 use App\Models\Studio;
+use App\Models\User;
+use App\Models\StudentProfile;
+use App\Models\StudyGroup;
 use App\Services\StorageQuota;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class AdminController extends Controller
@@ -17,7 +21,8 @@ class AdminController extends Controller
         return view('admin.dashboard', [
             'studios'=>Studio::orderBy('sort_order')->get(),
             'news'=>NewsPost::latest()->take(8)->get(),
-            'applications'=>AdmissionApplication::with('studio')->latest()->take(12)->get(),
+            'applications'=>AdmissionApplication::with(['studio','user'])->latest()->take(30)->get(),
+            'groups'=>StudyGroup::where('is_active',true)->orderBy('study_year')->orderBy('name')->get(),
         ]);
     }
 
@@ -138,6 +143,75 @@ class AdminController extends Controller
         $data['is_published']=$request->boolean('is_published');
         $post->fill($data)->save();
         return redirect()->route('admin.dashboard')->with('success','Новость сохранена.');
+    }
+
+
+    public function enrollApplication(Request $request, AdmissionApplication $application)
+    {
+        $data=$request->validate([
+            'study_group_id'=>'required|exists:study_groups,id',
+        ]);
+
+        $group=StudyGroup::findOrFail($data['study_group_id']);
+        $user=$application->user;
+
+        if(!$user && $application->email){
+            $user=User::where('email',$application->email)->first();
+        }
+
+        $createdPassword=null;
+
+        if(!$user){
+            $email=$application->email;
+            if(!$email){
+                $base=Str::slug($application->name) ?: 'student';
+                $email=$base.'.'.random_int(1000,9999).'@student.local';
+                while(User::where('email',$email)->exists()){
+                    $email=$base.'.'.random_int(10000,99999).'@student.local';
+                }
+            }
+
+            $createdPassword=Str::random(10);
+
+            $user=User::create([
+                'name'=>$application->name,
+                'email'=>$email,
+                'phone'=>$application->phone,
+                'password'=>Hash::make($createdPassword),
+                'is_admin'=>false,
+            ]);
+        }
+
+        $group->users()->syncWithoutDetaching([
+            $user->id=>['role'=>'student']
+        ]);
+
+        StudentProfile::firstOrCreate(
+            ['user_id'=>$user->id],
+            [
+                'studio_id'=>$group->studio_id,
+                'class_name'=>$group->name,
+                'portfolio_slug'=>Str::slug($user->name).'-'.$user->id,
+                'is_public'=>false,
+            ]
+        );
+
+        $application->update([
+            'user_id'=>$user->id,
+            'status'=>'accepted',
+        ]);
+
+        $redirect=back()->with('success','Ученик зачислен в группу «'.$group->name.'».');
+
+        if($createdPassword){
+            $redirect->with('created_student_credentials',[
+                'name'=>$user->name,
+                'email'=>$user->email,
+                'password'=>$createdPassword,
+            ]);
+        }
+
+        return $redirect;
     }
 
     public function applicationStatus(Request $request, AdmissionApplication $application)
