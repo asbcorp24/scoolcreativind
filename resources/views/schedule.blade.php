@@ -13,7 +13,7 @@
    @foreach($dayLessons as $lesson)
     <div class="lesson-chip" style="--lesson:{{ $lesson->color ?: '#8a5cff' }}">
       <strong>{{ substr($lesson->starts_at,0,5) }} · {{ $lesson->title }}</strong>
-      <span>{{ $lesson->studio->title ?? 'ШКИ' }}</span>
+      <span>{{ $lesson->group->name ?? 'Общее занятие' }} · {{ $lesson->studio->title ?? 'ШКИ' }}</span>
       @if($lesson->room)<small>{{ $lesson->room }}</small>@endif
     </div>
    @endforeach
