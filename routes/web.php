@@ -11,6 +11,9 @@ use App\Http\Controllers\AdminAcademicController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SeoController;
+use App\Http\Controllers\QuizController;
+use App\Http\Controllers\AdminQuizController;
+use App\Http\Controllers\CompetitionParticipationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class,'home'])->name('home');
@@ -24,11 +27,19 @@ Route::get('/projects',[LearningController::class,'projects'])->name('projects.i
 Route::get('/portfolio/{profile}',[LearningController::class,'portfolio'])->name('portfolio.show');
 Route::get('/my-portfolio',[LearningController::class,'myPortfolio'])->middleware('auth')->name('portfolio.mine');
 Route::middleware('auth')->group(function(){
+    Route::post('/quizzes/{quiz}',[QuizController::class,'submit'])->name('quizzes.submit');
+    Route::get('/quiz-results/{attempt}',[QuizController::class,'result'])->name('quizzes.result');
+    Route::post('/competitions/{competition}/register',[CompetitionParticipationController::class,'register'])->name('competitions.register');
+    Route::post('/competitions/{competition}/submit',[CompetitionParticipationController::class,'submit'])->name('competitions.submit');
+    Route::delete('/competitions/{competition}/register',[CompetitionParticipationController::class,'cancel'])->name('competitions.cancel');
     Route::get('/study',[AcademicController::class,'dashboard'])->name('academic.dashboard');
     Route::get('/study/homework/{assignment}',[AcademicController::class,'homework'])->name('academic.homework');
     Route::post('/study/homework/{assignment}',[AcademicController::class,'submitHomework'])->name('academic.homework.submit');
 });
 Route::get('/competitions',[LearningController::class,'competitions'])->name('competitions');
+Route::get('/quizzes',[QuizController::class,'index'])->name('quizzes.index');
+Route::get('/quizzes/{quiz}',[QuizController::class,'show'])->name('quizzes.show');
+Route::get('/certificates/{code}',[QuizController::class,'certificate'])->name('quizzes.certificate');
 Route::get('/news', [PublicController::class,'news'])->name('news.index');
 Route::get('/news/{post}', [PublicController::class,'newsShow'])->name('news.show');
 Route::get('/apply', [PublicController::class,'apply'])->name('apply');
@@ -108,6 +119,9 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::delete('/portfolio/{item}',[AdminLearningController::class,'deletePortfolio'])->name('portfolio.delete');
 
     Route::get('/competitions',[AdminLearningController::class,'competitions'])->name('competitions');
+    Route::get('/quizzes',[AdminQuizController::class,'index'])->name('quizzes');
+    Route::post('/quizzes/save/{quiz?}',[AdminQuizController::class,'save'])->name('quizzes.save');
+    Route::delete('/quizzes/{quiz}',[AdminQuizController::class,'delete'])->name('quizzes.delete');
     Route::post('/competitions/save/{competition?}',[AdminLearningController::class,'saveCompetition'])->name('competitions.save');
     Route::delete('/competitions/{competition}',[AdminLearningController::class,'deleteCompetition'])->name('competitions.delete');
     Route::post('/achievements/save/{achievement?}',[AdminLearningController::class,'saveAchievement'])->name('achievements.save');
