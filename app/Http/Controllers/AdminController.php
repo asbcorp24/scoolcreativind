@@ -54,15 +54,43 @@ class AdminController extends Controller
     public function addMedia(Request $request, Studio $studio)
     {
         $data=$request->validate([
-            'type'=>'required|in:photo,panorama,video,model','title'=>'nullable|string|max:180','url'=>'required|string|max:2000',
-            'thumbnail'=>'nullable|string|max:2000','caption'=>'nullable|string|max:2000','hotspots_json'=>'nullable|json','sort_order'=>'nullable|integer|min:0','is_featured'=>'nullable|boolean'
+            'type'=>'required|in:photo,panorama,video,model',
+            'title'=>'nullable|string|max:180',
+            'url'=>'nullable|string|max:2000',
+            'file'=>'nullable|file|max:51200|mimes:jpg,jpeg,png,webp,glb,gltf',
+            'thumbnail'=>'nullable|string|max:2000',
+            'caption'=>'nullable|string|max:2000',
+            'hotspots_json'=>'nullable|json',
+            'sort_order'=>'nullable|integer|min:0',
+            'is_featured'=>'nullable|boolean'
         ]);
+
+        if ($data['type']==='video' && !$request->filled('url')) {
+            return back()->withErrors(['url'=>'Для Rutube-видео укажите ссылку.'])->withInput();
+        }
+
+        if (!$request->filled('url') && !$request->hasFile('file')) {
+            return back()->withErrors(['url'=>'Укажите URL или загрузите файл.'])->withInput();
+        }
+
+        if ($request->hasFile('file')) {
+            $data['url']=$request->file('file')->store('media/'.$data['type'],'public');
+        }
+
+        unset($data['file']);
         $data['is_featured']=$request->boolean('is_featured');
         $studio->media()->create($data);
         return back()->with('success','Медиа добавлено.');
     }
 
-    public function deleteMedia(MediaItem $media){ $media->delete(); return back()->with('success','Медиа удалено.'); }
+    public function deleteMedia(MediaItem $media)
+    {
+        if ($media->url && !preg_match('~^(https?:)?//~i',$media->url)) {
+            Storage::disk('public')->delete($media->url);
+        }
+        $media->delete();
+        return back()->with('success','Медиа удалено.');
+    }
 
     public function newsForm(?NewsPost $post=null){ return view('admin.news-form', compact('post')); }
 
