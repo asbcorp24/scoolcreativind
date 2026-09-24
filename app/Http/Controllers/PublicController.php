@@ -3,6 +3,8 @@ namespace App\Http\Controllers;
 
 use App\Models\AdmissionApplication;
 use App\Models\Event;
+use App\Models\EquipmentItem;
+use App\Models\TeamMember;
 use App\Models\MediaItem;
 use App\Models\NewsPost;
 use App\Models\StudentProject;
@@ -19,14 +21,26 @@ class PublicController extends Controller
             'projects' => StudentProject::where('is_featured', true)->latest()->take(8)->get(),
             'news' => NewsPost::where('is_published', true)->latest('published_at')->take(6)->get(),
             'events' => Event::where('is_published', true)->where('starts_at','>=',now()->subDay())->orderBy('starts_at')->take(4)->get(),
+            'team' => TeamMember::where('is_active',true)->orderBy('sort_order')->take(4)->get(),
+            'equipment' => EquipmentItem::where('is_featured',true)->with('studio')->orderBy('sort_order')->take(6)->get(),
         ]);
     }
 
     public function studio(Studio $studio)
     {
         abort_unless($studio->is_active, 404);
-        $studio->load('media','projects');
+        $studio->load('media','projects','team','equipment');
         return view('studio', compact('studio'));
+    }
+
+    public function team()
+    {
+        return view('team', ['members'=>TeamMember::where('is_active',true)->with('studio')->orderBy('sort_order')->get()]);
+    }
+
+    public function equipment()
+    {
+        return view('equipment', ['items'=>EquipmentItem::with('studio')->orderBy('sort_order')->get()]);
     }
 
     public function news()
