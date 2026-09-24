@@ -275,3 +275,17 @@ linear-gradient(135deg,#0d1119,#080a0f)}
  .mobile-logout-fab button{width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,79,216,.28);background:rgba(10,13,20,.92);color:#ffb3ca;display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.35),0 0 24px rgba(255,79,216,.08);backdrop-filter:blur(16px)}
  .mobile-logout-fab button span{font-size:1.25rem;transform:rotate(180deg)}
 }
+
+
+/* Competition documents */
+.competition-doc-list,.admin-doc-list{display:grid;gap:10px}
+.competition-doc-row{display:grid;grid-template-columns:minmax(220px,1fr) minmax(320px,1.4fr);gap:16px;align-items:center;padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:16px;background:rgba(255,255,255,.025)}
+.competition-doc-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.competition-doc-actions .form-control{min-width:220px}
+.admin-doc-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:8px 10px;border:1px solid rgba(255,255,255,.07);border-radius:12px;background:rgba(255,255,255,.02)}
+.competition-cabinet-item:last-child{border-bottom:0!important}
+@media(max-width:768px){
+ .competition-doc-row{grid-template-columns:1fr}
+ .competition-doc-actions{justify-content:flex-start}
+ .competition-doc-actions .form-control{min-width:0;width:100%}
+}
