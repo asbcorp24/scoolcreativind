@@ -3,10 +3,11 @@
 @section('content')
 <section class="page-top"><div class="container"><div class="eyebrow">Админ / {{ $studio->title }}</div><div class="d-flex justify-content-between align-items-end flex-wrap gap-3"><h1 class="display-3 fw-bold m-0">Медиагалерея</h1><a href="{{ route('admin.dashboard') }}" class="btn btn-ghost">← Админка</a></div></div></section>
 <section class="pb-5"><div class="container">
+@if($errors->any())<div class="alert alert-danger"><strong>Не удалось добавить медиа:</strong><ul class="mb-0 mt-2">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 <form class="form-shell mb-5" method="post" enctype="multipart/form-data" action="{{ route('admin.media.add',$studio) }}">@csrf
  <div class="row g-3"><div class="col-md-3"><label class="form-label">Тип</label><select class="form-select" name="type" required><option value="photo">Фото</option><option value="panorama">360° панорама</option><option value="video">Rutube видео</option><option value="model">3D модель GLB/GLTF</option><option value="audio">Аудиотрек</option></select></div><div class="col-md-9"><label class="form-label">Название</label><input class="form-control" name="title"></div>
  <div class="col-lg-7"><label class="form-label">URL</label><input class="form-control" name="url" placeholder="https://..."><div class="form-text text-white-50">Rutube — ссылка на видео. Для фото/360/3D можно использовать URL или загрузку файла.</div></div>
-<div class="col-lg-5"><label class="form-label">Или загрузить файл</label><input type="file" class="form-control" name="file" accept=".jpg,.jpeg,.png,.webp,.glb,.gltf,.mp3,.wav,.ogg,.m4a,.aac"><div class="form-text text-white-50">До 50 МБ.</div></div>
+<div class="col-lg-5"><label class="form-label">Или загрузить файл</label><input type="file" class="form-control" name="file" accept=".jpg,.jpeg,.png,.webp,.glb,.gltf,.mp3,.wav,.ogg,.m4a,.aac"><div class="form-text text-white-50">До 50 МБ. Для 3D: GLB или GLTF. Если файл больше лимита PHP upload_max_filesize/post_max_size, он не дойдёт до Laravel.</div></div>
  <div class="col-md-8"><label class="form-label">Описание</label><input class="form-control" name="caption"></div>
 <div class="col-12">
  <label class="form-label">Hotspots для 360° (JSON)</label>
