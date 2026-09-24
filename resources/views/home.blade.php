@@ -93,6 +93,47 @@
  </div>
 </section>
 
+
+<section class="section-space pt-0">
+ <div class="container">
+  <div class="section-head reveal">
+   <div><div class="eyebrow">People & tools</div><h2>Кто и на чём учит</h2></div>
+   <p>Наставники, преподаватели и оборудование, с которым ученики работают в реальных проектах.</p>
+  </div>
+
+  <div class="row g-4 mb-5">
+   @forelse($team as $m)
+   <div class="col-md-6 col-xl-3 reveal">
+    <a href="{{ route('team') }}" class="home-team-card">
+      <div class="home-team-photo">@if($m->photo_url)<img src="{{ $m->photo_url }}" alt="{{ $m->name }}">@else<div class="team-placeholder">{{ mb_substr($m->name,0,1) }}</div>@endif</div>
+      <div class="pt-3">
+       <div class="small text-white-50">{{ $m->role }}</div>
+       <h4 class="mb-1">{{ $m->name }}</h4>
+      </div>
+    </a>
+   </div>
+   @empty
+   <div class="col-12 text-white-50">Команда появится здесь после заполнения админки.</div>
+   @endforelse
+  </div>
+
+  <div class="equipment-strip">
+   @forelse($equipment as $item)
+    <a href="{{ route('equipment') }}" class="equipment-mini reveal">
+      <div class="equipment-mini-image">@if($item->image_url)<img src="{{ $item->image_url }}" alt="{{ $item->title }}">@endif</div>
+      <div>
+       <div class="small text-white-50">{{ $item->category }}</div>
+       <strong>{{ $item->title }}</strong>
+       <div class="small">{{ $item->studio->title ?? 'ШКИ' }}</div>
+      </div>
+    </a>
+   @empty
+    <div class="text-white-50">Избранное оборудование пока не добавлено.</div>
+   @endforelse
+  </div>
+ </div>
+</section>
+
 <section class="section-space pt-0">
  <div class="container">
   <div class="section-head reveal"><div><div class="eyebrow">Calendar</div><h2>События</h2></div><p>Дни открытых дверей, мастер-классы, показы, выставки и встречи со специалистами индустрии.</p></div>
