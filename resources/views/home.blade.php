@@ -93,9 +93,30 @@
  </div>
 </section>
 
+<section class="section-space pt-0">
+ <div class="container">
+  <div class="section-head reveal"><div><div class="eyebrow">Calendar</div><h2>События</h2></div><p>Дни открытых дверей, мастер-классы, показы, выставки и встречи со специалистами индустрии.</p></div>
+  <div class="row g-4">
+   @forelse($events as $event)
+   <div class="col-md-6 reveal">
+    <article class="glass-card p-4 h-100">
+      <div class="eyebrow">{{ $event->starts_at->format('d.m.Y · H:i') }}</div>
+      <h3 class="display-6 fw-bold mt-3">{{ $event->title }}</h3>
+      <p class="text-white-50">{{ $event->description }}</p>
+      <div class="small mb-3">{{ $event->location }}</div>
+      @if($event->registration_url)<a class="btn btn-ghost" href="{{ $event->registration_url }}" target="_blank" rel="noopener">Регистрация ↗</a>@endif
+    </article>
+   </div>
+   @empty
+   <div class="col-12 text-white-50">Новые события появятся здесь после публикации из админки.</div>
+   @endforelse
+  </div>
+ </div>
+</section>
+
 <section class="section-space">
  <div class="container">
-  <div class="section-head reveal"><div><div class="eyebrow">Сейчас в школе</div><h2>Новости и события</h2></div><a class="btn btn-ghost" href="{{ route('news.index') }}">Все новости</a></div>
+  <div class="section-head reveal"><div><div class="eyebrow">Сейчас в школе</div><h2>Новости</h2></div><a class="btn btn-ghost" href="{{ route('news.index') }}">Все новости</a></div>
   <div class="row g-4">
    @forelse($news as $post)
    <div class="col-md-6 col-xl-4 reveal"><a href="{{ route('news.show',$post) }}" class="news-card">
