@@ -2,6 +2,8 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminContentController;
 use App\Http\Controllers\AdminPeopleEquipmentController;
+use App\Http\Controllers\AdminLearningController;
+use App\Http\Controllers\LearningController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PublicController;
 use Illuminate\Support\Facades\Route;
@@ -10,6 +12,10 @@ Route::get('/', [PublicController::class,'home'])->name('home');
 Route::get('/studios/{studio}', [PublicController::class,'studio'])->name('studios.show');
 Route::get('/team', [PublicController::class,'team'])->name('team');
 Route::get('/equipment', [PublicController::class,'equipment'])->name('equipment');
+Route::get('/schedule',[LearningController::class,'schedule'])->name('schedule');
+Route::get('/portfolio/{profile}',[LearningController::class,'portfolio'])->name('portfolio.show');
+Route::get('/my-portfolio',[LearningController::class,'myPortfolio'])->middleware('auth')->name('portfolio.mine');
+Route::get('/competitions',[LearningController::class,'competitions'])->name('competitions');
 Route::get('/news', [PublicController::class,'news'])->name('news.index');
 Route::get('/news/{post}', [PublicController::class,'newsShow'])->name('news.show');
 Route::get('/apply', [PublicController::class,'apply'])->name('apply');
@@ -53,4 +59,20 @@ Route::prefix('admin')->name('admin.')->middleware(['auth','admin'])->group(func
     Route::get('/equipment',[AdminPeopleEquipmentController::class,'equipment'])->name('equipment');
     Route::post('/equipment/save/{item?}',[AdminPeopleEquipmentController::class,'saveEquipment'])->name('equipment.save');
     Route::delete('/equipment/{item}',[AdminPeopleEquipmentController::class,'deleteEquipment'])->name('equipment.delete');
+
+    Route::get('/schedule',[AdminLearningController::class,'schedule'])->name('schedule');
+    Route::post('/schedule/save/{lesson?}',[AdminLearningController::class,'saveLesson'])->name('schedule.save');
+    Route::delete('/schedule/{lesson}',[AdminLearningController::class,'deleteLesson'])->name('schedule.delete');
+
+    Route::get('/students',[AdminLearningController::class,'students'])->name('students');
+    Route::post('/students/save/{profile?}',[AdminLearningController::class,'saveStudent'])->name('students.save');
+    Route::get('/students/{profile}/portfolio',[AdminLearningController::class,'portfolio'])->name('students.portfolio');
+    Route::post('/students/{profile}/portfolio/save/{item?}',[AdminLearningController::class,'savePortfolio'])->name('students.portfolio.save');
+    Route::delete('/portfolio/{item}',[AdminLearningController::class,'deletePortfolio'])->name('portfolio.delete');
+
+    Route::get('/competitions',[AdminLearningController::class,'competitions'])->name('competitions');
+    Route::post('/competitions/save/{competition?}',[AdminLearningController::class,'saveCompetition'])->name('competitions.save');
+    Route::delete('/competitions/{competition}',[AdminLearningController::class,'deleteCompetition'])->name('competitions.delete');
+    Route::post('/achievements/save/{achievement?}',[AdminLearningController::class,'saveAchievement'])->name('achievements.save');
+    Route::delete('/achievements/{achievement}',[AdminLearningController::class,'deleteAchievement'])->name('achievements.delete');
 });
