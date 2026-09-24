@@ -4,7 +4,28 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<title>@yield('title','Школа креативных индустрий')</title>
+@php
+$seoTitle=$siteSettings['seo_title'] ?? 'Школа креативных индустрий · Волжск';
+$seoDescription=$siteSettings['seo_description'] ?? 'Школа креативных индустрий в Волжске: анимация, 3D, дизайн, звук, электронная музыка, фото, видео, VR и AR.';
+$seoKeywords=$siteSettings['seo_keywords'] ?? '';
+$seoRobots=$siteSettings['seo_robots'] ?? 'index,follow';
+$seoCanonical=$siteSettings['seo_canonical'] ?? '';
+$ogTitle=$siteSettings['seo_og_title'] ?? $seoTitle;
+$ogDescription=$siteSettings['seo_og_description'] ?? $seoDescription;
+$ogImage=$siteSettings['seo_og_image'] ?? '';
+$twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
+@endphp
+<title>@yield('title',$seoTitle)</title>
+<meta name="description" content="@yield('meta_description',$seoDescription)">
+@if($seoKeywords)<meta name="keywords" content="{{ $seoKeywords }}">@endif
+<meta name="robots" content="{{ $seoRobots }}">
+@if($seoCanonical)<link rel="canonical" href="{{ $seoCanonical }}">@endif
+<meta property="og:type" content="website">
+<meta property="og:title" content="@yield('og_title',$ogTitle)">
+<meta property="og:description" content="@yield('og_description',$ogDescription)">
+<meta property="og:url" content="{{ url()->current() }}">
+@if($ogImage)<meta property="og:image" content="{{ $ogImage }}">@endif
+<meta name="twitter:card" content="{{ $twitterCard }}">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="{{ asset('css/site.css') }}">
 @stack('head')
