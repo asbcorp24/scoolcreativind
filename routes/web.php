@@ -1,11 +1,14 @@
 <?php
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminPeopleEquipmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PublicController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class,'home'])->name('home');
 Route::get('/studios/{studio}', [PublicController::class,'studio'])->name('studios.show');
+Route::get('/team', [PublicController::class,'team'])->name('team');
+Route::get('/equipment', [PublicController::class,'equipment'])->name('equipment');
 Route::get('/news', [PublicController::class,'news'])->name('news.index');
 Route::get('/news/{post}', [PublicController::class,'newsShow'])->name('news.show');
 Route::get('/apply', [PublicController::class,'apply'])->name('apply');
@@ -41,4 +44,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth','admin'])->group(func
     Route::get('/events',[AdminContentController::class,'events'])->name('events');
     Route::post('/events/save/{event?}',[AdminContentController::class,'saveEvent'])->name('events.save');
     Route::delete('/events/{event}',[AdminContentController::class,'deleteEvent'])->name('events.delete');
+
+    Route::get('/team',[AdminPeopleEquipmentController::class,'team'])->name('team');
+    Route::post('/team/save/{member?}',[AdminPeopleEquipmentController::class,'saveTeam'])->name('team.save');
+    Route::delete('/team/{member}',[AdminPeopleEquipmentController::class,'deleteTeam'])->name('team.delete');
+
+    Route::get('/equipment',[AdminPeopleEquipmentController::class,'equipment'])->name('equipment');
+    Route::post('/equipment/save/{item?}',[AdminPeopleEquipmentController::class,'saveEquipment'])->name('equipment.save');
+    Route::delete('/equipment/{item}',[AdminPeopleEquipmentController::class,'deleteEquipment'])->name('equipment.delete');
 });
