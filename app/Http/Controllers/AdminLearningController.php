@@ -168,7 +168,7 @@ class AdminLearningController extends Controller
     public function competitions()
     {
         return view('admin.competitions', [
-            'competitions'=>Competition::orderByDesc('starts_on')->get(),
+            'competitions'=>Competition::with(['registrations.user'])->withCount('registrations')->orderByDesc('starts_on')->get(),
             'profiles'=>StudentProfile::with('user')->get(),
             'achievements'=>Achievement::with(['student.user','competition'])->latest('awarded_at')->get(),
         ]);
