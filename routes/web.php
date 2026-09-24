@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminContentController;
 use App\Http\Controllers\AdminPeopleEquipmentController;
 use App\Http\Controllers\AdminLearningController;
+use App\Http\Controllers\AdminSettingsController;
 use App\Http\Controllers\LearningController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PublicController;
@@ -38,6 +39,8 @@ Route::prefix('admin')->name('admin.')->group(function(){
 
     Route::middleware('admin')->group(function(){
     Route::get('/',[AdminController::class,'dashboard'])->name('dashboard');
+    Route::get('/settings',[AdminSettingsController::class,'edit'])->name('settings');
+    Route::post('/settings',[AdminSettingsController::class,'update'])->name('settings.update');
     Route::get('/studios/create',[AdminController::class,'studioForm'])->name('studios.create');
     Route::get('/studios/{studio}/edit',[AdminController::class,'studioForm'])->name('studios.edit');
     Route::post('/studios/save/{studio?}',[AdminController::class,'saveStudio'])->name('studios.save');
