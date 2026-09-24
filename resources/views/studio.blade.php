@@ -147,7 +147,7 @@
 <section class="section-space pt-0">
  <div class="container">
   @if($studio->team->count())
-  <div class="section-head"><div><div class="eyebrow">Mentors</div><h2>Наставники студии</h2></div><a href="{{ route('team') }}" class="btn btn-ghost">Вся команда</a></div>
+  <div class="section-head"><div><div class="eyebrow">Team</div><h2>Команда студии</h2></div><a href="{{ route('team') }}" class="btn btn-ghost">Вся команда</a></div>
   <div class="row g-4 mb-5">
    @foreach($studio->team as $m)
    <div class="col-md-6 col-xl-4">
@@ -163,7 +163,7 @@
   @if($studio->equipment->count())
   <div class="section-head mt-5"><div><div class="eyebrow">Tools</div><h2>Оборудование</h2></div><a href="{{ route('equipment') }}" class="btn btn-ghost">Весь каталог</a></div>
   <div class="equipment-strip">
-   @foreach($studio->equipment->take(6) as $item)
+   @foreach($studio->equipment as $item)
    <a href="{{ route('equipment') }}" class="equipment-mini">
     <div class="equipment-mini-image">@if($item->image_url)<img src="{{ $item->image_url }}" alt="{{ $item->title }}">@endif</div>
     <div><div class="small text-white-50">{{ $item->category }}</div><strong>{{ $item->title }}</strong><div class="small">{{ trim(($item->brand ?? '').' '.($item->model ?? '')) }}</div></div>
