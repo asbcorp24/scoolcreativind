@@ -33,28 +33,64 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
 <body>
 <div id="pageTransition"><span>ШКИ</span></div>
 <div id="cursorGlow"></div>
-<nav class="navbar navbar-expand-lg navbar-dark fixed-top sci-nav">
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top sci-nav desktop-nav">
   <div class="container-fluid px-lg-5">
     <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('home') }}">
-      <span class="brand-orbit"></span><span>ШКИ<span class="brand-dot">.</span></span>
+      <span class="brand-orbit"></span>
+      <span class="brand-copy"><strong>ШКИ<span class="brand-dot">.</span></strong><small>Волжск</small></span>
     </a>
-    <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
-    <div id="nav" class="collapse navbar-collapse">
-      <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
-        <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#studios">Студии</a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#works">Работы</a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ route('schedule') }}">Расписание</a></li><li class="nav-item"><a class="nav-link" href="{{ route('competitions') }}">Конкурсы</a></li><li class="nav-item"><a class="nav-link" href="{{ route('quizzes.index') }}">Викторины</a></li><li class="nav-item"><a class="nav-link" href="{{ route('team') }}">Команда</a></li><li class="nav-item"><a class="nav-link" href="{{ route('equipment') }}">Оборудование</a></li><li class="nav-item"><a class="nav-link" href="{{ route('news.index') }}">Новости</a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#campus360">360°</a></li>
-        <li class="nav-item ms-lg-2"><a class="btn btn-neon" href="{{ route('apply') }}">Поступить</a></li>
-        @auth
-          <li class="nav-item"><a class="nav-link" href="{{ route('cabinet') }}">Кабинет</a></li>
-          @if(auth()->user()->is_admin)<li class="nav-item"><a class="nav-link" href="{{ route('admin.dashboard') }}">Админ</a></li>@endif
-        @else
-          <li class="nav-item"><a class="nav-link" href="{{ route('login') }}">Войти</a></li>
-        @endauth
-      </ul>
+
+    <div class="desktop-nav-shell ms-auto">
+      <a class="desktop-nav-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}"><span>01</span>Главная</a>
+      <a class="desktop-nav-link {{ request()->routeIs('projects.*') ? 'active' : '' }}" href="{{ route('projects.index') }}"><span>02</span>Работы</a>
+      <a class="desktop-nav-link {{ request()->routeIs('competitions') ? 'active' : '' }}" href="{{ route('competitions') }}"><span>03</span>Конкурсы</a>
+      <a class="desktop-nav-link {{ request()->routeIs('quizzes.*') ? 'active' : '' }}" href="{{ route('quizzes.index') }}"><span>04</span>Викторины</a>
+      <a class="desktop-nav-link {{ request()->routeIs('schedule') ? 'active' : '' }}" href="{{ route('schedule') }}"><span>05</span>Расписание</a>
+      <a class="desktop-nav-link" href="{{ route('home') }}#studios"><span>06</span>Студии</a>
+
+      <div class="desktop-nav-more dropdown">
+        <button class="desktop-nav-more-btn" data-bs-toggle="dropdown" aria-expanded="false">Ещё <span>＋</span></button>
+        <div class="dropdown-menu dropdown-menu-dark sci-dropdown dropdown-menu-end">
+          <a class="dropdown-item" href="{{ route('team') }}">Команда</a>
+          <a class="dropdown-item" href="{{ route('equipment') }}">Оборудование</a>
+          <a class="dropdown-item" href="{{ route('news.index') }}">Новости</a>
+          <a class="dropdown-item" href="{{ route('home') }}#campus360">360° тур</a>
+          @auth
+            <a class="dropdown-item" href="{{ route('cabinet') }}">Личный кабинет</a>
+            @if(auth()->user()->is_admin)<a class="dropdown-item" href="{{ route('admin.dashboard') }}">Админ-панель</a>@endif
+          @else
+            <a class="dropdown-item" href="{{ route('login') }}">Войти</a>
+          @endauth
+        </div>
+      </div>
+
+      <a class="desktop-apply-btn" href="{{ route('apply') }}"><span>✦</span> Поступить</a>
     </div>
   </div>
+</nav>
+
+<nav class="mobile-app-nav" aria-label="Мобильная навигация">
+  <a class="mobile-app-item {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">
+    <span class="mobile-app-icon">⌂</span><small>Главная</small>
+  </a>
+  <a class="mobile-app-item {{ request()->routeIs('projects.*') ? 'active' : '' }}" href="{{ route('projects.index') }}">
+    <span class="mobile-app-icon">◇</span><small>Работы</small>
+  </a>
+  <a class="mobile-app-item {{ request()->routeIs('competitions') ? 'active' : '' }}" href="{{ route('competitions') }}">
+    <span class="mobile-app-icon">★</span><small>Конкурсы</small>
+  </a>
+  <a class="mobile-app-item {{ request()->routeIs('quizzes.*') ? 'active' : '' }}" href="{{ route('quizzes.index') }}">
+    <span class="mobile-app-icon">?</span><small>Викторины</small>
+  </a>
+  @auth
+    <a class="mobile-app-item {{ request()->routeIs('cabinet') || request()->routeIs('academic.*') ? 'active' : '' }}" href="{{ route('cabinet') }}">
+      <span class="mobile-app-icon">◉</span><small>Кабинет</small>
+    </a>
+  @else
+    <a class="mobile-app-item {{ request()->routeIs('login') || request()->routeIs('register') ? 'active' : '' }}" href="{{ route('login') }}">
+      <span class="mobile-app-icon">◉</span><small>Войти</small>
+    </a>
+  @endauth
 </nav>
 
 @auth
