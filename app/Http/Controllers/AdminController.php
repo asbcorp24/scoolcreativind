@@ -5,6 +5,7 @@ use App\Models\AdmissionApplication;
 use App\Models\MediaItem;
 use App\Models\NewsPost;
 use App\Models\Studio;
+use App\Services\StorageQuota;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -75,7 +76,22 @@ class AdminController extends Controller
         }
 
         if ($request->hasFile('file')) {
-            $data['url']=$request->file('file')->store('media/'.$data['type'],'public');
+            $file=$request->file('file');
+
+            if (!StorageQuota::canStore((int)$file->getSize())) {
+                $remaining=StorageQuota::formatBytes(StorageQuota::remainingBytes());
+                return back()->withErrors([
+                    'file'=>'Недостаточно выделенного места. Свободно: '.$remaining.'. Удалите ненужные файлы или увеличьте лимит в Настройки сайта / Хранилище.'
+                ])->withInput();
+            }
+
+            $data['url']=$file->store('media/'.$data['type'],'public');
+
+            if (!$data['url']) {
+                return back()->withErrors([
+                    'file'=>'Не удалось сохранить файл на сервере.'
+                ])->withInput();
+            }
         }
 
         unset($data['file']);
