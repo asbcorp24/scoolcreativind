@@ -63,7 +63,7 @@ class AdminController extends Controller
             'type'=>'required|in:photo,panorama,video,model,audio',
             'title'=>'nullable|string|max:180',
             'url'=>'nullable|string|max:2000',
-            'file'=>'nullable|file|max:51200|mimes:jpg,jpeg,png,webp,glb,gltf,mp3,wav,ogg,m4a,aac',
+            'file'=>'nullable|file|max:51200',
             'thumbnail'=>'nullable|string|max:2000',
             'caption'=>'nullable|string|max:2000',
             'hotspots_json'=>'nullable|json',
@@ -71,6 +71,25 @@ class AdminController extends Controller
             'is_visible'=>'nullable|boolean',
             'is_featured'=>'nullable|boolean'
         ]);
+
+        if ($request->hasFile('file')) {
+            $file=$request->file('file');
+            $extension=strtolower($file->getClientOriginalExtension());
+
+            $allowedExtensions=[
+                'photo'=>['jpg','jpeg','png','webp'],
+                'panorama'=>['jpg','jpeg','png','webp'],
+                'model'=>['glb','gltf'],
+                'audio'=>['mp3','wav','ogg','m4a','aac'],
+                'video'=>[],
+            ];
+
+            if (!in_array($extension,$allowedExtensions[$data['type']] ?? [],true)) {
+                return back()->withErrors([
+                    'file'=>'Недопустимый файл для выбранного типа. Для 3D используйте .glb или .gltf.'
+                ])->withInput();
+            }
+        }
 
         if ($data['type']==='video' && !$request->filled('url')) {
             return back()->withErrors(['url'=>'Для Rutube-видео укажите ссылку.'])->withInput();
