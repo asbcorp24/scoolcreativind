@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Achievement;
 use App\Models\Competition;
+use App\Models\CompetitionRegistration;
 use App\Models\PortfolioItem;
 use App\Models\ScheduleLesson;
 use App\Models\StudentProfile;
@@ -52,7 +53,10 @@ class LearningController extends Controller
     public function competitions()
     {
         return view('competitions.index',[
-            'competitions'=>Competition::where('is_published',true)->latest('starts_on')->get(),
+            'competitions'=>Competition::where('is_published',true)->withCount('registrations')->latest('starts_on')->get(),
+            'registrations'=>auth()->check()
+                ? CompetitionRegistration::where('user_id',auth()->id())->get()->keyBy('competition_id')
+                : collect(),
             'achievements'=>Achievement::where('is_public',true)->with(['student.user','competition'])->latest('awarded_at')->take(24)->get(),
         ]);
     }
