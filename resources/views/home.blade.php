@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title','Школа креативных индустрий · Волжск')
+@section('title',$siteSettings['seo_title'] ?? 'Школа креативных индустрий · Волжск')
 @section('content')
 <section class="hero3d">
  <canvas id="heroCanvas"></canvas>
@@ -7,11 +7,11 @@
  <div class="container position-relative hero-copy">
   <div class="row align-items-end min-vh-100 py-5">
    <div class="col-xl-9 pb-5">
-    <div class="eyebrow reveal">Волжск · образование будущего · 2 года</div>
-    <h1 class="hero-title reveal">ШКОЛА<br><span>КРЕАТИВНЫХ</span><br>ИНДУСТРИЙ</h1>
+    <div class="eyebrow reveal">{{ $siteSettings['home_eyebrow'] ?? 'Волжск · образование будущего · 2 года' }}</div>
+    <h1 class="hero-title reveal">{{ $siteSettings['home_title_line1'] ?? 'ШКОЛА' }}<br><span>{{ $siteSettings['home_title_line2'] ?? 'КРЕАТИВНЫХ' }}</span><br>{{ $siteSettings['home_title_line3'] ?? 'ИНДУСТРИЙ' }}</h1>
     <div class="row g-4 align-items-center mt-2 reveal">
-     <div class="col-lg-7"><p class="lead text-white-50">Здесь идеи превращаются в анимацию, музыку, дизайн, фильмы, 3D, VR и AR. Обучение строится вокруг реальных проектов и современной студийной техники.</p></div>
-     <div class="col-lg-5 d-flex gap-3 flex-wrap"><a class="btn btn-neon btn-lg" href="{{ route('apply') }}">Записаться на обучение</a><a class="btn btn-ghost btn-lg" href="#studios">Исследовать студии</a></div>
+     <div class="col-lg-7"><p class="lead text-white-50">{{ $siteSettings['home_intro'] ?? 'Здесь идеи превращаются в анимацию, музыку, дизайн, фильмы, 3D, VR и AR. Обучение строится вокруг реальных проектов и современной студийной техники.' }}</p></div>
+     <div class="col-lg-5 d-flex gap-3 flex-wrap"><a class="btn btn-neon btn-lg" href="{{ route('apply') }}">{{ $siteSettings['home_primary_button'] ?? 'Записаться на обучение' }}</a><a class="btn btn-ghost btn-lg" href="#studios">{{ $siteSettings['home_secondary_button'] ?? 'Исследовать студии' }}</a></div>
     </div>
    </div>
   </div>
@@ -24,8 +24,8 @@
 <section id="studios" class="section-space">
  <div class="container">
   <div class="section-head reveal">
-   <div><div class="eyebrow">6 направлений · одна экосистема</div><h2>Студии</h2></div>
-   <p>Каждая студия — отдельный цифровой мир с фотогалереей, видео, 360°-пространствами и работами учеников.</p>
+   <div><div class="eyebrow">{{ $siteSettings['home_studios_eyebrow'] ?? '6 направлений · одна экосистема' }}</div><h2>{{ $siteSettings['home_studios_title'] ?? 'Студии' }}</h2></div>
+   <p>{{ $siteSettings['home_studios_text'] ?? 'Каждая студия — отдельный цифровой мир с фотогалереей, видео, 360°-пространствами и работами учеников.' }}</p>
   </div>
   <div class="studio-grid">
    @foreach($studios as $i=>$studio)
@@ -50,8 +50,8 @@
   <div class="row g-5 align-items-center">
    <div class="col-lg-5 reveal">
     <div class="eyebrow">Virtual campus</div>
-    <h2 class="display-3 fw-bold">Зайди внутрь<br>до первого занятия.</h2>
-    <p class="lead text-white-50">Панорамные 360°-сцены позволяют посмотреть студии и оборудование прямо в браузере. Внутри направлений можно размещать несколько виртуальных точек.</p>
+    <h2 class="display-3 fw-bold">{{ $siteSettings['home_360_title'] ?? 'Зайди внутрь до первого занятия.' }}</h2>
+    <p class="lead text-white-50">{{ $siteSettings['home_360_text'] ?? 'Панорамные 360°-сцены позволяют посмотреть студии и оборудование прямо в браузере.' }}</p>
     <a href="#studios" class="btn btn-ghost">Выбрать студию</a>
    </div>
    <div class="col-lg-7 reveal">
@@ -68,7 +68,7 @@
 
 <section id="works" class="section-space">
  <div class="container-fluid px-lg-5">
-  <div class="section-head reveal"><div><div class="eyebrow">Student output</div><h2>Сделано здесь</h2></div><p>Не учебные «упражнения», а портфолио: ролики, сцены, треки, брендинг, AR/VR и цифровые эксперименты.</p></div>
+  <div class="section-head reveal"><div><div class="eyebrow">Student output</div><h2>{{ $siteSettings['home_works_title'] ?? 'Сделано здесь' }}</h2></div><p>{{ $siteSettings['home_works_text'] ?? 'Не учебные упражнения, а портфолио: ролики, сцены, треки, брендинг, AR/VR и цифровые эксперименты.' }}</p></div>
   <div class="projects-rail">
    @forelse($projects as $project)
    <article class="project-card reveal">
@@ -173,9 +173,9 @@
 
 <section class="cta-section">
  <div class="container text-center reveal">
-  <div class="eyebrow justify-content-center">Приём документов · г. Волжск, ул. Ленина, 32</div>
-  <h2>Твоё первое портфолио<br>начинается здесь.</h2>
-  <div class="d-flex justify-content-center gap-3 flex-wrap mt-4"><a href="{{ route('apply') }}" class="btn btn-neon btn-lg">Подать заявку</a><a href="tel:+78363164628" class="btn btn-ghost btn-lg">+7 (836) 316-46-28</a></div>
+  <div class="eyebrow justify-content-center">{{ $siteSettings['home_cta_eyebrow'] ?? 'Приём документов · г. Волжск, ул. Ленина, 32' }}</div>
+  <h2>{{ $siteSettings['home_cta_title'] ?? 'Твоё первое портфолио начинается здесь.' }}</h2>
+  <div class="d-flex justify-content-center gap-3 flex-wrap mt-4"><a href="{{ route('apply') }}" class="btn btn-neon btn-lg">{{ $siteSettings['home_cta_button'] ?? 'Подать заявку' }}</a><a href="tel:+78363164628" class="btn btn-ghost btn-lg">+7 (836) 316-46-28</a></div>
  </div>
 </section>
 @endsection
