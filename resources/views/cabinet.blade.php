@@ -17,10 +17,47 @@
 
 <section class="pb-5"><div class="container">
 <div class="row g-4">
- <div class="col-lg-6"><div class="glass-card p-4 h-100"><h3>Мои конкурсы</h3>
- @forelse($competitionRegistrations as $r)<div class="py-3 border-bottom border-secondary-subtle"><strong>{{ $r->competition->title }}</strong><div class="small text-white-50">{{ ['registered'=>'Записан','submitted'=>'Работа отправлена','reviewed'=>'Проверено','cancelled'=>'Отменено'][$r->status] ?? $r->status }}</div></div>@empty<div class="text-white-50 mt-3">Вы пока не записывались на конкурсы.</div>@endforelse
+ <div class="col-lg-7"><div class="glass-card p-4 h-100"><h3>Мои конкурсы и документы</h3>
+ @forelse($competitionRegistrations as $r)
+  @php($requirements=collect($r->competition->required_documents_json ?: []))
+  @php($uploaded=$r->documents->keyBy('document_key'))
+  <div class="competition-cabinet-item py-4 border-bottom border-secondary-subtle">
+   <div class="d-flex justify-content-between gap-3 flex-wrap mb-3">
+    <div><strong class="fs-5">{{ $r->competition->title }}</strong><div class="small text-white-50">{{ ['registered'=>'Записан','submitted'=>'Работа отправлена','reviewed'=>'Проверено','cancelled'=>'Отменено'][$r->status] ?? $r->status }}</div></div>
+    @if($requirements->count())<span class="badge-soft">{{ $uploaded->count() }} / {{ $requirements->count() }} документов</span>@endif
+   </div>
+
+   @if($requirements->count())
+    <div class="competition-doc-list">
+    @foreach($requirements as $req)
+     @php($doc=$uploaded->get($req['key']))
+     <div class="competition-doc-row">
+      <div>
+       <strong>{{ $req['label'] }}</strong>
+       <div class="small {{ $doc ? 'text-success' : 'text-warning' }}">{{ $doc ? 'Загружен' : 'Нужно загрузить' }}</div>
+       @if($doc)<a class="small" href="{{ $doc->file_url }}" target="_blank">{{ $doc->file_name }} ↗</a>@endif
+      </div>
+      <div class="competition-doc-actions">
+       <form method="post" enctype="multipart/form-data" action="{{ route('competitions.documents.upload',[$r->competition,$req['key']]) }}" class="d-flex gap-2 flex-wrap">@csrf
+        <input type="file" name="document" class="form-control form-control-sm" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.zip" required>
+        <button class="btn btn-sm btn-neon">{{ $doc ? 'Заменить' : 'Загрузить' }}</button>
+       </form>
+       @if($doc)
+        <form method="post" action="{{ route('competitions.documents.delete',[$r->competition,$req['key']]) }}">@csrf @method('DELETE')
+         <button class="btn btn-sm btn-outline-danger">Удалить</button>
+        </form>
+       @endif
+      </div>
+     </div>
+    @endforeach
+    </div>
+   @else
+    <div class="small text-white-50">Для этого конкурса администратор пока не указал обязательные документы.</div>
+   @endif
+  </div>
+ @empty<div class="text-white-50 mt-3">Вы пока не записывались на конкурсы.</div>@endforelse
  </div></div>
- <div class="col-lg-6"><div class="glass-card p-4 h-100"><h3>Мои сертификаты</h3>
+ <div class="col-lg-5"><div class="glass-card p-4 h-100"><h3>Мои сертификаты</h3>
  @forelse($quizCertificates as $a)<div class="py-3 border-bottom border-secondary-subtle d-flex justify-content-between gap-3"><div><strong>{{ $a->quiz->title }}</strong><div class="small text-white-50">{{ $a->score }}% · {{ optional($a->completed_at)->format('d.m.Y') }}</div></div><a class="btn btn-sm btn-ghost" href="{{ route('quizzes.certificate',$a->certificate_code) }}" target="_blank">Открыть</a></div>@empty<div class="text-white-50 mt-3">Сертификатов пока нет.</div>@endforelse
  </div></div>
 </div>
