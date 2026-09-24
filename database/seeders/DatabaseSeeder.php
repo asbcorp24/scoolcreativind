@@ -28,5 +28,6 @@ class DatabaseSeeder extends Seeder
             'is_admin'=>true
         ]);
         $this->call(QuizSeeder::class);
+        $this->call(CompetitionSeeder::class);
     }
 }
