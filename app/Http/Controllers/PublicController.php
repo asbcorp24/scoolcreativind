@@ -9,6 +9,8 @@ use App\Models\MediaItem;
 use App\Models\NewsPost;
 use App\Models\StudentProject;
 use App\Models\Studio;
+use App\Models\CompetitionRegistration;
+use App\Models\QuizAttempt;
 use Illuminate\Http\Request;
 
 class PublicController extends Controller
@@ -72,6 +74,10 @@ class PublicController extends Controller
 
     public function cabinet()
     {
-        return view('cabinet', ['applications'=>AdmissionApplication::where('user_id',auth()->id())->latest()->get()]);
+        return view('cabinet', [
+            'applications'=>AdmissionApplication::where('user_id',auth()->id())->latest()->get(),
+            'competitionRegistrations'=>CompetitionRegistration::with('competition')->where('user_id',auth()->id())->latest()->get(),
+            'quizCertificates'=>QuizAttempt::with('quiz')->where('user_id',auth()->id())->where('passed',true)->whereNotNull('certificate_code')->latest('completed_at')->get(),
+        ]);
     }
 }
