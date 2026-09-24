@@ -1,5 +1,6 @@
 <?php
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminContentController;
 use App\Http\Controllers\AdminPeopleEquipmentController;
 use App\Http\Controllers\AdminLearningController;
@@ -30,7 +31,12 @@ Route::middleware('guest')->group(function(){
 Route::post('/logout',[AuthController::class,'logout'])->middleware('auth')->name('logout');
 Route::get('/cabinet',[PublicController::class,'cabinet'])->middleware('auth')->name('cabinet');
 
-Route::prefix('admin')->name('admin.')->middleware(['auth','admin'])->group(function(){
+Route::prefix('admin')->name('admin.')->group(function(){
+    Route::get('/login',[AdminAuthController::class,'loginForm'])->name('login');
+    Route::post('/login',[AdminAuthController::class,'login'])->name('login.submit');
+    Route::post('/logout',[AdminAuthController::class,'logout'])->name('logout');
+
+    Route::middleware('admin')->group(function(){
     Route::get('/',[AdminController::class,'dashboard'])->name('dashboard');
     Route::get('/studios/create',[AdminController::class,'studioForm'])->name('studios.create');
     Route::get('/studios/{studio}/edit',[AdminController::class,'studioForm'])->name('studios.edit');
@@ -75,4 +81,5 @@ Route::prefix('admin')->name('admin.')->middleware(['auth','admin'])->group(func
     Route::delete('/competitions/{competition}',[AdminLearningController::class,'deleteCompetition'])->name('competitions.delete');
     Route::post('/achievements/save/{achievement?}',[AdminLearningController::class,'saveAchievement'])->name('achievements.save');
     Route::delete('/achievements/{achievement}',[AdminLearningController::class,'deleteAchievement'])->name('achievements.delete');
+    });
 });
