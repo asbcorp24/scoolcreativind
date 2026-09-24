@@ -16,8 +16,16 @@ class LearningController extends Controller
         $start=\Carbon\Carbon::createFromFormat('Y-m',$month)->startOfMonth();
         $end=$start->copy()->endOfMonth();
 
-        $lessons=ScheduleLesson::with('studio')
-            ->where('is_published',true)
+        $query=ScheduleLesson::with(['studio','group'])->where('is_published',true);
+
+        if (auth()->check() && !auth()->user()->is_admin) {
+            $groupIds=auth()->user()->studentGroups()->pluck('study_groups.id');
+            $query->where(function($q) use ($groupIds){
+                $q->whereIn('study_group_id',$groupIds)->orWhereNull('study_group_id');
+            });
+        }
+
+        $lessons=$query
             ->whereBetween('lesson_date',[$start->toDateString(),$end->toDateString()])
             ->orderBy('lesson_date')->orderBy('starts_at')->get();
 
