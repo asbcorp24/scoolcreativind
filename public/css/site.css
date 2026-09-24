@@ -173,3 +173,50 @@ body.lightbox-open{overflow:hidden}
 .quiz-result-mini strong{font-size:1.5rem;color:var(--cyan)}
 .quiz-result-mini span{color:var(--muted);font-size:.85rem}
 .competition-submit{border-top:1px solid var(--line);padding-top:18px}
+
+
+/* Competitions page redesign */
+.competition-hero{position:relative;min-height:88vh;display:flex;align-items:center;overflow:hidden;background:
+radial-gradient(circle at 18% 28%,rgba(138,92,255,.2),transparent 30%),
+radial-gradient(circle at 80% 60%,rgba(0,229,255,.12),transparent 28%),
+#06070b}
+.competition-hero-grid{position:absolute;inset:0;background-image:
+linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+background-size:72px 72px;mask-image:linear-gradient(to bottom,transparent 2%,#000 35%,transparent 100%)}
+.competition-hero .container{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr);gap:60px;align-items:center;padding-top:120px;padding-bottom:80px}
+.competition-title{font-size:clamp(4rem,9vw,9rem);line-height:.8;letter-spacing:-.075em;font-weight:950;margin:1rem 0 1.6rem}
+.competition-title span{color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.65);text-shadow:0 0 38px rgba(138,92,255,.2)}
+.competition-lead{max-width:780px;color:#bcc3d0;font-size:clamp(1.05rem,1.5vw,1.35rem)}
+.competition-hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.competition-orbit-card{min-height:430px;border:1px solid rgba(255,255,255,.12);border-radius:34px;background:linear-gradient(160deg,rgba(15,20,30,.94),rgba(7,9,14,.96));position:relative;display:grid;place-items:center;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.34)}
+.competition-orbit-card:before{content:"";position:absolute;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(138,92,255,.25),transparent 65%);filter:blur(12px)}
+.competition-orbit-ring{position:absolute;width:240px;height:240px;border:1px solid rgba(0,229,255,.35);border-radius:50%;animation:competitionSpin 14s linear infinite}
+.competition-orbit-ring:before{content:"";position:absolute;width:14px;height:14px;border-radius:50%;background:var(--cyan);top:22px;right:34px;box-shadow:0 0 24px var(--cyan)}
+.competition-orbit-ring.r2{width:310px;height:170px;transform:rotate(28deg);border-color:rgba(255,79,216,.28);animation-duration:20s;animation-direction:reverse}
+.competition-orbit-core{position:relative;z-index:2;width:110px;height:110px;border-radius:28px;display:grid;place-items:center;font-size:3rem;background:linear-gradient(135deg,rgba(138,92,255,.4),rgba(0,229,255,.18));border:1px solid rgba(255,255,255,.15);box-shadow:0 0 45px rgba(138,92,255,.2)}
+.competition-orbit-meta{position:absolute;left:26px;right:26px;bottom:26px;display:flex;justify-content:space-between;align-items:end;border-top:1px solid rgba(255,255,255,.1);padding-top:18px}
+.competition-orbit-meta span{font-size:3.4rem;font-weight:950;letter-spacing:-.07em}.competition-orbit-meta small{color:var(--muted);max-width:110px;text-align:right}
+@keyframes competitionSpin{to{transform:rotate(360deg)}}
+
+.competition-list-section{background:linear-gradient(180deg,#07090e,#06070b)}
+.competition-card{height:100%;border:1px solid var(--line);border-radius:28px;background:linear-gradient(180deg,rgba(14,18,27,.94),rgba(8,11,16,.98));overflow:hidden}
+.competition-card-top{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02)}
+.competition-index{font-size:1.7rem;font-weight:950;color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.32)}
+.competition-date{font-size:.76rem;letter-spacing:.12em;color:#c6ccd8}.competition-date span{color:var(--cyan);margin:0 7px}
+.competition-card-body{padding:28px}.competition-card-body h3{font-size:clamp(2rem,3.7vw,3.5rem);font-weight:900;letter-spacing:-.05em;margin:1rem 0}.competition-card-body p{color:#b5bdca}
+.competition-meta-row{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0 24px}.competition-meta-row span{padding:9px 12px;border:1px solid rgba(255,255,255,.09);border-radius:999px;font-size:.75rem;color:#c8cfdb;background:rgba(255,255,255,.025)}
+.competition-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.competition-status{padding:11px 14px;border-radius:999px;background:rgba(184,255,92,.1);border:1px solid rgba(184,255,92,.22);color:#dfffba;font-size:.8rem;font-weight:800}
+.competition-empty{display:grid;grid-template-columns:260px 1fr;gap:42px;align-items:center;border:1px solid rgba(255,255,255,.1);border-radius:32px;padding:42px;background:
+radial-gradient(circle at 12% 50%,rgba(138,92,255,.14),transparent 24%),
+linear-gradient(135deg,#0d1119,#080a0f)}
+.competition-empty-visual{height:220px;position:relative;display:grid;place-items:center}
+.competition-empty-visual strong{font-size:7rem;color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.3);font-weight:950}
+.competition-empty-orbit{position:absolute;width:180px;height:180px;border-radius:50%;border:1px solid rgba(0,229,255,.28)}
+.competition-empty-orbit:after{content:"";position:absolute;width:12px;height:12px;border-radius:50%;background:var(--pink);top:16px;left:31px;box-shadow:0 0 22px var(--pink)}
+.competition-empty h3,.achievement-empty h3{font-size:clamp(2rem,4vw,3.7rem);font-weight:900;letter-spacing:-.05em;margin:1rem 0}.competition-empty p,.achievement-empty p{color:var(--muted);max-width:760px}
+.achievements-section{background:radial-gradient(circle at 85% 15%,rgba(255,79,216,.06),transparent 30%)}
+.achievement-empty{grid-column:1/-1;display:grid;grid-template-columns:110px 1fr;gap:24px;align-items:center;border:1px solid var(--line);border-radius:26px;padding:28px;background:linear-gradient(135deg,rgba(14,18,26,.94),rgba(7,9,14,.96))}
+.achievement-empty-icon{width:96px;height:96px;border-radius:26px;display:grid;place-items:center;font-size:2.6rem;color:var(--cyan);border:1px solid rgba(0,229,255,.2);background:rgba(0,229,255,.05)}
+@media(max-width:991px){.competition-hero .container{grid-template-columns:1fr}.competition-orbit-card{min-height:330px}.competition-empty{grid-template-columns:1fr}.competition-empty-visual{height:160px}}
+@media(max-width:576px){.competition-hero{min-height:auto}.competition-hero .container{padding-top:130px}.competition-title{font-size:3.8rem}.competition-empty{padding:24px}.achievement-empty{grid-template-columns:1fr}.achievement-empty-icon{width:78px;height:78px}}
