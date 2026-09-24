@@ -29,9 +29,10 @@
 <section class="section-space pt-0">
  <div class="container-fluid px-lg-5">
   <div class="section-head"><div><div class="eyebrow">Photo lab</div><h2>Фотогалерея</h2></div></div>
-  <div class="media-masonry">
-   @foreach($photos as $m)<button class="media-tile" data-bs-toggle="modal" data-bs-target="#photoModal" data-src="{{ $m->display_url }}"><img src="{{ $m->display_url }}" alt="{{ $m->title }}"><span>{{ $m->title }}</span></button>@endforeach
+  <div class="media-masonry" data-paginated-list data-page-size="6">
+   @foreach($photos as $m)<button class="media-tile" data-page-item data-bs-toggle="modal" data-bs-target="#photoModal" data-src="{{ $m->display_url }}"><img src="{{ $m->display_url }}" alt="{{ $m->title }}"><span>{{ $m->title }}</span></button>@endforeach
   </div>
+  @if($photos->count()>6)<div class="media-pagination mt-4" data-pagination></div>@endif
  </div>
 </section>
 @endif
@@ -41,13 +42,21 @@
 <section class="section-space immersive-section">
  <div class="container">
   <div class="section-head"><div><div class="eyebrow">Immersive spaces</div><h2>360° галерея</h2></div><p>Осмотрите пространство мышью или пальцем.</p></div>
-  @foreach($panos as $m)
-   <div class="pano-shell mb-4"
-        data-panorama="{{ $m->display_url }}"
-        data-hotspots='{{ $m->hotspots_json ? e($m->hotspots_json) : "[]" }}'>
-      <div class="pano-placeholder"><strong>360°</strong><span>{{ $m->title ?: 'Панорама студии' }}</span></div>
+  <div class="media-slider-shell" data-media-slider>
+   <button class="media-slider-nav prev" type="button" data-slider-prev aria-label="Предыдущая панорама">←</button>
+   <div class="media-slider-track" data-slider-track>
+    @foreach($panos as $m)
+    <div class="media-slider-slide">
+     <div class="pano-shell"
+          data-panorama="{{ $m->display_url }}"
+          data-hotspots='{{ $m->hotspots_json ? e($m->hotspots_json) : "[]" }}'>
+        <div class="pano-placeholder"><strong>360°</strong><span>{{ $m->title ?: 'Панорама студии' }}</span></div>
+     </div>
+    </div>
+    @endforeach
    </div>
-  @endforeach
+   <button class="media-slider-nav next" type="button" data-slider-next aria-label="Следующая панорама">→</button>
+  </div>
  </div>
 </section>
 @endif
@@ -61,9 +70,11 @@
    <div><div class="eyebrow">Realtime 3D</div><h2>3D-галерея</h2></div>
    <p>Модели можно вращать, приближать и рассматривать прямо в браузере. Поддерживаются GLB и GLTF.</p>
   </div>
-  <div class="row g-4">
+  <div class="media-slider-shell" data-media-slider>
+   <button class="media-slider-nav prev" type="button" data-slider-prev aria-label="Предыдущая модель">←</button>
+   <div class="media-slider-track" data-slider-track>
    @foreach($models as $m)
-   <div class="col-lg-6">
+   <div class="media-slider-slide">
     <article class="model-card">
       <div class="model-viewer-local" data-model-viewer data-model-url="{{ $m->display_url }}">
         <div class="model-loading">Загрузка 3D-модели…</div>
@@ -76,6 +87,8 @@
     </article>
    </div>
    @endforeach
+   </div>
+   <button class="media-slider-nav next" type="button" data-slider-next aria-label="Следующая модель">→</button>
   </div>
  </div>
 </section>
@@ -90,9 +103,9 @@
    <div><div class="eyebrow">Listen</div><h2>Аудиотреки</h2></div>
    <p>Музыка, саунд-дизайн, вокальные работы, подкасты и записи учеников студии.</p>
   </div>
-  <div class="audio-playlist">
+  <div class="audio-playlist" data-paginated-list data-page-size="6">
    @foreach($audioTracks as $i=>$track)
-   <article class="audio-track" data-audio-track>
+   <article class="audio-track" data-audio-track data-page-item>
     <button class="audio-play" type="button" aria-label="Воспроизвести" data-audio-button>▶</button>
     <div class="audio-track-main">
      <div class="audio-track-top">
@@ -109,6 +122,7 @@
    </article>
    @endforeach
   </div>
+  @if($audioTracks->count()>6)<div class="media-pagination mt-4" data-pagination></div>@endif
  </div>
 </section>
 @endif
