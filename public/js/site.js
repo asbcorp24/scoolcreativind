@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 
   initPageTransitions();
+  initTiltCards();
   initHero();
   document.querySelectorAll('.pano-shell[data-panorama]').forEach(initPanorama);
 });
@@ -253,4 +254,20 @@ function initPanorama(el){
     camera.updateProjectionMatrix();
     renderer.setSize(el.clientWidth,el.clientHeight);
   }).observe(el);
+}
+
+
+function initTiltCards(){
+  document.querySelectorAll('.studio-card').forEach(card=>{
+    card.addEventListener('pointermove',e=>{
+      if(window.matchMedia('(pointer:coarse)').matches)return;
+      const r=card.getBoundingClientRect();
+      const x=(e.clientX-r.left)/r.width-.5;
+      const y=(e.clientY-r.top)/r.height-.5;
+      card.style.transform='perspective(900px) rotateX('+(-y*5)+'deg) rotateY('+(x*7)+'deg) translateY(-3px)';
+    });
+    card.addEventListener('pointerleave',()=>{
+      card.style.transform='';
+    });
+  });
 }
