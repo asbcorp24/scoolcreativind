@@ -15,3 +15,5 @@
 .pano-hotspot-dot:after{content:"";position:absolute;inset:8px;border-radius:50%;background:#12141c}
 .pano-hotspot-label{padding:8px 12px;border:1px solid rgba(255,255,255,.2);border-radius:999px;background:rgba(5,6,9,.72);backdrop-filter:blur(14px);font-size:.75rem;letter-spacing:.03em}
 .pano-hotspot:hover .pano-hotspot-dot{box-shadow:0 0 0 10px rgba(255,79,216,.22),0 0 34px rgba(255,79,216,.65)}
+
+.studio-card{transition:transform .25s ease,border-color .25s ease}
