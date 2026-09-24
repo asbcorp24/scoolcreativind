@@ -1,0 +1,9 @@
+@extends('layouts.app')
+@section('title','Новость · Админ')
+@section('content')
+<section class="page-top"><div class="container"><div class="eyebrow">Админ / новости</div><h1 class="display-3 fw-bold">{{ $post?'Редактировать новость':'Новая новость' }}</h1></div></section>
+<section class="pb-5"><div class="container"><form class="form-shell" method="post" action="{{ route('admin.news.save',$post) }}">@csrf
+<div class="mb-3"><label class="form-label">Заголовок</label><input class="form-control" name="title" value="{{ old('title',$post->title ?? '') }}" required></div><div class="mb-3"><label class="form-label">Slug</label><input class="form-control" name="slug" value="{{ old('slug',$post->slug ?? '') }}"></div><div class="mb-3"><label class="form-label">Краткое описание</label><textarea class="form-control" rows="3" name="excerpt">{{ old('excerpt',$post->excerpt ?? '') }}</textarea></div><div class="mb-3"><label class="form-label">Текст</label><textarea class="form-control" rows="12" name="body" required>{{ old('body',$post->body ?? '') }}</textarea></div>
+<div class="row g-3"><div class="col-md-6"><label class="form-label">URL обложки</label><input class="form-control" name="cover" value="{{ old('cover',$post->cover ?? '') }}"></div><div class="col-md-4"><label class="form-label">Дата публикации</label><input type="datetime-local" class="form-control" name="published_at" value="{{ old('published_at',isset($post)&&$post->published_at?$post->published_at->format('Y-m-d\TH:i'):'') }}"></div><div class="col-md-2 d-flex align-items-end"><div class="form-check mb-2"><input type="hidden" name="is_published" value="0"><input class="form-check-input" type="checkbox" name="is_published" value="1" @checked(old('is_published',$post->is_published ?? true))><label class="form-check-label">Опубликовать</label></div></div></div>
+<div class="text-end mt-4"><button class="btn btn-neon btn-lg">Сохранить</button></div></form></div></section>
+@endsection
