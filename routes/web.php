@@ -8,9 +8,12 @@ use App\Http\Controllers\AdminSettingsController;
 use App\Http\Controllers\LearningController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PublicController;
+use App\Http\Controllers\SeoController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class,'home'])->name('home');
+Route::get('/sitemap.xml',[SeoController::class,'sitemap'])->name('sitemap');
+Route::get('/robots.txt',[SeoController::class,'robots'])->name('robots');
 Route::get('/studios/{studio}', [PublicController::class,'studio'])->name('studios.show');
 Route::get('/team', [PublicController::class,'team'])->name('team');
 Route::get('/equipment', [PublicController::class,'equipment'])->name('equipment');
