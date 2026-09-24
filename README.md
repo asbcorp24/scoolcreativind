@@ -229,3 +229,32 @@ php artisan migrate
 php artisan storage:link
 php artisan optimize:clear
 ```
+
+
+## Локальные JS/CSS без CDN
+
+Bootstrap, Three.js и 3D `model-viewer` больше не загружаются с внешних CDN. Они устанавливаются через npm и собираются Vite в локальный каталог:
+
+```text
+/public/build/
+```
+
+После `git pull` обязательно выполнить:
+
+```bash
+npm install
+npm run build
+php artisan optimize:clear
+```
+
+В production браузер должен загружать фронтенд только с вашего домена, например:
+
+```text
+https://ваш-домен/build/assets/app-....js
+https://ваш-домен/build/assets/app-....css
+https://ваш-домен/css/site.css
+```
+
+Ссылок на `cdn.jsdelivr.net` и `unpkg.com` в layout больше нет.
+
+Если на production-сервере Node.js не установлен, выполните `npm install && npm run build` на компьютере разработки и перенесите целиком каталог `public/build` на сервер вместе с новой версией проекта.
