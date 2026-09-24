@@ -16,8 +16,8 @@ return new class extends Migration {
    $t->string('cover')->nullable(); $t->unsignedInteger('sort_order')->default(0); $t->boolean('is_active')->default(true); $t->timestamps();
   });
   Schema::create('media_items', function(Blueprint $t){
-   $t->id(); $t->foreignId('studio_id')->constrained()->cascadeOnDelete(); $t->enum('type',['photo','panorama','video']);
-   $t->string('title')->nullable(); $t->text('url'); $t->string('thumbnail')->nullable(); $t->text('caption')->nullable();
+   $t->id(); $t->foreignId('studio_id')->constrained()->cascadeOnDelete(); $t->string('type',32);
+   $t->string('title')->nullable(); $t->text('url'); $t->string('thumbnail')->nullable(); $t->text('caption')->nullable(); $t->longText('hotspots_json')->nullable();
    $t->unsignedInteger('sort_order')->default(0); $t->boolean('is_featured')->default(false); $t->timestamps();
   });
   Schema::create('student_projects', function(Blueprint $t){
