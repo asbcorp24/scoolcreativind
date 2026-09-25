@@ -83,6 +83,7 @@ class AdminMiddleware
             'admin/homework'=>'homework',
             'admin/settings'=>'settings',
             'admin/documents'=>'documents',
+            'admin/questions'=>'questions',
             'admin/applications'=>'applications',
             'admin/access-admins'=>'__super',
         ];
