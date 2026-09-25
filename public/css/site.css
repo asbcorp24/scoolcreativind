@@ -289,3 +289,13 @@ linear-gradient(135deg,#0d1119,#080a0f)}
  .competition-doc-actions{justify-content:flex-start}
  .competition-doc-actions .form-control{min-width:0;width:100%}
 }
+
+
+/* Section administrators */
+.admin-section-picker{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.admin-section-option{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.025);cursor:pointer}
+.admin-section-option input{margin-top:4px}
+.admin-section-option span{display:flex;flex-direction:column;gap:2px}
+.admin-section-option strong{font-size:.88rem}.admin-section-option small{font-size:.68rem;color:var(--muted)}
+.admin-section-option:has(input:checked){border-color:rgba(0,229,255,.35);background:linear-gradient(135deg,rgba(138,92,255,.12),rgba(0,229,255,.06))}
+@media(max-width:576px){.admin-section-picker{grid-template-columns:1fr}}
