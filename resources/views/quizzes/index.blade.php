@@ -25,7 +25,7 @@
   </article>
  </div>
 @empty
- <div class="text-white-50">Викторины пока не опубликованы.</div>
+ <div class="text-white-50">Доступных викторин нет.</div>
 @endforelse
 </div>
 </div></section>
