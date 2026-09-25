@@ -43,6 +43,7 @@ class User extends Authenticatable
             'journal'=>'admin.journal',
             'homework'=>'admin.homework',
             'settings'=>'admin.settings',
+            'documents'=>'admin.documents',
             'applications'=>'admin.dashboard',
         ];
 
