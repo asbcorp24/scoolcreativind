@@ -14,6 +14,7 @@ use App\Http\Controllers\SeoController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\AdminQuizController;
 use App\Http\Controllers\CompetitionParticipationController;
+use App\Http\Controllers\AdminAccessController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class,'home'])->name('home');
@@ -63,6 +64,10 @@ Route::prefix('admin')->name('admin.')->group(function(){
 
     Route::middleware('admin')->group(function(){
     Route::get('/',[AdminController::class,'dashboard'])->name('dashboard');
+    Route::get('/access-admins',[AdminAccessController::class,'index'])->name('access-admins');
+    Route::get('/access-admins/{user}/edit',[AdminAccessController::class,'edit'])->name('access-admins.edit');
+    Route::post('/access-admins/save/{user?}',[AdminAccessController::class,'save'])->name('access-admins.save');
+    Route::delete('/access-admins/{user}',[AdminAccessController::class,'delete'])->name('access-admins.delete');
     Route::get('/settings',[AdminSettingsController::class,'edit'])->name('settings');
     Route::get('/groups',[AdminAcademicController::class,'groups'])->name('groups');
     Route::post('/groups/save/{group?}',[AdminAcademicController::class,'saveGroup'])->name('groups.save');
