@@ -87,9 +87,6 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
   <a class="mobile-app-item {{ request()->routeIs('competitions') ? 'active' : '' }}" href="{{ route('competitions') }}">
     <span class="mobile-app-icon">★</span><small>Конкурсы</small>
   </a>
-  <a class="mobile-app-item {{ request()->routeIs('quizzes.*') ? 'active' : '' }}" href="{{ route('quizzes.index') }}">
-    <span class="mobile-app-icon">?</span><small>Викторины</small>
-  </a>
   @auth
     <a class="mobile-app-item {{ request()->routeIs('cabinet') || request()->routeIs('academic.*') ? 'active' : '' }}" href="{{ route('cabinet') }}">
       <span class="mobile-app-icon">◉</span><small>Кабинет</small>
@@ -99,7 +96,38 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
       <span class="mobile-app-icon">◉</span><small>Войти</small>
     </a>
   @endauth
+  <button type="button" class="mobile-app-item mobile-more-trigger" data-mobile-more-open>
+    <span class="mobile-app-icon">☰</span><small>Ещё</small>
+  </button>
 </nav>
+
+<div class="mobile-more-sheet" data-mobile-more-sheet aria-hidden="true">
+  <button class="mobile-more-backdrop" type="button" data-mobile-more-close aria-label="Закрыть меню"></button>
+  <div class="mobile-more-panel">
+    <div class="mobile-more-handle"></div>
+    <div class="mobile-more-head">
+      <div><div class="eyebrow">Навигация</div><h3>Разделы сайта</h3></div>
+      <button type="button" class="mobile-more-close" data-mobile-more-close aria-label="Закрыть">×</button>
+    </div>
+
+    <div class="mobile-more-grid">
+      <a href="{{ route('home') }}#studios"><span>✦</span><strong>Студии</strong></a>
+      <a href="{{ route('schedule') }}"><span>◷</span><strong>Расписание</strong></a>
+      <a href="{{ route('quizzes.index') }}"><span>?</span><strong>Викторины</strong></a>
+      <a href="{{ route('team') }}"><span>◎</span><strong>Команда</strong></a>
+      <a href="{{ route('equipment') }}"><span>⌘</span><strong>Оборудование</strong></a>
+      <a href="{{ route('news.index') }}"><span>▤</span><strong>Новости</strong></a>
+      <a href="{{ route('documents.index') }}"><span>▣</span><strong>Документы</strong></a>
+      <a href="{{ route('home') }}#campus360"><span>360°</span><strong>Виртуальный тур</strong></a>
+      <a href="{{ route('apply') }}"><span>＋</span><strong>Поступить</strong></a>
+      @auth
+        @if(auth()->user()->is_admin || auth()->user()->isSectionAdmin())
+          <a href="{{ route(auth()->user()->adminLandingRoute()) }}"><span>⚙</span><strong>Админка</strong></a>
+        @endif
+      @endauth
+    </div>
+  </div>
+</div>
 
 @auth
 <form method="post" action="{{ request()->routeIs('admin.*') ? route('admin.logout') : route('logout') }}" class="mobile-logout-fab">@csrf
