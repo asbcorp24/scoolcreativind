@@ -26,6 +26,7 @@ class AdminAccessController extends Controller
         'settings'=>'Главная / SEO / хранилище',
         'documents'=>'Официальные документы',
         'questions'=>'Вопросы и обращения',
+        'contacts'=>'Контакты и карта',
     ];
 
     private function ensureSuperAdmin(): void
