@@ -25,7 +25,7 @@
     <div class="p-4">
      <div class="eyebrow">{{ $project->studio->title ?? $project->type }}</div>
      <h3 class="mt-3">{{ $project->title }}</h3>
-     <p class="text-white-50">{{ IlluminateSupportStr::limit($project->description,160) }}</p>
+     <p class="text-white-50">{{ \Illuminate\Support\Str::limit($project->description,160) }}</p>
      <div class="small text-white-50 mb-3">
       {{ $project->student->user->name ?? 'Ученик ШКИ' }}
       @if($project->completed_at) · {{ $project->completed_at->format('Y') }} @endif
@@ -39,7 +39,7 @@
    </article>
   </div>
  @empty
-  <div class="col-12"><div class="competition-empty"><div class="competition-empty-visual"><strong>00</strong></div><div><div class="eyebrow">Portfolio loading</div><h3>Работы скоро появятся</h3><p>Когда ученики опубликуют проекты, они появятся здесь.</p></div></div></div>
+  <div class="col-12"><div class="competition-empty"><div class="competition-empty-visual"><strong>00</strong></div><div><div class="eyebrow">Student portfolio</div><h3>Нет опубликованных работ</h3><p>В этом разделе представлены публичные проекты учеников школы.</p></div></div></div>
  @endforelse
  </div>
 
