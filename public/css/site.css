@@ -299,3 +299,20 @@ linear-gradient(135deg,#0d1119,#080a0f)}
 .admin-section-option strong{font-size:.88rem}.admin-section-option small{font-size:.68rem;color:var(--muted)}
 .admin-section-option:has(input:checked){border-color:rgba(0,229,255,.35);background:linear-gradient(135deg,rgba(138,92,255,.12),rgba(0,229,255,.06))}
 @media(max-width:576px){.admin-section-picker{grid-template-columns:1fr}}
+
+
+/* Mobile panorama touch fixes */
+.pano-shell,.pano-shell canvas{
+ touch-action:none;
+ -ms-touch-action:none;
+ overscroll-behavior:contain;
+}
+.pano-shell{
+ -webkit-user-select:none;
+ user-select:none;
+ -webkit-touch-callout:none;
+}
+@media(max-width:768px){
+ .pano-shell{min-height:420px}
+ .pano-shell canvas{display:block}
+}
