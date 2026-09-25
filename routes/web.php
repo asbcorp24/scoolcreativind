@@ -15,6 +15,8 @@ use App\Http\Controllers\QuizController;
 use App\Http\Controllers\AdminQuizController;
 use App\Http\Controllers\CompetitionParticipationController;
 use App\Http\Controllers\AdminAccessController;
+use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\AdminDocumentController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class,'home'])->name('home');
@@ -23,6 +25,7 @@ Route::get('/robots.txt',[SeoController::class,'robots'])->name('robots');
 Route::get('/studios/{studio}', [PublicController::class,'studio'])->name('studios.show');
 Route::get('/team', [PublicController::class,'team'])->name('team');
 Route::get('/equipment', [PublicController::class,'equipment'])->name('equipment');
+Route::get('/documents',[DocumentController::class,'index'])->name('documents.index');
 Route::get('/schedule',[LearningController::class,'schedule'])->name('schedule');
 Route::get('/projects',[LearningController::class,'projects'])->name('projects.index');
 Route::get('/portfolio/{profile}',[LearningController::class,'portfolio'])->name('portfolio.show');
@@ -69,6 +72,10 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::post('/access-admins/save/{user?}',[AdminAccessController::class,'save'])->name('access-admins.save');
     Route::delete('/access-admins/{user}',[AdminAccessController::class,'delete'])->name('access-admins.delete');
     Route::get('/settings',[AdminSettingsController::class,'edit'])->name('settings');
+    Route::get('/documents',[AdminDocumentController::class,'index'])->name('documents');
+    Route::get('/documents/{document}/edit',[AdminDocumentController::class,'edit'])->name('documents.edit');
+    Route::post('/documents/save/{document?}',[AdminDocumentController::class,'save'])->name('documents.save');
+    Route::delete('/documents/{document}',[AdminDocumentController::class,'delete'])->name('documents.delete');
     Route::get('/groups',[AdminAcademicController::class,'groups'])->name('groups');
     Route::post('/groups/save/{group?}',[AdminAcademicController::class,'saveGroup'])->name('groups.save');
     Route::post('/groups/{group}/students/create',[AdminAcademicController::class,'createStudent'])->name('groups.students.create');
