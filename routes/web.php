@@ -21,6 +21,7 @@ use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\AdminQuestionController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\AdminContactController;
+use App\Http\Controllers\AdminMusicController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class,'home'])->name('home');
@@ -82,6 +83,10 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::get('/documents',[AdminDocumentController::class,'index'])->name('documents');
     Route::get('/questions',[AdminQuestionController::class,'index'])->name('questions');
     Route::get('/contacts',[AdminContactController::class,'edit'])->name('contacts');
+    Route::get('/music',[AdminMusicController::class,'index'])->name('music');
+    Route::get('/music/{track}/edit',[AdminMusicController::class,'edit'])->name('music.edit');
+    Route::post('/music/save/{track?}',[AdminMusicController::class,'save'])->name('music.save');
+    Route::delete('/music/{track}',[AdminMusicController::class,'delete'])->name('music.delete');
     Route::post('/contacts',[AdminContactController::class,'update'])->name('contacts.update');
     Route::patch('/questions/{question}',[AdminQuestionController::class,'update'])->name('questions.update');
     Route::delete('/questions/{question}',[AdminQuestionController::class,'delete'])->name('questions.delete');
