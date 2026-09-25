@@ -132,12 +132,15 @@ function initPanorama(el){
 
   const scene=new THREE.Scene();
   const camera=new THREE.PerspectiveCamera(70,el.clientWidth/el.clientHeight,.1,1000);
-  const renderer=new THREE.WebGLRenderer({antialias:true});
-  renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+  const isMobile=window.matchMedia('(pointer:coarse)').matches || window.innerWidth<768;
+  const renderer=new THREE.WebGLRenderer({antialias:!isMobile,powerPreference:'high-performance'});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,isMobile?1:1.5));
   renderer.setSize(el.clientWidth,el.clientHeight);
+  renderer.domElement.style.touchAction='none';
+  el.style.touchAction='none';
   el.appendChild(renderer.domElement);
 
-  const geo=new THREE.SphereGeometry(500,60,40);
+  const geo=new THREE.SphereGeometry(500,isMobile?40:60,isMobile?28:40);
   geo.scale(-1,1,1);
 
   new THREE.TextureLoader().load(
@@ -183,10 +186,11 @@ function initPanorama(el){
 
   el.addEventListener('pointerdown',e=>{
     if(e.target.closest('.pano-hotspot'))return;
+    e.preventDefault();
     down=true;sx=e.clientX;sy=e.clientY;sl=lon;st=lat;
     el.setPointerCapture?.(e.pointerId);
     el.classList.add('is-dragging');
-  });
+  },{passive:false});
 
   el.addEventListener('pointerup',()=>{
     down=false;
@@ -200,10 +204,38 @@ function initPanorama(el){
 
   el.addEventListener('pointermove',e=>{
     if(down){
+      e.preventDefault();
       lon=sl+(sx-e.clientX)*.12;
       lat=st+(e.clientY-sy)*.12;
     }
-  });
+  },{passive:false});
+
+  if(!window.PointerEvent){
+    let touching=false,tsx=0,tsy=0,tsl=0,tst=0;
+
+    el.addEventListener('touchstart',e=>{
+      if(e.target.closest('.pano-hotspot') || !e.touches.length)return;
+      const t=e.touches[0];
+      touching=true;tsx=t.clientX;tsy=t.clientY;tsl=lon;tst=lat;
+      el.classList.add('is-dragging');
+      e.preventDefault();
+    },{passive:false});
+
+    el.addEventListener('touchmove',e=>{
+      if(!touching || !e.touches.length)return;
+      const t=e.touches[0];
+      lon=tsl+(tsx-t.clientX)*.12;
+      lat=tst+(t.clientY-tsy)*.12;
+      e.preventDefault();
+    },{passive:false});
+
+    const endTouch=()=>{
+      touching=false;
+      el.classList.remove('is-dragging');
+    };
+    el.addEventListener('touchend',endTouch,{passive:true});
+    el.addEventListener('touchcancel',endTouch,{passive:true});
+  }
 
   el.addEventListener('wheel',e=>{
     camera.fov=Math.max(35,Math.min(90,camera.fov+e.deltaY*.03));
