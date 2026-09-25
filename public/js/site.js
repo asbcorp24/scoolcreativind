@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 
   initAccessibility();
+  initMobileMoreMenu();
   initPageTransitions();
   initTiltCards();
   initScrollTitles();
@@ -682,4 +683,30 @@ function initAccessibility(){
     try{localStorage.setItem('accessibilityMode',enabled?'1':'0')}catch{}
     apply(enabled);
   }));
+}
+
+
+function initMobileMoreMenu(){
+  const sheet=document.querySelector('[data-mobile-more-sheet]');
+  if(!sheet)return;
+
+  const openButtons=[...document.querySelectorAll('[data-mobile-more-open]')];
+  const closeButtons=[...sheet.querySelectorAll('[data-mobile-more-close]')];
+
+  const open=()=>{
+    sheet.classList.add('open');
+    sheet.setAttribute('aria-hidden','false');
+    document.body.classList.add('mobile-menu-open');
+  };
+
+  const close=()=>{
+    sheet.classList.remove('open');
+    sheet.setAttribute('aria-hidden','true');
+    document.body.classList.remove('mobile-menu-open');
+  };
+
+  openButtons.forEach(btn=>btn.addEventListener('click',open));
+  closeButtons.forEach(btn=>btn.addEventListener('click',close));
+  sheet.querySelectorAll('a').forEach(a=>a.addEventListener('click',close));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
 }
