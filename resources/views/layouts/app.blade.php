@@ -39,6 +39,9 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
       <span class="brand-orbit"></span>
       <span class="brand-copy"><strong>ШКИ<span class="brand-dot">.</span></strong><small>Волжск</small></span>
     </a>
+    <button type="button" class="accessibility-toggle" data-accessibility-toggle aria-pressed="false" title="Версия для слабовидящих">
+      <span>◉</span><small>Версия для слабовидящих</small>
+    </button>
 
     <div class="desktop-nav-shell ms-auto">
       <a class="desktop-nav-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}"><span>01</span>Главная</a>
@@ -54,6 +57,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
           <a class="dropdown-item" href="{{ route('team') }}">Команда</a>
           <a class="dropdown-item" href="{{ route('equipment') }}">Оборудование</a>
           <a class="dropdown-item" href="{{ route('news.index') }}">Новости</a>
+          <a class="dropdown-item" href="{{ route('documents.index') }}">Документы</a>
           <a class="dropdown-item" href="{{ route('home') }}#campus360">360° тур</a>
           @auth
             <a class="dropdown-item" href="{{ route('cabinet') }}">Личный кабинет</a>
@@ -126,6 +130,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
       @if(auth()->user()->canAdminSection('journal') || auth()->user()->teacherGroups()->exists())<a class="admin-nav-link {{ request()->routeIs('admin.journal*') ? 'active' : '' }}" href="{{ route('admin.journal') }}">Журнал</a>@endif
       @if(auth()->user()->canAdminSection('homework') || auth()->user()->teacherGroups()->exists())<a class="admin-nav-link {{ request()->routeIs('admin.homework*') ? 'active' : '' }}" href="{{ route('admin.homework') }}">Домашние задания</a>@endif
       @if(auth()->user()->canAdminSection('settings'))<a class="admin-nav-link {{ request()->routeIs('admin.settings*') ? 'active' : '' }}" href="{{ route('admin.settings') }}">Главная / SEO</a>@endif
+      @if(auth()->user()->canAdminSection('documents'))<a class="admin-nav-link {{ request()->routeIs('admin.documents*') ? 'active' : '' }}" href="{{ route('admin.documents') }}">Документы</a>@endif
       @if(auth()->user()->is_admin)<a class="admin-nav-link {{ request()->routeIs('admin.access-admins*') ? 'active' : '' }}" href="{{ route('admin.access-admins') }}">Администраторы</a>@endif
       <a class="admin-nav-link admin-nav-site" href="{{ route('home') }}" target="_blank">Открыть сайт ↗</a>
       <form method="post" action="{{ route('admin.logout') }}" class="admin-logout-form">@csrf
