@@ -26,6 +26,13 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
 <meta property="og:url" content="{{ url()->current() }}">
 @if($ogImage)<meta property="og:image" content="{{ $ogImage }}">@endif
 <meta name="twitter:card" content="{{ $twitterCard }}">
+<meta name="theme-color" content="#0b0f17">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ШКИ Волжск">
+<link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
+<link rel="icon" href="{{ asset('icons/pwa.svg') }}" type="image/svg+xml">
 <link rel="stylesheet" href="{{ asset('assets/vendor/bootstrap/bootstrap.min.css') }}">
 <link rel="stylesheet" href="{{ asset('css/site.css') }}">
 @stack('head')
@@ -59,6 +66,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
           <a class="dropdown-item" href="{{ route('news.index') }}">Новости</a>
           <a class="dropdown-item" href="{{ route('documents.index') }}">Документы</a>
           <a class="dropdown-item" href="{{ route('home') }}#campus360">360° тур</a>
+          <button type="button" class="dropdown-item d-none" data-pwa-install>Установить приложение</button>
           @auth
             <a class="dropdown-item" href="{{ route('cabinet') }}">Личный кабинет</a>
             @if(auth()->user()->is_admin || auth()->user()->isSectionAdmin())<a class="dropdown-item" href="{{ route(auth()->user()->adminLandingRoute()) }}">Админ-панель</a>@endif
@@ -120,6 +128,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
       <a href="{{ route('documents.index') }}"><span>▣</span><strong>Документы</strong></a>
       <a href="{{ route('home') }}#campus360"><span>360°</span><strong>Виртуальный тур</strong></a>
       <a href="{{ route('apply') }}"><span>＋</span><strong>Поступить</strong></a>
+      <button type="button" data-pwa-install class="mobile-more-install"><span>⇩</span><strong>Установить приложение</strong></button>
       @auth
         @if(auth()->user()->is_admin || auth()->user()->isSectionAdmin())
           <a href="{{ route(auth()->user()->adminLandingRoute()) }}"><span>⚙</span><strong>Админка</strong></a>
