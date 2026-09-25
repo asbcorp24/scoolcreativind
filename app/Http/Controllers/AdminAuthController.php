@@ -8,8 +8,8 @@ class AdminAuthController extends Controller
 {
     public function loginForm()
     {
-        if (Auth::check() && Auth::user()->is_admin) {
-            return redirect()->route('admin.dashboard');
+        if (Auth::check() && (Auth::user()->is_admin || Auth::user()->isSectionAdmin())) {
+            return redirect()->route(Auth::user()->adminLandingRoute());
         }
         return view('admin.login');
     }
@@ -27,14 +27,14 @@ class AdminAuthController extends Controller
 
         $request->session()->regenerate();
 
-        if (!Auth::user()->is_admin) {
+        if (!Auth::user()->is_admin && !Auth::user()->isSectionAdmin()) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
             return back()->withErrors(['email'=>'У этой учётной записи нет прав администратора.'])->onlyInput('email');
         }
 
-        return redirect()->intended(route('admin.dashboard'));
+        return redirect()->intended(route(Auth::user()->adminLandingRoute()));
     }
 
     public function logout(Request $request)
