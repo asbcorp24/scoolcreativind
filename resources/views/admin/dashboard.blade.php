@@ -20,6 +20,7 @@
 @if(auth()->user()->canAdminSection('documents'))<a href="{{ route('admin.documents') }}" class="btn btn-ghost">Документы</a>@endif
 @if(auth()->user()->canAdminSection('questions'))<a href="{{ route('admin.questions') }}" class="btn btn-ghost">Вопросы</a>@endif
 @if(auth()->user()->canAdminSection('contacts'))<a href="{{ route('admin.contacts') }}" class="btn btn-ghost">Контакты</a>@endif
+@if(auth()->user()->canAdminSection('music'))<a href="{{ route('admin.music') }}" class="btn btn-ghost">Музыка</a>@endif
 @if(auth()->user()->is_admin)<a href="{{ route('admin.access-admins') }}" class="btn btn-ghost">Администраторы</a>@endif
 </div></div></div></section>
 <section class="pb-5"><div class="container">
