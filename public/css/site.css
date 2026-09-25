@@ -316,3 +316,50 @@ linear-gradient(135deg,#0d1119,#080a0f)}
  .pano-shell{min-height:420px}
  .pano-shell canvas{display:block}
 }
+
+
+/* Accessibility mode */
+.accessibility-toggle{display:inline-flex;align-items:center;gap:8px;margin-left:14px;height:42px;padding:0 13px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.035);color:#fff;font-weight:800;font-size:.72rem;letter-spacing:.02em}
+.accessibility-toggle span{font-size:1rem;color:var(--cyan)}
+.accessibility-toggle small{font-size:.68rem}
+.accessibility-toggle[aria-pressed="true"]{background:#fff;color:#000;border-color:#fff}
+.accessibility-toggle[aria-pressed="true"] span{color:#000}
+
+.accessibility-mode{font-size:118%}
+.accessibility-mode body{background:#fff!important;color:#000!important;line-height:1.65}
+.accessibility-mode body:before,.accessibility-mode #cursorGlow,.accessibility-mode #heroCanvas,.accessibility-mode .hero-grid{display:none!important}
+.accessibility-mode *{text-shadow:none!important;box-shadow:none!important;animation:none!important;transition:none!important}
+.accessibility-mode .sci-nav,.accessibility-mode .admin-subnav,.accessibility-mode .mobile-app-nav,.accessibility-mode .footer-shell,
+.accessibility-mode .glass-card,.accessibility-mode .news-card,.accessibility-mode .studio-card,.accessibility-mode .competition-card,
+.accessibility-mode .equipment-card,.accessibility-mode .team-card,.accessibility-mode .official-document-card{
+ background:#fff!important;color:#000!important;border-color:#000!important;backdrop-filter:none!important
+}
+.accessibility-mode a,.accessibility-mode button,.accessibility-mode .nav-link,.accessibility-mode .desktop-nav-link,
+.accessibility-mode .admin-nav-link,.accessibility-mode .text-white-50,.accessibility-mode .small,.accessibility-mode .eyebrow,
+.accessibility-mode .form-label,.accessibility-mode p,.accessibility-mode span{color:#000!important}
+.accessibility-mode .btn-neon,.accessibility-mode .desktop-apply-btn{background:#000!important;color:#fff!important;border:2px solid #000!important}
+.accessibility-mode .btn-ghost,.accessibility-mode .form-control,.accessibility-mode .form-select{background:#fff!important;color:#000!important;border:2px solid #000!important}
+.accessibility-mode img{filter:none!important}
+.accessibility-mode .hero3d,.accessibility-mode .competition-hero,.accessibility-mode .immersive-section,.accessibility-mode .cta-section{background:#fff!important}
+.accessibility-mode .hero-title,.accessibility-mode .competition-title,.accessibility-mode .studio-title{color:#000!important;-webkit-text-stroke:0!important}
+.accessibility-mode .hero-title span,.accessibility-mode .competition-title span{color:#000!important;-webkit-text-stroke:0!important}
+.accessibility-mode .mobile-app-item.active:after{background:#000!important}
+.accessibility-mode .mobile-app-item.active,.accessibility-mode .desktop-nav-link.active{background:#eee!important;border-color:#000!important}
+.accessibility-mode .eyebrow:before{background:#000!important}
+
+/* Official documents */
+.document-list{display:grid;gap:14px}
+.official-document-card{display:grid;grid-template-columns:86px minmax(0,1fr) auto;gap:22px;align-items:center;border:1px solid var(--line);border-radius:22px;padding:20px 22px;background:linear-gradient(135deg,#0e121b,#080b10)}
+.official-document-icon{width:68px;height:68px;border-radius:18px;display:grid;place-items:center;font-size:.78rem;font-weight:950;letter-spacing:.08em;color:#fff;background:linear-gradient(135deg,var(--violet),var(--pink));border:1px solid rgba(255,255,255,.12)}
+.official-document-main h3{margin:.7rem 0 .5rem;font-size:1.45rem;font-weight:850;letter-spacing:-.025em}
+.official-document-main p{margin:0 0 .7rem;color:var(--muted)}
+.official-document-meta{display:flex;gap:8px;flex-wrap:wrap}.official-document-meta span{padding:6px 9px;border:1px solid rgba(255,255,255,.08);border-radius:999px;font-size:.7rem;color:#b9c0cc}
+@media(max-width:991.98px){
+ .accessibility-toggle{margin-left:auto;margin-right:8px}
+ .accessibility-toggle small{display:none}
+}
+@media(max-width:700px){
+ .official-document-card{grid-template-columns:62px 1fr}
+ .official-document-card>.btn{grid-column:1/-1}
+ .official-document-icon{width:56px;height:56px;border-radius:15px}
+}
