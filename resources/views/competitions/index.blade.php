@@ -105,7 +105,7 @@
       <strong>00</strong>
      </div>
      <div>
-      <div class="eyebrow">Next challenge loading</div>
+      <div class="eyebrow">Open calls</div>
       <h3>Открытых конкурсов нет</h3>
       <p>Открытых конкурсов на данный момент нет.</p>
       @auth
@@ -146,7 +146,7 @@
    <div class="achievement-empty">
     <div class="achievement-empty-icon">◇</div>
     <div>
-     <div class="eyebrow">First win is ahead</div>
+     <div class="eyebrow">Awards</div>
      <h3>Достижения</h3>
      <p>Опубликованных достижений нет.</p>
     </div>
