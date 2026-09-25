@@ -18,6 +18,7 @@
 @if(auth()->user()->canAdminSection('quizzes'))<a href="{{ route('admin.quizzes') }}" class="btn btn-ghost">Викторины</a>@endif
 @if(auth()->user()->canAdminSection('settings'))<a href="{{ route('admin.settings') }}" class="btn btn-ghost">Настройки сайта / SEO</a>@endif
 @if(auth()->user()->canAdminSection('documents'))<a href="{{ route('admin.documents') }}" class="btn btn-ghost">Документы</a>@endif
+@if(auth()->user()->canAdminSection('questions'))<a href="{{ route('admin.questions') }}" class="btn btn-ghost">Вопросы</a>@endif
 @if(auth()->user()->is_admin)<a href="{{ route('admin.access-admins') }}" class="btn btn-ghost">Администраторы</a>@endif
 </div></div></div></section>
 <section class="pb-5"><div class="container">
