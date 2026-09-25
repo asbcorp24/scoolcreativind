@@ -18,11 +18,17 @@ class AdminController extends Controller
 {
     public function dashboard()
     {
+        $user=auth()->user();
+
+        if (!$user->is_admin && !$user->canAdminSection('studios') && !$user->canAdminSection('applications') && !$user->canAdminSection('news')) {
+            return redirect()->route($user->adminLandingRoute());
+        }
+
         return view('admin.dashboard', [
-            'studios'=>Studio::orderBy('sort_order')->get(),
-            'news'=>NewsPost::latest()->take(8)->get(),
-            'applications'=>AdmissionApplication::with(['studio','user'])->latest()->take(30)->get(),
-            'groups'=>StudyGroup::where('is_active',true)->orderBy('study_year')->orderBy('name')->get(),
+            'studios'=>$user->canAdminSection('studios') ? Studio::orderBy('sort_order')->get() : collect(),
+            'news'=>$user->canAdminSection('news') ? NewsPost::latest()->take(8)->get() : collect(),
+            'applications'=>$user->canAdminSection('applications') ? AdmissionApplication::with(['studio','user'])->latest()->take(30)->get() : collect(),
+            'groups'=>$user->canAdminSection('applications') ? StudyGroup::where('is_active',true)->orderBy('study_year')->orderBy('name')->get() : collect(),
         ]);
     }
 
