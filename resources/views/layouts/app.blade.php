@@ -155,6 +155,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
    <div class="col-lg-5 text-lg-end">
     <div>г. Волжск, ул. Ленина, 32</div>
     <a href="tel:+78363164628">+7 (836) 316-46-28</a>
+    <div class="mt-2"><a href="{{ route('documents.index') }}">Официальные документы</a></div>
    </div>
   </div>
   <hr><div class="small opacity-50">© {{ date('Y') }} Школа креативных индустрий</div>
