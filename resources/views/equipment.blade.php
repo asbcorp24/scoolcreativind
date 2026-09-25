@@ -17,7 +17,7 @@
  </div>
 </article>
 @empty
-<div class="text-white-50">Каталог оборудования пока пуст.</div>
+<div class="text-white-50">Нет опубликованных данных об оборудовании.</div>
 @endforelse
 </div></div></section>
 @endsection
