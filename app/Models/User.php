@@ -9,9 +9,49 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
-    protected $fillable=['name','email','phone','password','is_admin'];
+    protected $fillable=['name','email','phone','password','is_admin','admin_sections'];
     protected $hidden=['password','remember_token'];
-    protected $casts=['email_verified_at'=>'datetime','is_admin'=>'boolean'];
+    protected $casts=['email_verified_at'=>'datetime','is_admin'=>'boolean','admin_sections'=>'array'];
+
+    public function isSectionAdmin(): bool
+    {
+        return !$this->is_admin && !empty($this->admin_sections);
+    }
+
+    public function canAdminSection(string $section): bool
+    {
+        return $this->is_admin || in_array($section, $this->admin_sections ?? [], true);
+    }
+
+    public function adminLandingRoute(): string
+    {
+        if ($this->is_admin) return 'admin.dashboard';
+
+        $map=[
+            'studios'=>'admin.dashboard',
+            'news'=>'admin.news.create',
+            'projects'=>'admin.projects',
+            'events'=>'admin.events',
+            'team'=>'admin.team',
+            'equipment'=>'admin.equipment',
+            'students'=>'admin.students',
+            'competitions'=>'admin.competitions',
+            'quizzes'=>'admin.quizzes',
+            'groups'=>'admin.groups',
+            'subjects'=>'admin.subjects',
+            'schedule'=>'admin.schedule',
+            'journal'=>'admin.journal',
+            'homework'=>'admin.homework',
+            'settings'=>'admin.settings',
+            'applications'=>'admin.dashboard',
+        ];
+
+        foreach ($this->admin_sections ?? [] as $section) {
+            if (isset($map[$section])) return $map[$section];
+        }
+
+        return 'cabinet';
+    }
 
     public function studyGroups()
     {
