@@ -1,0 +1,43 @@
+{
+  "name": "Школа креативных индустрий · Волжск",
+  "short_name": "ШКИ Волжск",
+  "description": "Школа креативных индустрий города Волжска",
+  "lang": "ru",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#06070b",
+  "theme_color": "#0b0f17",
+  "icons": [
+    {
+      "src": "/icons/pwa-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Расписание",
+      "short_name": "Расписание",
+      "url": "/schedule"
+    },
+    {
+      "name": "Конкурсы",
+      "short_name": "Конкурсы",
+      "url": "/competitions"
+    },
+    {
+      "name": "Документы",
+      "short_name": "Документы",
+      "url": "/documents"
+    }
+  ]
+}
