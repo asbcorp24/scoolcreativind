@@ -46,6 +46,7 @@ class User extends Authenticatable
             'documents'=>'admin.documents',
             'questions'=>'admin.questions',
             'contacts'=>'admin.contacts',
+            'music'=>'admin.music',
             'applications'=>'admin.dashboard',
         ];
 
