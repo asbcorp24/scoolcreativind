@@ -21,12 +21,15 @@ class AdminMiddleware
         if ($user->isSectionAdmin()) {
             $section=$this->resolveSection($request);
 
-            if ($section && $user->canAdminSection($section)) {
-                return $next($request);
+            if ($request->is('admin')) {
+                if ($user->canAdminSection('studios') || $user->canAdminSection('applications') || $user->canAdminSection('news')) {
+                    return $next($request);
+                }
+                return redirect()->route($user->adminLandingRoute());
             }
 
-            if ($request->is('admin')) {
-                return redirect()->route($user->adminLandingRoute());
+            if ($section && $user->canAdminSection($section)) {
+                return $next($request);
             }
 
             return redirect()->route($user->adminLandingRoute())
@@ -80,6 +83,7 @@ class AdminMiddleware
             'admin/homework'=>'homework',
             'admin/settings'=>'settings',
             'admin/applications'=>'applications',
+            'admin/access-admins'=>'__super',
         ];
 
         foreach($map as $prefix=>$section){
