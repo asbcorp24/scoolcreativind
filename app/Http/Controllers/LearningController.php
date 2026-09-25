@@ -33,6 +33,22 @@ class LearningController extends Controller
         return view('schedule',compact('lessons','start','month'));
     }
 
+    public function projects(Request $request)
+    {
+        $query=PortfolioItem::with(['student.user','studio'])
+            ->where('is_public',true);
+
+        if($request->filled('type')){
+            $query->where('type',$request->string('type'));
+        }
+
+        return view('projects.index',[
+            'projects'=>$query->orderByDesc('is_featured')->latest('completed_at')->latest()->paginate(12)->withQueryString(),
+            'types'=>PortfolioItem::where('is_public',true)->whereNotNull('type')->distinct()->orderBy('type')->pluck('type'),
+            'activeType'=>$request->input('type'),
+        ]);
+    }
+
     public function portfolio(StudentProfile $profile)
     {
         abort_unless($profile->is_public || (auth()->check() && auth()->id()===$profile->user_id),404);
