@@ -19,7 +19,7 @@
  </div>
 </article>
 @empty
-<div class="text-white-50">Команда будет добавлена через админ-панель.</div>
+<div class="text-white-50">Нет опубликованных данных о команде.</div>
 @endforelse
 </div></div></section>
 @endsection
