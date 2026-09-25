@@ -2,6 +2,7 @@
 namespace App\Providers;
 
 use App\Models\SiteSetting;
+use App\Models\MusicTrack;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
@@ -25,5 +26,16 @@ class AppServiceProvider extends ServiceProvider
         }
 
         View::share('siteSettings',$settings);
+
+        $musicTracks=collect();
+        try {
+            if (Schema::hasTable('music_tracks')) {
+                $musicTracks=MusicTrack::where('is_active',true)->orderBy('sort_order')->orderBy('id')->get();
+            }
+        } catch (\Throwable $e) {
+            $musicTracks=collect();
+        }
+
+        View::share('musicTracks',$musicTracks);
     }
 }
