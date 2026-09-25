@@ -388,3 +388,10 @@ linear-gradient(135deg,#0d1119,#080a0f)}
  .accessibility-mode .mobile-more-panel,.accessibility-mode .mobile-more-grid a,.accessibility-mode .mobile-more-close{background:#fff!important;color:#000!important;border-color:#000!important}
  .accessibility-mode .mobile-more-backdrop{background:rgba(255,255,255,.92)!important}
 }
+
+
+/* PWA install */
+.mobile-more-install{min-height:88px;border:1px solid rgba(0,229,255,.2);border-radius:18px;padding:14px;background:linear-gradient(135deg,rgba(138,92,255,.16),rgba(0,229,255,.07));color:#fff;display:flex;flex-direction:column;justify-content:space-between;gap:12px;text-align:left}
+.mobile-more-install span{font-size:1.35rem;color:var(--cyan);font-weight:900}
+.mobile-more-install strong{font-size:.86rem;line-height:1.15}
+.accessibility-mode .mobile-more-install{background:#fff!important;color:#000!important;border-color:#000!important}
