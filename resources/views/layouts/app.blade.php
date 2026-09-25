@@ -66,6 +66,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
           <a class="dropdown-item" href="{{ route('news.index') }}">Новости</a>
           <a class="dropdown-item" href="{{ route('documents.index') }}">Документы</a>
           <a class="dropdown-item" href="{{ route('questions.create') }}">Задать вопрос</a>
+          <a class="dropdown-item" href="{{ route('contacts.index') }}">Контакты</a>
           <a class="dropdown-item" href="{{ route('home') }}#campus360">360° тур</a>
           <button type="button" class="dropdown-item d-none" data-pwa-install>Установить приложение</button>
           @auth
@@ -128,6 +129,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
       <a href="{{ route('news.index') }}"><span>▤</span><strong>Новости</strong></a>
       <a href="{{ route('documents.index') }}"><span>▣</span><strong>Документы</strong></a>
       <a href="{{ route('questions.create') }}"><span>?</span><strong>Задать вопрос</strong></a>
+      <a href="{{ route('contacts.index') }}"><span>⌖</span><strong>Контакты</strong></a>
       <a href="{{ route('home') }}#campus360"><span>360°</span><strong>Виртуальный тур</strong></a>
       <a href="{{ route('apply') }}"><span>＋</span><strong>Поступить</strong></a>
       <button type="button" data-pwa-install class="mobile-more-install"><span>⇩</span><strong>Установить приложение</strong></button>
@@ -171,6 +173,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
       @if(auth()->user()->canAdminSection('settings'))<a class="admin-nav-link {{ request()->routeIs('admin.settings*') ? 'active' : '' }}" href="{{ route('admin.settings') }}">Главная / SEO</a>@endif
       @if(auth()->user()->canAdminSection('documents'))<a class="admin-nav-link {{ request()->routeIs('admin.documents*') ? 'active' : '' }}" href="{{ route('admin.documents') }}">Документы</a>@endif
       @if(auth()->user()->canAdminSection('questions'))<a class="admin-nav-link {{ request()->routeIs('admin.questions*') ? 'active' : '' }}" href="{{ route('admin.questions') }}">Вопросы</a>@endif
+      @if(auth()->user()->canAdminSection('contacts'))<a class="admin-nav-link {{ request()->routeIs('admin.contacts*') ? 'active' : '' }}" href="{{ route('admin.contacts') }}">Контакты</a>@endif
       @if(auth()->user()->is_admin)<a class="admin-nav-link {{ request()->routeIs('admin.access-admins*') ? 'active' : '' }}" href="{{ route('admin.access-admins') }}">Администраторы</a>@endif
       <a class="admin-nav-link admin-nav-site" href="{{ route('home') }}" target="_blank">Открыть сайт ↗</a>
       <form method="post" action="{{ route('admin.logout') }}" class="admin-logout-form">@csrf
@@ -197,6 +200,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
     <a href="tel:+78363164628">+7 (836) 316-46-28</a>
     <div class="mt-2"><a href="{{ route('documents.index') }}">Официальные документы</a></div>
     <div class="mt-2"><a href="{{ route('questions.create') }}">Задать вопрос</a></div>
+    <div class="mt-2"><a href="{{ route('contacts.index') }}">Контакты</a></div>
    </div>
   </div>
   <hr><div class="small opacity-50">© {{ date('Y') }} Школа креативных индустрий</div>
