@@ -143,13 +143,18 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
 </div>
 
 @if(!request()->routeIs('admin.*') && isset($musicTracks) && $musicTracks->count())
+@php
+$musicPlaylist=$musicTracks->map(function($track){
+    return [
+        'id'=>$track->id,
+        'title'=>$track->title,
+        'artist'=>$track->artist,
+        'url'=>$track->file_url,
+    ];
+})->values()->all();
+@endphp
 <div class="global-music-player" data-global-music-player>
-  <script type="application/json" data-music-playlist>@json($musicTracks->map(fn($track)=>[
-    'id'=>$track->id,
-    'title'=>$track->title,
-    'artist'=>$track->artist,
-    'url'=>$track->file_url,
-  ])->values())</script>
+  <script type="application/json" data-music-playlist>{!! json_encode($musicPlaylist, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) !!}</script>
   <div class="music-player-glow"></div>
   <button type="button" class="music-player-collapse" data-music-collapse aria-label="Свернуть плеер">⌄</button>
   <div class="music-player-top">
