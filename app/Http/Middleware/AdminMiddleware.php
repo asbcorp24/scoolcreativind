@@ -8,15 +8,32 @@ class AdminMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
-        if (!$request->user()) {
+        $user=$request->user();
+
+        if (!$user) {
             return redirect()->route('admin.login');
         }
 
-        if ($request->user()->is_admin) {
+        if ($user->is_admin) {
             return $next($request);
         }
 
-        $isTeacher=$request->user()->teacherGroups()->exists();
+        if ($user->isSectionAdmin()) {
+            $section=$this->resolveSection($request);
+
+            if ($section && $user->canAdminSection($section)) {
+                return $next($request);
+            }
+
+            if ($request->is('admin')) {
+                return redirect()->route($user->adminLandingRoute());
+            }
+
+            return redirect()->route($user->adminLandingRoute())
+                ->withErrors(['access'=>'У вас нет доступа к этому разделу админки.']);
+        }
+
+        $isTeacher=$user->teacherGroups()->exists();
         $teacherAllowed=$request->is(
             'admin/journal',
             'admin/journal/*',
@@ -38,5 +55,39 @@ class AdminMiddleware
         return redirect()->route('admin.login')->withErrors([
             'email'=>'Для входа в этот раздел требуются права администратора или преподавателя.'
         ]);
+    }
+
+    private function resolveSection(Request $request): ?string
+    {
+        $path=$request->path();
+
+        $map=[
+            'admin/studios'=>'studios',
+            'admin/media'=>'studios',
+            'admin/news'=>'news',
+            'admin/projects'=>'projects',
+            'admin/events'=>'events',
+            'admin/team'=>'team',
+            'admin/equipment'=>'equipment',
+            'admin/students'=>'students',
+            'admin/competitions'=>'competitions',
+            'admin/achievements'=>'competitions',
+            'admin/quizzes'=>'quizzes',
+            'admin/groups'=>'groups',
+            'admin/subjects'=>'subjects',
+            'admin/schedule'=>'schedule',
+            'admin/journal'=>'journal',
+            'admin/homework'=>'homework',
+            'admin/settings'=>'settings',
+            'admin/applications'=>'applications',
+        ];
+
+        foreach($map as $prefix=>$section){
+            if($path===$prefix || str_starts_with($path,$prefix.'/')){
+                return $section;
+            }
+        }
+
+        return $path==='admin' ? null : null;
     }
 }
