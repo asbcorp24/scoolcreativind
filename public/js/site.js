@@ -850,11 +850,13 @@ function initGlobalMusicPlayer(){
   if(volume)volume.value=String(audio.volume);
   player.classList.toggle('collapsed',!!state.collapsed);
 
-  loadTrack(state.index,Number(state.time)||0,false);
+  const shouldResume=!!state.playing;
+  const savedTime=Number(state.time)||0;
+  loadTrack(state.index,savedTime,false);
 
   // Browsers may block autoplay after a full page navigation.
   // Retry on the first user interaction if the previous page was playing.
-  if(state.playing){
+  if(shouldResume){
     const resumeOnce=()=>{
       audio.play().catch(()=>{});
       document.removeEventListener('pointerdown',resumeOnce);
