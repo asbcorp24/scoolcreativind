@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   initAccessibility();
   initMobileMoreMenu();
+  initPWA();
   initPageTransitions();
   initTiltCards();
   initScrollTitles();
@@ -709,4 +710,56 @@ function initMobileMoreMenu(){
   closeButtons.forEach(btn=>btn.addEventListener('click',close));
   sheet.querySelectorAll('a').forEach(a=>a.addEventListener('click',close));
   document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
+}
+
+
+function initPWA(){
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',()=>{
+      navigator.serviceWorker.register('/sw.js').catch(err=>console.error('SW registration failed',err));
+    });
+  }
+
+  let deferredPrompt=null;
+  const buttons=[...document.querySelectorAll('[data-pwa-install]')];
+
+  const setVisible=visible=>{
+    buttons.forEach(button=>{
+      button.classList.toggle('d-none',!visible);
+    });
+  };
+
+  const isStandalone=window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+  if(isStandalone){
+    setVisible(false);
+    return;
+  }
+
+  window.addEventListener('beforeinstallprompt',event=>{
+    event.preventDefault();
+    deferredPrompt=event;
+    setVisible(true);
+  });
+
+  buttons.forEach(button=>button.addEventListener('click',async()=>{
+    if(deferredPrompt){
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice.catch(()=>null);
+      deferredPrompt=null;
+      setVisible(false);
+      return;
+    }
+
+    const isiOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+    if(isiOS){
+      alert('Чтобы установить приложение на iPhone/iPad: нажмите «Поделиться» в Safari → «На экран Домой».');
+    }else{
+      alert('Откройте меню браузера и выберите «Установить приложение» или «Добавить на главный экран».');
+    }
+  }));
+
+  window.addEventListener('appinstalled',()=>{
+    deferredPrompt=null;
+    setVisible(false);
+  });
 }
