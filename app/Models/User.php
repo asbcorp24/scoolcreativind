@@ -44,6 +44,7 @@ class User extends Authenticatable
             'homework'=>'admin.homework',
             'settings'=>'admin.settings',
             'documents'=>'admin.documents',
+            'questions'=>'admin.questions',
             'applications'=>'admin.dashboard',
         ];
 
