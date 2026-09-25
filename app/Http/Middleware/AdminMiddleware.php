@@ -84,6 +84,7 @@ class AdminMiddleware
             'admin/settings'=>'settings',
             'admin/documents'=>'documents',
             'admin/questions'=>'questions',
+            'admin/contacts'=>'contacts',
             'admin/applications'=>'applications',
             'admin/access-admins'=>'__super',
         ];
