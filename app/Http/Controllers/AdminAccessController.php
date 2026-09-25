@@ -27,6 +27,7 @@ class AdminAccessController extends Controller
         'documents'=>'Официальные документы',
         'questions'=>'Вопросы и обращения',
         'contacts'=>'Контакты и карта',
+        'music'=>'Музыка сайта',
     ];
 
     private function ensureSuperAdmin(): void
