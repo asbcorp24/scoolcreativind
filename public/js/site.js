@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   }),{threshold:.12});
   document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 
+  initAccessibility();
   initPageTransitions();
   initTiltCards();
   initScrollTitles();
@@ -656,4 +657,29 @@ function initScrollTitles(){
   update();
   window.addEventListener('scroll',update,{passive:true});
   window.addEventListener('resize',update);
+}
+
+
+function initAccessibility(){
+  const buttons=[...document.querySelectorAll('[data-accessibility-toggle]')];
+  if(!buttons.length)return;
+
+  const apply=enabled=>{
+    document.documentElement.classList.toggle('accessibility-mode',enabled);
+    buttons.forEach(button=>{
+      button.setAttribute('aria-pressed',enabled?'true':'false');
+      const small=button.querySelector('small');
+      if(small)small.textContent=enabled?'Обычная версия':'Версия для слабовидящих';
+    });
+  };
+
+  let enabled=false;
+  try{enabled=localStorage.getItem('accessibilityMode')==='1'}catch{}
+  apply(enabled);
+
+  buttons.forEach(button=>button.addEventListener('click',()=>{
+    enabled=!document.documentElement.classList.contains('accessibility-mode');
+    try{localStorage.setItem('accessibilityMode',enabled?'1':'0')}catch{}
+    apply(enabled);
+  }));
 }
