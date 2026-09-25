@@ -19,6 +19,8 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\AdminDocumentController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\AdminQuestionController;
+use App\Http\Controllers\ContactController;
+use App\Http\Controllers\AdminContactController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class,'home'])->name('home');
@@ -29,6 +31,7 @@ Route::get('/team', [PublicController::class,'team'])->name('team');
 Route::get('/equipment', [PublicController::class,'equipment'])->name('equipment');
 Route::get('/documents',[DocumentController::class,'index'])->name('documents.index');
 Route::get('/question',[QuestionController::class,'create'])->name('questions.create');
+Route::get('/contacts',[ContactController::class,'index'])->name('contacts.index');
 Route::post('/question',[QuestionController::class,'store'])->name('questions.store');
 Route::get('/schedule',[LearningController::class,'schedule'])->name('schedule');
 Route::get('/projects',[LearningController::class,'projects'])->name('projects.index');
@@ -78,6 +81,8 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::get('/settings',[AdminSettingsController::class,'edit'])->name('settings');
     Route::get('/documents',[AdminDocumentController::class,'index'])->name('documents');
     Route::get('/questions',[AdminQuestionController::class,'index'])->name('questions');
+    Route::get('/contacts',[AdminContactController::class,'edit'])->name('contacts');
+    Route::post('/contacts',[AdminContactController::class,'update'])->name('contacts.update');
     Route::patch('/questions/{question}',[AdminQuestionController::class,'update'])->name('questions.update');
     Route::delete('/questions/{question}',[AdminQuestionController::class,'delete'])->name('questions.delete');
     Route::get('/documents/{document}/edit',[AdminDocumentController::class,'edit'])->name('documents.edit');
