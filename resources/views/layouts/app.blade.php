@@ -142,6 +142,41 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
   </div>
 </div>
 
+@if(!request()->routeIs('admin.*') && isset($musicTracks) && $musicTracks->count())
+<div class="global-music-player" data-global-music-player>
+  <script type="application/json" data-music-playlist>@json($musicTracks->map(fn($track)=>[
+    'id'=>$track->id,
+    'title'=>$track->title,
+    'artist'=>$track->artist,
+    'url'=>$track->file_url,
+  ])->values())</script>
+  <div class="music-player-glow"></div>
+  <button type="button" class="music-player-collapse" data-music-collapse aria-label="Свернуть плеер">⌄</button>
+  <div class="music-player-top">
+    <div class="music-eq" data-music-eq><i></i><i></i><i></i><i></i></div>
+    <div class="music-player-label">ШКИ / AUDIO</div>
+  </div>
+  <div class="music-player-info">
+    <strong data-music-title>Музыка ШКИ</strong>
+    <span data-music-artist>Плейлист школы</span>
+  </div>
+  <div class="music-progress" data-music-progress>
+    <div class="music-progress-fill" data-music-progress-fill></div>
+  </div>
+  <div class="music-time"><span data-music-current>00:00</span><span data-music-duration>00:00</span></div>
+  <div class="music-controls">
+    <button type="button" data-music-prev aria-label="Предыдущий трек">‹</button>
+    <button type="button" class="music-main-btn" data-music-play aria-label="Воспроизведение">▶</button>
+    <button type="button" data-music-next aria-label="Следующий трек">›</button>
+  </div>
+  <div class="music-volume">
+    <span>VOL</span>
+    <input type="range" min="0" max="1" step="0.01" value="0.65" data-music-volume aria-label="Громкость">
+  </div>
+  <audio data-music-audio preload="metadata"></audio>
+</div>
+@endif
+
 @auth
 <form method="post" action="{{ request()->routeIs('admin.*') ? route('admin.logout') : route('logout') }}" class="mobile-logout-fab">@csrf
   <button type="submit" aria-label="Выйти из аккаунта"><span>↪</span></button>
@@ -174,6 +209,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
       @if(auth()->user()->canAdminSection('documents'))<a class="admin-nav-link {{ request()->routeIs('admin.documents*') ? 'active' : '' }}" href="{{ route('admin.documents') }}">Документы</a>@endif
       @if(auth()->user()->canAdminSection('questions'))<a class="admin-nav-link {{ request()->routeIs('admin.questions*') ? 'active' : '' }}" href="{{ route('admin.questions') }}">Вопросы</a>@endif
       @if(auth()->user()->canAdminSection('contacts'))<a class="admin-nav-link {{ request()->routeIs('admin.contacts*') ? 'active' : '' }}" href="{{ route('admin.contacts') }}">Контакты</a>@endif
+      @if(auth()->user()->canAdminSection('music'))<a class="admin-nav-link {{ request()->routeIs('admin.music*') ? 'active' : '' }}" href="{{ route('admin.music') }}">Музыка</a>@endif
       @if(auth()->user()->is_admin)<a class="admin-nav-link {{ request()->routeIs('admin.access-admins*') ? 'active' : '' }}" href="{{ route('admin.access-admins') }}">Администраторы</a>@endif
       <a class="admin-nav-link admin-nav-site" href="{{ route('home') }}" target="_blank">Открыть сайт ↗</a>
       <form method="post" action="{{ route('admin.logout') }}" class="admin-logout-form">@csrf
