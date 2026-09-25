@@ -76,7 +76,7 @@
     <div class="d-flex justify-content-between gap-3 pt-3"><div><h4>{{ $project->title }}</h4><div class="small text-white-50">{{ $project->author }}</div></div><div class="project-year">{{ $project->year }}</div></div>
    </article>
    @empty
-   @for($i=1;$i<=4;$i++)<article class="project-card reveal"><div class="project-media"><div class="project-noise n{{$i}}"></div></div><div class="pt-3"><h4>Будущая работа ученика</h4><div class="small text-white-50">Портфолио / направление</div></div></article>@endfor
+   <div class="text-white-50">Нет опубликованных работ.</div>
    @endforelse
   </div>
  </div>
@@ -113,7 +113,7 @@
     </a>
    </div>
    @empty
-   <div class="col-12 text-white-50">Команда появится здесь после заполнения админки.</div>
+   <div class="col-12 text-white-50">Нет опубликованных данных о команде.</div>
    @endforelse
   </div>
 
@@ -128,7 +128,7 @@
       </div>
     </a>
    @empty
-    <div class="text-white-50">Избранное оборудование пока не добавлено.</div>
+    <div class="text-white-50">Нет опубликованных данных об оборудовании.</div>
    @endforelse
   </div>
  </div>
@@ -149,7 +149,7 @@
     </article>
    </div>
    @empty
-   <div class="col-12 text-white-50">Новые события появятся здесь после публикации из админки.</div>
+   <div class="col-12 text-white-50">Нет опубликованных событий.</div>
    @endforelse
   </div>
  </div>
@@ -165,7 +165,7 @@
     <div class="news-body"><div class="small text-white-50">{{ optional($post->published_at)->format('d.m.Y') }}</div><h3>{{ $post->title }}</h3><p>{{ $post->excerpt }}</p></div>
    </a></div>
    @empty
-   <div class="col-12 text-white-50">Новости появятся здесь после публикации из админки.</div>
+   <div class="col-12 text-white-50">Нет опубликованных новостей.</div>
    @endforelse
   </div>
  </div>
