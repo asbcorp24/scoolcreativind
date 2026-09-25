@@ -17,6 +17,8 @@ use App\Http\Controllers\CompetitionParticipationController;
 use App\Http\Controllers\AdminAccessController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\AdminDocumentController;
+use App\Http\Controllers\QuestionController;
+use App\Http\Controllers\AdminQuestionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class,'home'])->name('home');
@@ -26,6 +28,8 @@ Route::get('/studios/{studio}', [PublicController::class,'studio'])->name('studi
 Route::get('/team', [PublicController::class,'team'])->name('team');
 Route::get('/equipment', [PublicController::class,'equipment'])->name('equipment');
 Route::get('/documents',[DocumentController::class,'index'])->name('documents.index');
+Route::get('/question',[QuestionController::class,'create'])->name('questions.create');
+Route::post('/question',[QuestionController::class,'store'])->name('questions.store');
 Route::get('/schedule',[LearningController::class,'schedule'])->name('schedule');
 Route::get('/projects',[LearningController::class,'projects'])->name('projects.index');
 Route::get('/portfolio/{profile}',[LearningController::class,'portfolio'])->name('portfolio.show');
@@ -73,6 +77,9 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::delete('/access-admins/{user}',[AdminAccessController::class,'delete'])->name('access-admins.delete');
     Route::get('/settings',[AdminSettingsController::class,'edit'])->name('settings');
     Route::get('/documents',[AdminDocumentController::class,'index'])->name('documents');
+    Route::get('/questions',[AdminQuestionController::class,'index'])->name('questions');
+    Route::patch('/questions/{question}',[AdminQuestionController::class,'update'])->name('questions.update');
+    Route::delete('/questions/{question}',[AdminQuestionController::class,'delete'])->name('questions.delete');
     Route::get('/documents/{document}/edit',[AdminDocumentController::class,'edit'])->name('documents.edit');
     Route::post('/documents/save/{document?}',[AdminDocumentController::class,'save'])->name('documents.save');
     Route::delete('/documents/{document}',[AdminDocumentController::class,'delete'])->name('documents.delete');
