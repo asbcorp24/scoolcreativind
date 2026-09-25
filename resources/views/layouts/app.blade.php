@@ -57,7 +57,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
           <a class="dropdown-item" href="{{ route('home') }}#campus360">360° тур</a>
           @auth
             <a class="dropdown-item" href="{{ route('cabinet') }}">Личный кабинет</a>
-            @if(auth()->user()->is_admin)<a class="dropdown-item" href="{{ route('admin.dashboard') }}">Админ-панель</a>@endif
+            @if(auth()->user()->is_admin || auth()->user()->isSectionAdmin())<a class="dropdown-item" href="{{ route(auth()->user()->adminLandingRoute()) }}">Админ-панель</a>@endif
             <div class="dropdown-divider"></div>
             <form method="post" action="{{ route('logout') }}" class="m-0">@csrf
               <button type="submit" class="dropdown-item sci-logout-item">Выйти из аккаунта</button>
@@ -108,28 +108,25 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
 <nav class="admin-subnav">
   <div class="container-fluid px-lg-5">
     <div class="admin-subnav-scroll">
-      @if(auth()->user()->is_admin)
+      @if(auth()->user()->is_admin || auth()->user()->canAdminSection('studios') || auth()->user()->canAdminSection('applications') || auth()->user()->canAdminSection('news'))
         <a class="admin-nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">Обзор</a>
-        <a class="admin-nav-link {{ request()->routeIs('admin.studios.*') || request()->routeIs('admin.media*') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}#studiosAdmin">Студии</a>
-        <a class="admin-nav-link {{ request()->routeIs('admin.news.*') ? 'active' : '' }}" href="{{ route('admin.news.create') }}">Новости</a>
-        <a class="admin-nav-link {{ request()->routeIs('admin.projects*') ? 'active' : '' }}" href="{{ route('admin.projects') }}">Проекты / портфолио</a>
-        <a class="admin-nav-link {{ request()->routeIs('admin.events*') ? 'active' : '' }}" href="{{ route('admin.events') }}">События</a>
-        <a class="admin-nav-link {{ request()->routeIs('admin.team*') ? 'active' : '' }}" href="{{ route('admin.team') }}">Команда</a>
-        <a class="admin-nav-link {{ request()->routeIs('admin.equipment*') ? 'active' : '' }}" href="{{ route('admin.equipment') }}">Оборудование</a>
-        <a class="admin-nav-link {{ request()->routeIs('admin.students') ? 'active' : '' }}" href="{{ route('admin.students') }}">Ученики</a>
-        <a class="admin-nav-link {{ request()->routeIs('admin.competitions*') || request()->routeIs('admin.achievements*') ? 'active' : '' }}" href="{{ route('admin.competitions') }}">Конкурсы</a>
-        <a class="admin-nav-link {{ request()->routeIs('admin.quizzes*') ? 'active' : '' }}" href="{{ route('admin.quizzes') }}">Викторины</a>
-        <span class="admin-nav-separator"></span>
-        <a class="admin-nav-link {{ request()->routeIs('admin.groups*') ? 'active' : '' }}" href="{{ route('admin.groups') }}">Группы</a>
-        <a class="admin-nav-link {{ request()->routeIs('admin.subjects*') ? 'active' : '' }}" href="{{ route('admin.subjects') }}">Предметы</a>
       @endif
-      <a class="admin-nav-link {{ request()->routeIs('admin.schedule*') ? 'active' : '' }}" href="{{ route('admin.schedule') }}">Расписание</a>
-      <a class="admin-nav-link {{ request()->routeIs('admin.journal*') ? 'active' : '' }}" href="{{ route('admin.journal') }}">Журнал</a>
-      <a class="admin-nav-link {{ request()->routeIs('admin.homework*') ? 'active' : '' }}" href="{{ route('admin.homework') }}">Домашние задания</a>
-      @if(auth()->user()->is_admin)
-        <span class="admin-nav-separator"></span>
-        <a class="admin-nav-link {{ request()->routeIs('admin.settings*') ? 'active' : '' }}" href="{{ route('admin.settings') }}">Главная / SEO</a>
-      @endif
+      @if(auth()->user()->canAdminSection('studios'))<a class="admin-nav-link {{ request()->routeIs('admin.studios.*') || request()->routeIs('admin.media*') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}#studiosAdmin">Студии</a>@endif
+      @if(auth()->user()->canAdminSection('news'))<a class="admin-nav-link {{ request()->routeIs('admin.news.*') ? 'active' : '' }}" href="{{ route('admin.news.create') }}">Новости</a>@endif
+      @if(auth()->user()->canAdminSection('projects'))<a class="admin-nav-link {{ request()->routeIs('admin.projects*') ? 'active' : '' }}" href="{{ route('admin.projects') }}">Проекты</a>@endif
+      @if(auth()->user()->canAdminSection('events'))<a class="admin-nav-link {{ request()->routeIs('admin.events*') ? 'active' : '' }}" href="{{ route('admin.events') }}">События</a>@endif
+      @if(auth()->user()->canAdminSection('team'))<a class="admin-nav-link {{ request()->routeIs('admin.team*') ? 'active' : '' }}" href="{{ route('admin.team') }}">Команда</a>@endif
+      @if(auth()->user()->canAdminSection('equipment'))<a class="admin-nav-link {{ request()->routeIs('admin.equipment*') ? 'active' : '' }}" href="{{ route('admin.equipment') }}">Оборудование</a>@endif
+      @if(auth()->user()->canAdminSection('students'))<a class="admin-nav-link {{ request()->routeIs('admin.students*') ? 'active' : '' }}" href="{{ route('admin.students') }}">Ученики</a>@endif
+      @if(auth()->user()->canAdminSection('competitions'))<a class="admin-nav-link {{ request()->routeIs('admin.competitions*') || request()->routeIs('admin.achievements*') ? 'active' : '' }}" href="{{ route('admin.competitions') }}">Конкурсы</a>@endif
+      @if(auth()->user()->canAdminSection('quizzes'))<a class="admin-nav-link {{ request()->routeIs('admin.quizzes*') ? 'active' : '' }}" href="{{ route('admin.quizzes') }}">Викторины</a>@endif
+      @if(auth()->user()->canAdminSection('groups'))<a class="admin-nav-link {{ request()->routeIs('admin.groups*') ? 'active' : '' }}" href="{{ route('admin.groups') }}">Группы</a>@endif
+      @if(auth()->user()->canAdminSection('subjects'))<a class="admin-nav-link {{ request()->routeIs('admin.subjects*') ? 'active' : '' }}" href="{{ route('admin.subjects') }}">Предметы</a>@endif
+      @if(auth()->user()->canAdminSection('schedule') || auth()->user()->teacherGroups()->exists())<a class="admin-nav-link {{ request()->routeIs('admin.schedule*') ? 'active' : '' }}" href="{{ route('admin.schedule') }}">Расписание</a>@endif
+      @if(auth()->user()->canAdminSection('journal') || auth()->user()->teacherGroups()->exists())<a class="admin-nav-link {{ request()->routeIs('admin.journal*') ? 'active' : '' }}" href="{{ route('admin.journal') }}">Журнал</a>@endif
+      @if(auth()->user()->canAdminSection('homework') || auth()->user()->teacherGroups()->exists())<a class="admin-nav-link {{ request()->routeIs('admin.homework*') ? 'active' : '' }}" href="{{ route('admin.homework') }}">Домашние задания</a>@endif
+      @if(auth()->user()->canAdminSection('settings'))<a class="admin-nav-link {{ request()->routeIs('admin.settings*') ? 'active' : '' }}" href="{{ route('admin.settings') }}">Главная / SEO</a>@endif
+      @if(auth()->user()->is_admin)<a class="admin-nav-link {{ request()->routeIs('admin.access-admins*') ? 'active' : '' }}" href="{{ route('admin.access-admins') }}">Администраторы</a>@endif
       <a class="admin-nav-link admin-nav-site" href="{{ route('home') }}" target="_blank">Открыть сайт ↗</a>
       <form method="post" action="{{ route('admin.logout') }}" class="admin-logout-form">@csrf
         <button type="submit" class="admin-nav-link admin-nav-logout">Выйти</button>
