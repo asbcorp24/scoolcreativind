@@ -144,7 +144,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
   </div>
 </div>
 
-@if(!request()->routeIs('admin.*') && isset($musicTracks) && $musicTracks->count())
+@if(!request()->routeIs('admin.*') && !request()->routeIs('clips.show') && !request()->routeIs('clips.design') && isset($musicTracks) && $musicTracks->count())
 @php
 $musicPlaylist=$musicTracks->map(function($track){
     return [
