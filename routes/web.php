@@ -27,6 +27,8 @@ use App\Http\Controllers\ClipController;
 use App\Http\Controllers\AdminClipController;
 use App\Http\Controllers\CustomPageController;
 use App\Http\Controllers\AdminCustomPageController;
+use App\Http\Controllers\CooperationController;
+use App\Http\Controllers\AdminCooperationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class,'home'])->name('home');
@@ -38,6 +40,8 @@ Route::get('/equipment', [PublicController::class,'equipment'])->name('equipment
 Route::get('/documents',[DocumentController::class,'index'])->name('documents.index');
 Route::get('/question',[QuestionController::class,'create'])->name('questions.create');
 Route::get('/contacts',[ContactController::class,'index'])->name('contacts.index');
+Route::get('/cooperation',[CooperationController::class,'index'])->name('cooperation.index');
+Route::post('/cooperation',[CooperationController::class,'store'])->name('cooperation.store');
 Route::get('/clips/design',[DesignClipController::class,'show'])->name('clips.design');
 Route::get('/clips',[ClipController::class,'index'])->name('clips.index');
 Route::get('/clips/{clip}',[ClipController::class,'show'])->name('clips.show');
@@ -92,6 +96,11 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::get('/documents',[AdminDocumentController::class,'index'])->name('documents');
     Route::get('/questions',[AdminQuestionController::class,'index'])->name('questions');
     Route::get('/contacts',[AdminContactController::class,'edit'])->name('contacts');
+    Route::get('/cooperation',[AdminCooperationController::class,'index'])->name('cooperation');
+    Route::post('/cooperation/items/save/{item?}',[AdminCooperationController::class,'saveItem'])->name('cooperation.items.save');
+    Route::delete('/cooperation/items/{item}',[AdminCooperationController::class,'deleteItem'])->name('cooperation.items.delete');
+    Route::patch('/cooperation/applications/{application}',[AdminCooperationController::class,'updateApplication'])->name('cooperation.applications.update');
+    Route::delete('/cooperation/applications/{application}',[AdminCooperationController::class,'deleteApplication'])->name('cooperation.applications.delete');
     Route::get('/music',[AdminMusicController::class,'index'])->name('music');
     Route::get('/clips',[AdminClipController::class,'index'])->name('clips');
     Route::get('/pages',[AdminCustomPageController::class,'index'])->name('pages');
