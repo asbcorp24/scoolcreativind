@@ -130,6 +130,8 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::get('/news/create',[AdminController::class,'newsForm'])->name('news.create');
     Route::get('/news/{post}/edit',[AdminController::class,'newsForm'])->name('news.edit');
     Route::post('/news/save/{post?}',[AdminController::class,'saveNews'])->name('news.save');
+    Route::post('/news/{post}/media',[AdminController::class,'addNewsMedia'])->name('news.media.add');
+    Route::delete('/news-media/{media}',[AdminController::class,'deleteNewsMedia'])->name('news.media.delete');
     Route::post('/applications/{application}/enroll',[AdminController::class,'enrollApplication'])->name('applications.enroll');
     Route::patch('/applications/{application}',[AdminController::class,'applicationStatus'])->name('applications.status');
 
