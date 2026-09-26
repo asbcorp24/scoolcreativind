@@ -25,6 +25,8 @@ use App\Http\Controllers\AdminMusicController;
 use App\Http\Controllers\DesignClipController;
 use App\Http\Controllers\ClipController;
 use App\Http\Controllers\AdminClipController;
+use App\Http\Controllers\CustomPageController;
+use App\Http\Controllers\AdminCustomPageController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class,'home'])->name('home');
@@ -40,6 +42,7 @@ Route::get('/clips/design',[DesignClipController::class,'show'])->name('clips.de
 Route::get('/clips',[ClipController::class,'index'])->name('clips.index');
 Route::get('/clips/{clip}',[ClipController::class,'show'])->name('clips.show');
 Route::post('/question',[QuestionController::class,'store'])->name('questions.store');
+Route::get('/page/{page}',[CustomPageController::class,'show'])->name('pages.show');
 Route::get('/schedule',[LearningController::class,'schedule'])->name('schedule');
 Route::get('/projects',[LearningController::class,'projects'])->name('projects.index');
 Route::get('/portfolio/{profile}',[LearningController::class,'portfolio'])->name('portfolio.show');
@@ -91,6 +94,13 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::get('/contacts',[AdminContactController::class,'edit'])->name('contacts');
     Route::get('/music',[AdminMusicController::class,'index'])->name('music');
     Route::get('/clips',[AdminClipController::class,'index'])->name('clips');
+    Route::get('/pages',[AdminCustomPageController::class,'index'])->name('pages');
+    Route::get('/pages/create',[AdminCustomPageController::class,'create'])->name('pages.create');
+    Route::get('/pages/{page}/edit',[AdminCustomPageController::class,'edit'])->name('pages.edit');
+    Route::post('/pages/save/{page?}',[AdminCustomPageController::class,'save'])->name('pages.save');
+    Route::post('/pages/{page}/media',[AdminCustomPageController::class,'addMedia'])->name('pages.media.add');
+    Route::delete('/page-media/{media}',[AdminCustomPageController::class,'deleteMedia'])->name('pages.media.delete');
+    Route::delete('/pages/{page}',[AdminCustomPageController::class,'delete'])->name('pages.delete');
     Route::get('/clips/{clip}/edit',[AdminClipController::class,'edit'])->name('clips.edit');
     Route::post('/clips/save/{clip?}',[AdminClipController::class,'save'])->name('clips.save');
     Route::delete('/clips/{clip}',[AdminClipController::class,'delete'])->name('clips.delete');
