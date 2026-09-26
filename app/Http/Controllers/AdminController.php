@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\AdmissionApplication;
 use App\Models\MediaItem;
 use App\Models\NewsPost;
+use App\Models\NewsMedia;
 use App\Models\Studio;
 use App\Models\User;
 use App\Models\StudentProfile;
@@ -155,19 +156,113 @@ class AdminController extends Controller
         return back()->with('success','Медиа удалено.');
     }
 
-    public function newsForm(?NewsPost $post=null){ return view('admin.news-form', compact('post')); }
+    public function newsForm(?NewsPost $post=null)
+    {
+        if($post)$post->load('media');
+        return view('admin.news-form', compact('post'));
+    }
 
     public function saveNews(Request $request, ?NewsPost $post=null)
     {
         $data=$request->validate([
-            'title'=>'required|string|max:220','slug'=>'nullable|string|max:220','excerpt'=>'nullable|string|max:1000',
-            'body'=>'required|string','cover'=>'nullable|string|max:2000','published_at'=>'nullable|date','is_published'=>'nullable|boolean'
+            'title'=>'required|string|max:220',
+            'slug'=>'nullable|string|max:220',
+            'excerpt'=>'nullable|string|max:1000',
+            'body'=>'required|string',
+            'cover_url'=>'nullable|url|max:2000',
+            'cover_file'=>'nullable|image|max:15360|mimes:jpg,jpeg,png,webp',
+            'published_at'=>'nullable|date',
+            'is_published'=>'nullable|boolean'
         ]);
+
         $post ??= new NewsPost();
         $data['slug']=$data['slug'] ?: Str::slug($data['title']);
         $data['is_published']=$request->boolean('is_published');
+
+        if($request->hasFile('cover_file')){
+            $file=$request->file('cover_file');
+
+            if(!StorageQuota::canStore((int)$file->getSize())){
+                return back()->withErrors(['cover_file'=>'Недостаточно места в хранилище.'])->withInput();
+            }
+
+            if($post->cover && !preg_match('~^(https?:)?//~i',$post->cover)){
+                Storage::disk('public')->delete($post->cover);
+            }
+
+            $data['cover']=$file->store('news/covers','public');
+        } elseif($request->filled('cover_url')) {
+            if($post->cover && !preg_match('~^(https?:)?//~i',$post->cover)){
+                Storage::disk('public')->delete($post->cover);
+            }
+            $data['cover']=$request->input('cover_url');
+        } else {
+            unset($data['cover']);
+        }
+
+        unset($data['cover_file'],$data['cover_url']);
         $post->fill($data)->save();
-        return redirect()->route('admin.dashboard')->with('success','Новость сохранена.');
+
+        return redirect()->route('admin.news.edit',$post)->with('success','Новость сохранена.');
+    }
+
+    public function addNewsMedia(Request $request, NewsPost $post)
+    {
+        $data=$request->validate([
+            'type'=>'required|in:image,video,audio,file,link',
+            'title'=>'nullable|string|max:255',
+            'url'=>'nullable|url|max:2000',
+            'file'=>'nullable|file|max:102400',
+            'sort_order'=>'nullable|integer|min:0|max:999999',
+        ]);
+
+        if(!$request->hasFile('file') && !$request->filled('url')){
+            return back()->withErrors(['file'=>'Загрузите файл или укажите ссылку.'])->withInput();
+        }
+
+        $allowed=[
+            'image'=>['jpg','jpeg','png','webp','gif'],
+            'video'=>['mp4','webm'],
+            'audio'=>['mp3','wav','ogg','m4a','aac'],
+            'file'=>['pdf','doc','docx','xls','xlsx','ppt','pptx','zip'],
+            'link'=>[],
+        ];
+
+        $mediaData=[
+            'type'=>$data['type'],
+            'title'=>$data['title'] ?? null,
+            'url'=>$data['url'] ?? null,
+            'sort_order'=>$data['sort_order'] ?? 0,
+        ];
+
+        if($request->hasFile('file')){
+            $file=$request->file('file');
+            $ext=strtolower($file->getClientOriginalExtension());
+
+            if($data['type']==='link' || !in_array($ext,$allowed[$data['type']] ?? [],true)){
+                return back()->withErrors(['file'=>'Формат файла не подходит для выбранного типа медиа.'])->withInput();
+            }
+
+            if(!StorageQuota::canStore((int)$file->getSize())){
+                return back()->withErrors(['file'=>'Недостаточно места в хранилище.'])->withInput();
+            }
+
+            $mediaData['path']=$file->store('news/media/'.$data['type'],'public');
+            $mediaData['file_name']=$file->getClientOriginalName();
+            $mediaData['mime_type']=$file->getMimeType();
+            $mediaData['file_size']=$file->getSize();
+        }
+
+        $post->media()->create($mediaData);
+
+        return back()->with('success','Медиа добавлено к новости.');
+    }
+
+    public function deleteNewsMedia(NewsMedia $media)
+    {
+        if($media->path)Storage::disk('public')->delete($media->path);
+        $media->delete();
+        return back()->with('success','Медиа удалено.');
     }
 
 
