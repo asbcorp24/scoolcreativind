@@ -79,6 +79,30 @@ document.addEventListener('DOMContentLoaded',()=>{
     ['clean']
    ]}
  });
+
+ const toolbar=quill.getModule('toolbar');
+ toolbar.addHandler('image',()=>{
+   const input=document.createElement('input');
+   input.type='file';
+   input.accept='image/jpeg,image/png,image/webp,image/gif';
+   input.click();
+   input.onchange=async()=>{
+     const file=input.files?.[0];
+     if(!file)return;
+     const fd=new FormData();
+     fd.append('image',file);
+     fd.append('_token',document.querySelector('meta[name="csrf-token"]')?.content||'');
+     const res=await fetch('{{ route('admin.pages.editor-image') }}',{method:'POST',body:fd,headers:{'X-Requested-With':'XMLHttpRequest'}});
+     if(!res.ok){
+       alert('Не удалось загрузить изображение.');
+       return;
+     }
+     const data=await res.json();
+     const range=quill.getSelection(true);
+     quill.insertEmbed(range?.index ?? quill.getLength(),'image',data.url,'user');
+   };
+ });
+
  editorEl.closest('form')?.addEventListener('submit',()=>{value.value=quill.root.innerHTML;});
 });
 </script>
