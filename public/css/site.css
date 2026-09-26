@@ -717,3 +717,77 @@ body:has(.admin-sidebar) .toast-success{right:24px}
 .cms-switch input[type=checkbox]:checked+i{background:linear-gradient(90deg,var(--violet),var(--cyan))}
 .cms-switch input[type=checkbox]:checked+i:after{transform:translateX(24px);background:#fff}
 @media(max-width:620px){.cms-switch-card{align-items:flex-start}.cms-switch-card small{max-width:230px}}
+
+
+/* Custom page dark canvas fix */
+.custom-page-shell{
+  position:relative;
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 80% 12%,rgba(138,92,255,.10),transparent 30%),
+    radial-gradient(circle at 12% 38%,rgba(0,229,255,.055),transparent 26%),
+    var(--bg);
+  color:var(--text);
+}
+.custom-page-shell .custom-page-hero{
+  background:transparent;
+}
+.custom-page-shell .section-space,
+.custom-page-shell .container,
+.custom-page-shell article{
+  background-color:transparent;
+}
+.custom-page-shell .cms-public-content{
+  color:#d8dce7!important;
+  background:transparent!important;
+}
+.custom-page-shell .cms-public-content p,
+.custom-page-shell .cms-public-content div,
+.custom-page-shell .cms-public-content span,
+.custom-page-shell .cms-public-content section,
+.custom-page-shell .cms-public-content article,
+.custom-page-shell .cms-public-content h1,
+.custom-page-shell .cms-public-content h2,
+.custom-page-shell .cms-public-content h3,
+.custom-page-shell .cms-public-content h4,
+.custom-page-shell .cms-public-content h5,
+.custom-page-shell .cms-public-content h6,
+.custom-page-shell .cms-public-content ul,
+.custom-page-shell .cms-public-content ol,
+.custom-page-shell .cms-public-content li{
+  background:transparent!important;
+  background-color:transparent!important;
+}
+.custom-page-shell .cms-public-content h1,
+.custom-page-shell .cms-public-content h2,
+.custom-page-shell .cms-public-content h3,
+.custom-page-shell .cms-public-content h4,
+.custom-page-shell .cms-public-content h5,
+.custom-page-shell .cms-public-content h6,
+.custom-page-shell .cms-public-content strong{
+  color:#fff!important;
+}
+.custom-page-shell .cms-public-content p,
+.custom-page-shell .cms-public-content li,
+.custom-page-shell .cms-public-content span{
+  color:inherit;
+}
+.custom-page-shell .cms-public-content table{
+  width:100%;
+  color:#e8edf7;
+  background:rgba(255,255,255,.025)!important;
+  border-color:var(--line);
+}
+.custom-page-shell .cms-public-content td,
+.custom-page-shell .cms-public-content th{
+  background:transparent!important;
+  border-color:var(--line)!important;
+}
+.accessibility-mode .custom-page-shell{
+  background:#fff!important;
+  color:#000!important;
+}
+.accessibility-mode .custom-page-shell .cms-public-content,
+.accessibility-mode .custom-page-shell .cms-public-content *{
+  color:#000!important;
+}
