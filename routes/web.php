@@ -35,6 +35,8 @@ Route::get('/documents',[DocumentController::class,'index'])->name('documents.in
 Route::get('/question',[QuestionController::class,'create'])->name('questions.create');
 Route::get('/contacts',[ContactController::class,'index'])->name('contacts.index');
 Route::get('/clips/design',[DesignClipController::class,'show'])->name('clips.design');
+Route::get('/clips',[ClipController::class,'index'])->name('clips.index');
+Route::get('/clips/{clip}',[ClipController::class,'show'])->name('clips.show');
 Route::post('/question',[QuestionController::class,'store'])->name('questions.store');
 Route::get('/schedule',[LearningController::class,'schedule'])->name('schedule');
 Route::get('/projects',[LearningController::class,'projects'])->name('projects.index');
@@ -86,6 +88,10 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::get('/questions',[AdminQuestionController::class,'index'])->name('questions');
     Route::get('/contacts',[AdminContactController::class,'edit'])->name('contacts');
     Route::get('/music',[AdminMusicController::class,'index'])->name('music');
+    Route::get('/clips',[AdminClipController::class,'index'])->name('clips');
+    Route::get('/clips/{clip}/edit',[AdminClipController::class,'edit'])->name('clips.edit');
+    Route::post('/clips/save/{clip?}',[AdminClipController::class,'save'])->name('clips.save');
+    Route::delete('/clips/{clip}',[AdminClipController::class,'delete'])->name('clips.delete');
     Route::get('/music/{track}/edit',[AdminMusicController::class,'edit'])->name('music.edit');
     Route::post('/music/save/{track?}',[AdminMusicController::class,'save'])->name('music.save');
     Route::delete('/music/{track}',[AdminMusicController::class,'delete'])->name('music.delete');
