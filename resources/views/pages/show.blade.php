@@ -3,6 +3,7 @@
 @section('title',$page->title.' · ШКИ')
 
 @section('content')
+<div class="custom-page-shell">
 <section class="page-top custom-page-hero">
   <div class="container">
     @if($page->parent)
@@ -230,4 +231,5 @@
     >→</button>
   </div>
 @endif
+</div>
 @endsection
