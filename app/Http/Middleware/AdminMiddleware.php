@@ -87,6 +87,7 @@ class AdminMiddleware
             'admin/contacts'=>'contacts',
             'admin/music'=>'music',
             'admin/clips'=>'clips',
+            'admin/pages'=>'pages',
             'admin/applications'=>'applications',
             'admin/access-admins'=>'__super',
         ];
