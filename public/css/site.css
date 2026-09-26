@@ -641,3 +641,25 @@ body:has(.admin-sidebar) .toast-success{right:24px}
 .accessibility-mode .admin-mobile-nav{background:#fff!important;border:2px solid #000!important}
 .accessibility-mode .admin-mobile-item{color:#000!important}
 .accessibility-mode .admin-mobile-item.active{background:#000!important;color:#fff!important}
+
+
+/* Cooperation */
+.cooperation-layout{display:grid;grid-template-columns:240px 1fr;gap:44px;align-items:start}
+.cooperation-tabs{position:sticky;top:120px;display:grid;border:1px solid rgba(255,255,255,.08);border-radius:20px;overflow:hidden;background:rgba(255,255,255,.025)}
+.cooperation-tabs a{padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.06);color:#aeb6c5;font-weight:700}
+.cooperation-tabs a:last-child{border-bottom:0}
+.cooperation-tabs a:hover,.cooperation-tabs a.active{background:linear-gradient(90deg,rgba(138,92,255,.16),rgba(0,229,255,.06));color:#fff}
+.cooperation-main{min-width:0}.cooperation-section{padding:10px 0 80px;scroll-margin-top:120px}
+.section-head.compact{margin-bottom:26px}.section-head.compact h2{font-size:clamp(2.2rem,5vw,4.6rem)}
+.cooperation-actions{display:grid;gap:1px;border:1px solid rgba(255,255,255,.08);border-radius:24px;overflow:hidden;background:rgba(255,255,255,.06)}
+.cooperation-actions article{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:28px 30px;background:#0a0d13}
+.cooperation-actions article>div{display:grid;grid-template-columns:42px 1fr;column-gap:14px;align-items:start}
+.cooperation-actions article span{grid-row:1/3;color:var(--cyan);font-size:.72rem;letter-spacing:.15em;padding-top:7px}
+.cooperation-actions h3{margin:0;font-size:clamp(1.5rem,3vw,2.4rem);letter-spacing:-.04em}
+.cooperation-actions p{margin:.4rem 0 0;color:var(--muted)}
+.cooperation-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.cooperation-cards h3{margin:18px 0 10px}.cooperation-cards p{color:var(--muted)}
+.cooperation-thumb{width:100%;height:190px;object-fit:cover;border-radius:15px}
+@media(max-width:991px){.cooperation-layout{grid-template-columns:1fr}.cooperation-tabs{position:static;grid-template-columns:repeat(2,1fr)}.cooperation-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.cooperation-tabs{grid-template-columns:1fr 1fr}.cooperation-actions article{align-items:flex-start;flex-direction:column;padding:22px}.cooperation-cards{grid-template-columns:1fr}}
+.accessibility-mode .cooperation-actions article,.accessibility-mode .cooperation-tabs{background:#fff!important;color:#000!important;border-color:#000!important}
