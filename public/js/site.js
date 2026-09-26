@@ -917,7 +917,7 @@ function initAdminSidebar(){
   const sidebar=document.querySelector('[data-admin-sidebar]');
   if(!sidebar)return;
 
-  const toggle=document.querySelector('[data-admin-sidebar-toggle]');
+  const toggles=[...document.querySelectorAll('[data-admin-sidebar-toggle]')];
   const close=document.querySelector('[data-admin-sidebar-close]');
   const backdrop=document.querySelector('[data-admin-sidebar-backdrop]');
 
@@ -933,7 +933,7 @@ function initAdminSidebar(){
     document.body.classList.remove('admin-sidebar-open');
   };
 
-  toggle?.addEventListener('click',open);
+  toggles.forEach(toggle=>toggle.addEventListener('click',open));
   close?.addEventListener('click',hide);
   backdrop?.addEventListener('click',hide);
 
