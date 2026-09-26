@@ -792,15 +792,19 @@ function initGlobalMusicPlayer(){
   const collapse=player.querySelector('[data-music-collapse]');
   const eq=player.querySelector('[data-music-eq]');
 
-  const storageKey='skiMusicPlayerStateV1';
-  let state={index:0,time:0,volume:.65,playing:false,collapsed:false};
+  const storageKey='skiMusicPlayerStateV2';
+  let state={index:0,time:0,volume:.65,playing:false,collapsed:false,updatedAt:0};
+  let playbackWanted=false;
+  let leavingPage=false;
 
   try{
-    const saved=JSON.parse(localStorage.getItem(storageKey)||'{}');
-    state={...state,...saved};
+    const savedV2=JSON.parse(localStorage.getItem(storageKey)||'{}');
+    const savedV1=JSON.parse(localStorage.getItem('skiMusicPlayerStateV1')||'{}');
+    state={...state,...savedV1,...savedV2};
   }catch{}
 
   if(!playlist[state.index])state.index=0;
+  playbackWanted=!!state.playing;
 
   const fmt=s=>{
     if(!Number.isFinite(s))return '00:00';
@@ -811,9 +815,13 @@ function initGlobalMusicPlayer(){
   const save=()=>{
     state.time=Number.isFinite(audio.currentTime)?audio.currentTime:0;
     state.volume=audio.volume;
-    state.playing=!audio.paused;
+    state.playing=playbackWanted;
     state.collapsed=player.classList.contains('collapsed');
-    try{localStorage.setItem(storageKey,JSON.stringify(state))}catch{}
+    state.updatedAt=Date.now();
+    try{
+      localStorage.setItem(storageKey,JSON.stringify(state));
+      localStorage.setItem('skiMusicPlayerStateV1',JSON.stringify(state));
+    }catch{}
   };
 
   const renderPlaying=()=>{
@@ -855,29 +863,58 @@ function initGlobalMusicPlayer(){
   const savedTime=Number(state.time)||0;
   loadTrack(state.index,savedTime,false);
 
-  // Browsers may block autoplay after a full page navigation.
-  // Retry on the first user interaction if the previous page was playing.
   if(shouldResume){
-    const resumeOnce=()=>{
-      audio.play().catch(()=>{});
-      document.removeEventListener('pointerdown',resumeOnce);
-      document.removeEventListener('keydown',resumeOnce);
+    const tryImmediateResume=()=>{
+      audio.play().catch(()=>{
+        const resumeOnce=()=>{
+          if(playbackWanted)audio.play().catch(()=>{});
+        };
+        document.addEventListener('pointerdown',resumeOnce,{once:true});
+        document.addEventListener('keydown',resumeOnce,{once:true});
+        document.addEventListener('touchstart',resumeOnce,{once:true,passive:true});
+      });
     };
-    document.addEventListener('pointerdown',resumeOnce,{once:true});
-    document.addEventListener('keydown',resumeOnce,{once:true});
+
+    if(audio.readyState>=1)tryImmediateResume();
+    else audio.addEventListener('loadedmetadata',tryImmediateResume,{once:true});
   }
 
   playBtn?.addEventListener('click',()=>{
-    if(audio.paused)audio.play().catch(()=>{});
-    else audio.pause();
+    if(audio.paused){
+      playbackWanted=true;
+      save();
+      audio.play().catch(()=>{});
+    }else{
+      playbackWanted=false;
+      save();
+      audio.pause();
+    }
   });
 
-  prevBtn?.addEventListener('click',()=>loadTrack(state.index-1,0,true));
-  nextBtn?.addEventListener('click',()=>loadTrack(state.index+1,0,true));
+  prevBtn?.addEventListener('click',()=>{
+    playbackWanted=true;
+    loadTrack(state.index-1,0,true);
+  });
+  nextBtn?.addEventListener('click',()=>{
+    playbackWanted=true;
+    loadTrack(state.index+1,0,true);
+  });
 
-  audio.addEventListener('play',()=>{renderPlaying();save();});
-  audio.addEventListener('pause',()=>{renderPlaying();save();});
-  audio.addEventListener('ended',()=>loadTrack(state.index+1,0,true));
+  audio.addEventListener('play',()=>{
+    playbackWanted=true;
+    renderPlaying();
+    save();
+  });
+  audio.addEventListener('pause',()=>{
+    if(!leavingPage){
+      renderPlaying();
+      save();
+    }
+  });
+  audio.addEventListener('ended',()=>{
+    playbackWanted=true;
+    loadTrack(state.index+1,0,true);
+  });
 
   audio.addEventListener('loadedmetadata',()=>{
     if(durationEl)durationEl.textContent=fmt(audio.duration);
@@ -907,7 +944,14 @@ function initGlobalMusicPlayer(){
     save();
   });
 
-  window.addEventListener('pagehide',save);
+  window.addEventListener('beforeunload',()=>{
+    leavingPage=true;
+    save();
+  });
+  window.addEventListener('pagehide',()=>{
+    leavingPage=true;
+    save();
+  });
   document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
   renderPlaying();
 }
