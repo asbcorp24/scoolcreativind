@@ -144,6 +144,11 @@ class AdminClipController extends Controller
             return ['error'=>'В архиве не найден index.html.'];
         }
 
+        if(!StorageQuota::canStore($totalUncompressed)){
+            $zip->close();
+            return ['error'=>'Недостаточно места в хранилище для распакованного клипа.'];
+        }
+
         usort($indexCandidates,fn($a,$b)=>substr_count($a,'/')<=>substr_count($b,'/'));
         $entry=$indexCandidates[0];
 
