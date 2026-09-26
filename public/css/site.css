@@ -496,3 +496,18 @@ linear-gradient(135deg,#0d1119,#080a0f)}
 @media(max-width:1200px){.clips-grid{grid-template-columns:1fr}.clip-card{grid-template-columns:1.1fr .9fr}.clips-mini-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:768px){.clips-grid{gap:16px}.clip-card{grid-template-columns:1fr;min-height:0}.clip-card-visual{min-height:230px}.clip-card-copy{padding:24px}.clip-player-page{padding:120px 0 70px}.clip-player-head{padding:0 14px;align-items:flex-start;flex-direction:column}.clip-frame-shell{border-radius:0;aspect-ratio:9/16;max-height:78vh}.clips-mini-grid{grid-template-columns:1fr}.clip-mini-card{grid-template-columns:100px 1fr}.clip-mini-card img,.clip-mini-placeholder{width:100px}}
 .accessibility-mode .clip-card,.accessibility-mode .clip-frame-shell,.accessibility-mode .clip-mini-card{background:#fff!important;color:#000!important;border:2px solid #000!important;box-shadow:none!important}
+
+
+/* News media */
+.news-main-cover{display:block;max-height:680px;object-fit:cover;border:1px solid rgba(255,255,255,.08);box-shadow:0 30px 90px rgba(0,0,0,.28)}
+.news-media-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.news-media-image{position:relative;min-height:260px;aspect-ratio:4/3;padding:0;border:1px solid rgba(255,255,255,.08);border-radius:20px;overflow:hidden;background:#080b12;color:#fff;text-align:left}
+.news-media-image img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .45s,filter .45s}
+.news-media-image:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(0,0,0,.72));pointer-events:none}
+.news-media-image span{position:absolute;z-index:2;left:18px;right:18px;bottom:16px;font-size:.82rem;font-weight:700}
+.news-media-image:hover img{transform:scale(1.035);filter:saturate(1.08)}
+.news-video-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.news-video-grid video,.news-video-grid iframe{background:#000;border:0}
+@media(max-width:900px){.news-media-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.news-video-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.news-media-grid{grid-template-columns:1fr}.news-media-image{min-height:220px}}
+.accessibility-mode .news-main-cover,.accessibility-mode .news-media-image{border:2px solid #000!important;box-shadow:none!important}
