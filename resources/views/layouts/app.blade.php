@@ -94,6 +94,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
   </div>
 </nav>
 
+@unless(request()->routeIs('admin.*'))
 <nav class="mobile-app-nav" aria-label="Мобильная навигация">
   <a class="mobile-app-item {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">
     <span class="mobile-app-icon">⌂</span><small>Главная</small>
@@ -155,6 +156,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
     </div>
   </div>
 </div>
+@endunless
 
 @if(!request()->routeIs('admin.*') && !request()->routeIs('clips.show') && !request()->routeIs('clips.design') && isset($musicTracks) && $musicTracks->count())
 @php
@@ -197,9 +199,11 @@ $musicPlaylist=$musicTracks->map(function($track){
 @endif
 
 @auth
-<form method="post" action="{{ request()->routeIs('admin.*') ? route('admin.logout') : route('logout') }}" class="mobile-logout-fab">@csrf
+@if(!request()->routeIs('admin.*'))
+<form method="post" action="{{ route('logout') }}" class="mobile-logout-fab">@csrf
   <button type="submit" aria-label="Выйти из аккаунта"><span>↪</span></button>
 </form>
+@endif
 @endauth
 
 @auth
@@ -276,6 +280,48 @@ $musicPlaylist=$musicTracks->map(function($track){
   </div>
 </aside>
 <div class="admin-sidebar-backdrop" data-admin-sidebar-backdrop></div>
+
+<nav class="admin-mobile-nav" aria-label="Навигация админки">
+  <a class="admin-mobile-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">
+    <span>⌂</span><small>Обзор</small>
+  </a>
+
+  @if(auth()->user()->canAdminSection('pages'))
+    <a class="admin-mobile-item {{ request()->routeIs('admin.pages*') ? 'active' : '' }}" href="{{ route('admin.pages') }}"><span>◆</span><small>Контент</small></a>
+  @elseif(auth()->user()->canAdminSection('news'))
+    <a class="admin-mobile-item {{ request()->routeIs('admin.news*') ? 'active' : '' }}" href="{{ route('admin.news.create') }}"><span>◆</span><small>Контент</small></a>
+  @elseif(auth()->user()->canAdminSection('studios'))
+    <a class="admin-mobile-item {{ request()->routeIs('admin.studios*') || request()->routeIs('admin.media*') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}#studiosAdmin"><span>◆</span><small>Контент</small></a>
+  @else
+    <button type="button" class="admin-mobile-item" data-admin-sidebar-toggle><span>◆</span><small>Контент</small></button>
+  @endif
+
+  @if(auth()->user()->canAdminSection('groups'))
+    <a class="admin-mobile-item {{ request()->routeIs('admin.groups*') ? 'active' : '' }}" href="{{ route('admin.groups') }}"><span>▦</span><small>Учёба</small></a>
+  @elseif(auth()->user()->canAdminSection('students'))
+    <a class="admin-mobile-item {{ request()->routeIs('admin.students*') ? 'active' : '' }}" href="{{ route('admin.students') }}"><span>▦</span><small>Учёба</small></a>
+  @elseif(auth()->user()->canAdminSection('journal') || auth()->user()->teacherGroups()->exists())
+    <a class="admin-mobile-item {{ request()->routeIs('admin.journal*') ? 'active' : '' }}" href="{{ route('admin.journal') }}"><span>▦</span><small>Учёба</small></a>
+  @elseif(auth()->user()->canAdminSection('quizzes'))
+    <a class="admin-mobile-item {{ request()->routeIs('admin.quizzes*') ? 'active' : '' }}" href="{{ route('admin.quizzes') }}"><span>▦</span><small>Учёба</small></a>
+  @else
+    <button type="button" class="admin-mobile-item" data-admin-sidebar-toggle><span>▦</span><small>Учёба</small></button>
+  @endif
+
+  @if(auth()->user()->canAdminSection('clips'))
+    <a class="admin-mobile-item {{ request()->routeIs('admin.clips*') ? 'active' : '' }}" href="{{ route('admin.clips') }}"><span>▶</span><small>Медиа</small></a>
+  @elseif(auth()->user()->canAdminSection('music'))
+    <a class="admin-mobile-item {{ request()->routeIs('admin.music*') ? 'active' : '' }}" href="{{ route('admin.music') }}"><span>♫</span><small>Медиа</small></a>
+  @elseif(auth()->user()->canAdminSection('documents'))
+    <a class="admin-mobile-item {{ request()->routeIs('admin.documents*') ? 'active' : '' }}" href="{{ route('admin.documents') }}"><span>▣</span><small>Медиа</small></a>
+  @else
+    <button type="button" class="admin-mobile-item" data-admin-sidebar-toggle><span>◉</span><small>Медиа</small></button>
+  @endif
+
+  <button type="button" class="admin-mobile-item admin-mobile-more" data-admin-sidebar-toggle>
+    <span>☰</span><small>Ещё</small>
+  </button>
+</nav>
 @endif
 @endauth
 
