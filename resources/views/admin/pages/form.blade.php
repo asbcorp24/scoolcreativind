@@ -21,10 +21,49 @@
     <textarea name="body_html" id="pageEditorValue" hidden>{{ old('body_html',$page->body_html ?? '') }}</textarea>
    </div>
 
-   <div class="col-md-6"><label class="form-label">Обложка</label><input type="file" class="form-control" name="cover" accept="image/jpeg,image/png,image/webp">@if($page?->cover_url)<img src="{{ $page->cover_url }}" class="admin-clip-cover-preview mt-3" alt="">@endif</div>
-   <div class="col-md-3"><label class="form-label">Порядок</label><input type="number" class="form-control" name="sort_order" min="0" value="{{ old('sort_order',$page->sort_order ?? 0) }}"></div>
-   <div class="col-md-3 d-flex align-items-end"><div class="d-grid gap-2 mb-1"><div class="form-check"><input class="form-check-input" type="checkbox" name="show_in_menu" value="1" @checked(old('show_in_menu',$page->show_in_menu ?? false))><label class="form-check-label">Показывать в меню</label></div><div class="form-check"><input class="form-check-input" type="checkbox" name="is_published" value="1" @checked(old('is_published',$page->is_published ?? true))><label class="form-check-label">Опубликован</label></div></div></div>
-   <div class="col-12 text-end mt-4"><button class="btn btn-neon btn-lg">Сохранить страницу</button></div>
+   <div class="col-md-8"><label class="form-label">Обложка</label><input type="file" class="form-control" name="cover" accept="image/jpeg,image/png,image/webp">@if($page?->cover_url)<img src="{{ $page->cover_url }}" class="admin-clip-cover-preview mt-3" alt="">@endif</div>
+   <div class="col-md-4"><label class="form-label">Порядок</label><input type="number" class="form-control" name="sort_order" min="0" value="{{ old('sort_order',$page->sort_order ?? 0) }}"></div>
+
+   <div class="col-12">
+    <div class="cms-publish-panel">
+      <div class="cms-publish-head">
+        <div>
+          <div class="eyebrow">Публикация и меню</div>
+          <h3>Где показывать эту страницу</h3>
+          <p>Здесь отдельно включается публикация страницы и её отображение в меню сайта.</p>
+        </div>
+      </div>
+
+      <label class="cms-switch-card">
+        <div>
+          <strong>Показывать в меню сайта</strong>
+          <small>Добавляет раздел в публичное меню. Для подраздела он появится под родительским разделом.</small>
+        </div>
+        <span class="cms-switch">
+          <input type="hidden" name="show_in_menu" value="0">
+          <input type="checkbox" name="show_in_menu" value="1" @checked(old('show_in_menu',$page->show_in_menu ?? false))>
+          <i></i>
+        </span>
+      </label>
+
+      <label class="cms-switch-card">
+        <div>
+          <strong>Опубликовать страницу</strong>
+          <small>Если выключено, посетители не увидят страницу даже при включённом пункте меню.</small>
+        </div>
+        <span class="cms-switch">
+          <input type="hidden" name="is_published" value="0">
+          <input type="checkbox" name="is_published" value="1" @checked(old('is_published',$page->is_published ?? true))>
+          <i></i>
+        </span>
+      </label>
+    </div>
+   </div>
+
+   <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-3 mt-4">
+    <div class="text-white-50 small">URL страницы: <strong>/page/{{ $page->slug ?? '...' }}</strong></div>
+    <button class="btn btn-neon btn-lg">Сохранить страницу</button>
+   </div>
   </div>
  </form>
 
