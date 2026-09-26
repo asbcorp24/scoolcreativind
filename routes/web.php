@@ -98,6 +98,7 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::get('/pages/create',[AdminCustomPageController::class,'create'])->name('pages.create');
     Route::get('/pages/{page}/edit',[AdminCustomPageController::class,'edit'])->name('pages.edit');
     Route::post('/pages/save/{page?}',[AdminCustomPageController::class,'save'])->name('pages.save');
+    Route::post('/pages/editor-image',[AdminCustomPageController::class,'uploadEditorImage'])->name('pages.editor-image');
     Route::post('/pages/{page}/media',[AdminCustomPageController::class,'addMedia'])->name('pages.media.add');
     Route::delete('/page-media/{media}',[AdminCustomPageController::class,'deleteMedia'])->name('pages.media.delete');
     Route::delete('/pages/{page}',[AdminCustomPageController::class,'delete'])->name('pages.delete');
