@@ -738,7 +738,7 @@ body:has(.admin-sidebar) .toast-success{right:24px}
   background-color:transparent;
 }
 .custom-page-shell .cms-public-content{
-  color:#d8dce7!important;
+  color:#fff!important;
   background:transparent!important;
 }
 .custom-page-shell .cms-public-content p,
@@ -769,8 +769,9 @@ body:has(.admin-sidebar) .toast-success{right:24px}
 }
 .custom-page-shell .cms-public-content p,
 .custom-page-shell .cms-public-content li,
-.custom-page-shell .cms-public-content span{
-  color:inherit;
+.custom-page-shell .cms-public-content span,
+.custom-page-shell .cms-public-content div{
+  color:#fff!important;
 }
 .custom-page-shell .cms-public-content table{
   width:100%;
