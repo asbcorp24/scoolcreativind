@@ -3,6 +3,7 @@ namespace App\Providers;
 
 use App\Models\SiteSetting;
 use App\Models\MusicTrack;
+use App\Models\CustomPage;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
@@ -37,5 +38,20 @@ class AppServiceProvider extends ServiceProvider
         }
 
         View::share('musicTracks',$musicTracks);
+
+        $customMenuPages=collect();
+        try {
+            if (Schema::hasTable('custom_pages')) {
+                $customMenuPages=CustomPage::whereNull('parent_id')
+                    ->where('is_published',true)
+                    ->where('show_in_menu',true)
+                    ->with(['children'=>fn($q)=>$q->where('is_published',true)->where('show_in_menu',true)])
+                    ->orderBy('sort_order')->orderBy('title')->get();
+            }
+        } catch (\Throwable $e) {
+            $customMenuPages=collect();
+        }
+
+        View::share('customMenuPages',$customMenuPages);
     }
 }
