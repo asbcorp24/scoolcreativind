@@ -204,41 +204,78 @@ $musicPlaylist=$musicTracks->map(function($track){
 
 @auth
 @if(request()->routeIs('admin.*') && !request()->routeIs('admin.login*'))
-<nav class="admin-subnav">
-  <div class="container-fluid px-lg-5">
-    <div class="admin-subnav-scroll">
-      @if(auth()->user()->is_admin || auth()->user()->canAdminSection('studios') || auth()->user()->canAdminSection('applications') || auth()->user()->canAdminSection('news'))
-        <a class="admin-nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">Обзор</a>
-      @endif
-      @if(auth()->user()->canAdminSection('studios'))<a class="admin-nav-link {{ request()->routeIs('admin.studios.*') || request()->routeIs('admin.media*') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}#studiosAdmin">Студии</a>@endif
-      @if(auth()->user()->canAdminSection('news'))<a class="admin-nav-link {{ request()->routeIs('admin.news.*') ? 'active' : '' }}" href="{{ route('admin.news.create') }}">Новости</a>@endif
-      @if(auth()->user()->canAdminSection('projects'))<a class="admin-nav-link {{ request()->routeIs('admin.projects*') ? 'active' : '' }}" href="{{ route('admin.projects') }}">Проекты</a>@endif
-      @if(auth()->user()->canAdminSection('events'))<a class="admin-nav-link {{ request()->routeIs('admin.events*') ? 'active' : '' }}" href="{{ route('admin.events') }}">События</a>@endif
-      @if(auth()->user()->canAdminSection('team'))<a class="admin-nav-link {{ request()->routeIs('admin.team*') ? 'active' : '' }}" href="{{ route('admin.team') }}">Команда</a>@endif
-      @if(auth()->user()->canAdminSection('equipment'))<a class="admin-nav-link {{ request()->routeIs('admin.equipment*') ? 'active' : '' }}" href="{{ route('admin.equipment') }}">Оборудование</a>@endif
-      @if(auth()->user()->canAdminSection('students'))<a class="admin-nav-link {{ request()->routeIs('admin.students*') ? 'active' : '' }}" href="{{ route('admin.students') }}">Ученики</a>@endif
-      @if(auth()->user()->canAdminSection('competitions'))<a class="admin-nav-link {{ request()->routeIs('admin.competitions*') || request()->routeIs('admin.achievements*') ? 'active' : '' }}" href="{{ route('admin.competitions') }}">Конкурсы</a>@endif
-      @if(auth()->user()->canAdminSection('quizzes'))<a class="admin-nav-link {{ request()->routeIs('admin.quizzes*') ? 'active' : '' }}" href="{{ route('admin.quizzes') }}">Викторины</a>@endif
-      @if(auth()->user()->canAdminSection('groups'))<a class="admin-nav-link {{ request()->routeIs('admin.groups*') ? 'active' : '' }}" href="{{ route('admin.groups') }}">Группы</a>@endif
-      @if(auth()->user()->canAdminSection('subjects'))<a class="admin-nav-link {{ request()->routeIs('admin.subjects*') ? 'active' : '' }}" href="{{ route('admin.subjects') }}">Предметы</a>@endif
-      @if(auth()->user()->canAdminSection('schedule') || auth()->user()->teacherGroups()->exists())<a class="admin-nav-link {{ request()->routeIs('admin.schedule*') ? 'active' : '' }}" href="{{ route('admin.schedule') }}">Расписание</a>@endif
-      @if(auth()->user()->canAdminSection('journal') || auth()->user()->teacherGroups()->exists())<a class="admin-nav-link {{ request()->routeIs('admin.journal*') ? 'active' : '' }}" href="{{ route('admin.journal') }}">Журнал</a>@endif
-      @if(auth()->user()->canAdminSection('homework') || auth()->user()->teacherGroups()->exists())<a class="admin-nav-link {{ request()->routeIs('admin.homework*') ? 'active' : '' }}" href="{{ route('admin.homework') }}">Домашние задания</a>@endif
-      @if(auth()->user()->canAdminSection('settings'))<a class="admin-nav-link {{ request()->routeIs('admin.settings*') ? 'active' : '' }}" href="{{ route('admin.settings') }}">Главная / SEO</a>@endif
-      @if(auth()->user()->canAdminSection('documents'))<a class="admin-nav-link {{ request()->routeIs('admin.documents*') ? 'active' : '' }}" href="{{ route('admin.documents') }}">Документы</a>@endif
-      @if(auth()->user()->canAdminSection('questions'))<a class="admin-nav-link {{ request()->routeIs('admin.questions*') ? 'active' : '' }}" href="{{ route('admin.questions') }}">Вопросы</a>@endif
-      @if(auth()->user()->canAdminSection('contacts'))<a class="admin-nav-link {{ request()->routeIs('admin.contacts*') ? 'active' : '' }}" href="{{ route('admin.contacts') }}">Контакты</a>@endif
-      @if(auth()->user()->canAdminSection('music'))<a class="admin-nav-link {{ request()->routeIs('admin.music*') ? 'active' : '' }}" href="{{ route('admin.music') }}">Музыка</a>@endif
-      @if(auth()->user()->canAdminSection('clips'))<a class="admin-nav-link {{ request()->routeIs('admin.clips*') ? 'active' : '' }}" href="{{ route('admin.clips') }}">Клипы</a>@endif
-      @if(auth()->user()->canAdminSection('pages'))<a class="admin-nav-link {{ request()->routeIs('admin.pages*') ? 'active' : '' }}" href="{{ route('admin.pages') }}">Страницы</a>@endif
-      @if(auth()->user()->is_admin)<a class="admin-nav-link {{ request()->routeIs('admin.access-admins*') ? 'active' : '' }}" href="{{ route('admin.access-admins') }}">Администраторы</a>@endif
-      <a class="admin-nav-link admin-nav-site" href="{{ route('home') }}" target="_blank">Открыть сайт ↗</a>
-      <form method="post" action="{{ route('admin.logout') }}" class="admin-logout-form">@csrf
-        <button type="submit" class="admin-nav-link admin-nav-logout">Выйти</button>
-      </form>
+<button type="button" class="admin-sidebar-toggle" data-admin-sidebar-toggle aria-label="Открыть меню админки">☰</button>
+<aside class="admin-sidebar" data-admin-sidebar>
+  <div class="admin-sidebar-head">
+    <div class="admin-sidebar-brand"><span>ШКИ</span><small>CONTROL CENTER</small></div>
+    <button type="button" class="admin-sidebar-close" data-admin-sidebar-close aria-label="Закрыть">×</button>
+  </div>
+
+  <div class="admin-sidebar-scroll">
+    @if(auth()->user()->is_admin || auth()->user()->canAdminSection('studios') || auth()->user()->canAdminSection('applications') || auth()->user()->canAdminSection('news'))
+      <a class="admin-side-home {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}"><span>⌂</span><strong>Обзор</strong></a>
+    @endif
+
+    <div class="admin-side-group {{ request()->routeIs('admin.studios.*','admin.media*','admin.news.*','admin.projects*','admin.events*','admin.team*','admin.equipment*','admin.pages*') ? 'open' : '' }}">
+      <button type="button" class="admin-side-group-title" data-admin-group-toggle><span>◆</span><strong>Контент</strong><i>⌄</i></button>
+      <div class="admin-side-group-body">
+        @if(auth()->user()->canAdminSection('studios'))<a class="{{ request()->routeIs('admin.studios.*') || request()->routeIs('admin.media*') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}#studiosAdmin">Студии и медиа</a>@endif
+        @if(auth()->user()->canAdminSection('news'))<a class="{{ request()->routeIs('admin.news.*') ? 'active' : '' }}" href="{{ route('admin.news.create') }}">Новости</a>@endif
+        @if(auth()->user()->canAdminSection('projects'))<a class="{{ request()->routeIs('admin.projects*') ? 'active' : '' }}" href="{{ route('admin.projects') }}">Проекты / портфолио</a>@endif
+        @if(auth()->user()->canAdminSection('events'))<a class="{{ request()->routeIs('admin.events*') ? 'active' : '' }}" href="{{ route('admin.events') }}">События</a>@endif
+        @if(auth()->user()->canAdminSection('team'))<a class="{{ request()->routeIs('admin.team*') ? 'active' : '' }}" href="{{ route('admin.team') }}">Команда</a>@endif
+        @if(auth()->user()->canAdminSection('equipment'))<a class="{{ request()->routeIs('admin.equipment*') ? 'active' : '' }}" href="{{ route('admin.equipment') }}">Оборудование</a>@endif
+        @if(auth()->user()->canAdminSection('pages'))<a class="{{ request()->routeIs('admin.pages*') ? 'active' : '' }}" href="{{ route('admin.pages') }}">Страницы и разделы</a>@endif
+      </div>
+    </div>
+
+    <div class="admin-side-group {{ request()->routeIs('admin.groups*','admin.subjects*','admin.schedule*','admin.journal*','admin.homework*','admin.students*','admin.competitions*','admin.achievements*','admin.quizzes*') ? 'open' : '' }}">
+      <button type="button" class="admin-side-group-title" data-admin-group-toggle><span>▦</span><strong>Обучение</strong><i>⌄</i></button>
+      <div class="admin-side-group-body">
+        @if(auth()->user()->canAdminSection('groups'))<a class="{{ request()->routeIs('admin.groups*') ? 'active' : '' }}" href="{{ route('admin.groups') }}">Учебные группы</a>@endif
+        @if(auth()->user()->canAdminSection('subjects'))<a class="{{ request()->routeIs('admin.subjects*') ? 'active' : '' }}" href="{{ route('admin.subjects') }}">Предметы</a>@endif
+        @if(auth()->user()->canAdminSection('schedule') || auth()->user()->teacherGroups()->exists())<a class="{{ request()->routeIs('admin.schedule*') ? 'active' : '' }}" href="{{ route('admin.schedule') }}">Расписание</a>@endif
+        @if(auth()->user()->canAdminSection('journal') || auth()->user()->teacherGroups()->exists())<a class="{{ request()->routeIs('admin.journal*') ? 'active' : '' }}" href="{{ route('admin.journal') }}">Журнал</a>@endif
+        @if(auth()->user()->canAdminSection('homework') || auth()->user()->teacherGroups()->exists())<a class="{{ request()->routeIs('admin.homework*') ? 'active' : '' }}" href="{{ route('admin.homework') }}">Домашние задания</a>@endif
+        @if(auth()->user()->canAdminSection('students'))<a class="{{ request()->routeIs('admin.students*') ? 'active' : '' }}" href="{{ route('admin.students') }}">Ученики</a>@endif
+        @if(auth()->user()->canAdminSection('competitions'))<a class="{{ request()->routeIs('admin.competitions*') || request()->routeIs('admin.achievements*') ? 'active' : '' }}" href="{{ route('admin.competitions') }}">Конкурсы и достижения</a>@endif
+        @if(auth()->user()->canAdminSection('quizzes'))<a class="{{ request()->routeIs('admin.quizzes*') ? 'active' : '' }}" href="{{ route('admin.quizzes') }}">Викторины</a>@endif
+      </div>
+    </div>
+
+    <div class="admin-side-group {{ request()->routeIs('admin.music*','admin.clips*','admin.documents*') ? 'open' : '' }}">
+      <button type="button" class="admin-side-group-title" data-admin-group-toggle><span>◉</span><strong>Медиа</strong><i>⌄</i></button>
+      <div class="admin-side-group-body">
+        @if(auth()->user()->canAdminSection('music'))<a class="{{ request()->routeIs('admin.music*') ? 'active' : '' }}" href="{{ route('admin.music') }}">Музыка сайта</a>@endif
+        @if(auth()->user()->canAdminSection('clips'))<a class="{{ request()->routeIs('admin.clips*') ? 'active' : '' }}" href="{{ route('admin.clips') }}">Клипы</a>@endif
+        @if(auth()->user()->canAdminSection('documents'))<a class="{{ request()->routeIs('admin.documents*') ? 'active' : '' }}" href="{{ route('admin.documents') }}">Документы</a>@endif
+      </div>
+    </div>
+
+    <div class="admin-side-group {{ request()->routeIs('admin.questions*','admin.contacts*') ? 'open' : '' }}">
+      <button type="button" class="admin-side-group-title" data-admin-group-toggle><span>✉</span><strong>Обратная связь</strong><i>⌄</i></button>
+      <div class="admin-side-group-body">
+        @if(auth()->user()->canAdminSection('questions'))<a class="{{ request()->routeIs('admin.questions*') ? 'active' : '' }}" href="{{ route('admin.questions') }}">Вопросы и обращения</a>@endif
+        @if(auth()->user()->canAdminSection('contacts'))<a class="{{ request()->routeIs('admin.contacts*') ? 'active' : '' }}" href="{{ route('admin.contacts') }}">Контакты и карта</a>@endif
+        @if(auth()->user()->canAdminSection('applications'))<a href="{{ route('admin.dashboard') }}">Заявки на поступление</a>@endif
+      </div>
+    </div>
+
+    <div class="admin-side-group {{ request()->routeIs('admin.settings*','admin.access-admins*') ? 'open' : '' }}">
+      <button type="button" class="admin-side-group-title" data-admin-group-toggle><span>⚙</span><strong>Система</strong><i>⌄</i></button>
+      <div class="admin-side-group-body">
+        @if(auth()->user()->canAdminSection('settings'))<a class="{{ request()->routeIs('admin.settings*') ? 'active' : '' }}" href="{{ route('admin.settings') }}">Главная / SEO / хранилище</a>@endif
+        @if(auth()->user()->is_admin)<a class="{{ request()->routeIs('admin.access-admins*') ? 'active' : '' }}" href="{{ route('admin.access-admins') }}">Администраторы</a>@endif
+      </div>
     </div>
   </div>
-</nav>
+
+  <div class="admin-sidebar-foot">
+    <a href="{{ route('home') }}" target="_blank"><span>↗</span> Открыть сайт</a>
+    <form method="post" action="{{ route('admin.logout') }}">@csrf<button type="submit"><span>↪</span> Выйти</button></form>
+  </div>
+</aside>
+<div class="admin-sidebar-backdrop" data-admin-sidebar-backdrop></div>
 @endif
 @endauth
 
