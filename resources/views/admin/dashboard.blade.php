@@ -22,6 +22,7 @@
 @if(auth()->user()->canAdminSection('contacts'))<a href="{{ route('admin.contacts') }}" class="btn btn-ghost">Контакты</a>@endif
 @if(auth()->user()->canAdminSection('music'))<a href="{{ route('admin.music') }}" class="btn btn-ghost">Музыка</a>@endif
 @if(auth()->user()->canAdminSection('clips'))<a href="{{ route('admin.clips') }}" class="btn btn-ghost">Клипы</a>@endif
+@if(auth()->user()->canAdminSection('pages'))<a href="{{ route('admin.pages') }}" class="btn btn-ghost">Страницы и разделы</a>@endif
 @if(auth()->user()->is_admin)<a href="{{ route('admin.access-admins') }}" class="btn btn-ghost">Администраторы</a>@endif
 </div></div></div></section>
 <section class="pb-5"><div class="container">
