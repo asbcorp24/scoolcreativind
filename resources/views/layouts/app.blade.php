@@ -58,6 +58,30 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
       <a class="desktop-nav-link {{ request()->routeIs('schedule') ? 'active' : '' }}" href="{{ route('schedule') }}"><span>05</span>Расписание</a>
       <a class="desktop-nav-link" href="{{ route('home') }}#studios"><span>06</span>Студии</a>
 
+      @foreach(($customMenuPages ?? collect()) as $customPage)
+        @if($customPage->children->count())
+          <div class="desktop-custom-nav dropdown">
+            <button class="desktop-nav-link desktop-custom-trigger {{ request()->routeIs('pages.show') && (optional(request()->route('page'))->id === $customPage->id || optional(request()->route('page'))->parent_id === $customPage->id) ? 'active' : '' }}" data-bs-toggle="dropdown" aria-expanded="false">
+              <span>◆</span>{{ $customPage->menu_title ?: $customPage->title }} <i>⌄</i>
+            </button>
+            <div class="dropdown-menu dropdown-menu-dark sci-dropdown custom-page-dropdown">
+              <a class="dropdown-item custom-page-parent-link" href="{{ route('pages.show',$customPage) }}">
+                <strong>{{ $customPage->menu_title ?: $customPage->title }}</strong>
+                @if($customPage->subtitle)<small>{{ $customPage->subtitle }}</small>@endif
+              </a>
+              <div class="dropdown-divider"></div>
+              @foreach($customPage->children as $child)
+                <a class="dropdown-item {{ request()->routeIs('pages.show') && optional(request()->route('page'))->id === $child->id ? 'active' : '' }}" href="{{ route('pages.show',$child) }}">
+                  {{ $child->menu_title ?: $child->title }}
+                </a>
+              @endforeach
+            </div>
+          </div>
+        @else
+          <a class="desktop-nav-link custom-page-top-link {{ request()->routeIs('pages.show') && optional(request()->route('page'))->id === $customPage->id ? 'active' : '' }}" href="{{ route('pages.show',$customPage) }}"><span>◆</span>{{ $customPage->menu_title ?: $customPage->title }}</a>
+        @endif
+      @endforeach
+
       <div class="desktop-nav-more dropdown">
         <button class="desktop-nav-more-btn" data-bs-toggle="dropdown" aria-expanded="false">Ещё <span>＋</span></button>
         <div class="dropdown-menu dropdown-menu-dark sci-dropdown dropdown-menu-end">
@@ -69,12 +93,6 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
           <a class="dropdown-item" href="{{ route('questions.create') }}">Задать вопрос</a>
           <a class="dropdown-item" href="{{ route('contacts.index') }}">Контакты</a>
           <a class="dropdown-item" href="{{ route('cooperation.index') }}">Сотрудничество</a>
-          @foreach(($customMenuPages ?? collect()) as $customPage)
-            <a class="dropdown-item" href="{{ route('pages.show',$customPage) }}">{{ $customPage->menu_title ?: $customPage->title }}</a>
-            @foreach($customPage->children as $child)
-              <a class="dropdown-item ps-4 small" href="{{ route('pages.show',$child) }}">↳ {{ $child->menu_title ?: $child->title }}</a>
-            @endforeach
-          @endforeach
           <a class="dropdown-item" href="{{ route('home') }}#campus360">360° тур</a>
           <button type="button" class="dropdown-item d-none" data-pwa-install>Установить приложение</button>
           @auth
@@ -142,10 +160,27 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
       <a href="{{ route('contacts.index') }}"><span>⌖</span><strong>Контакты</strong></a>
       <a href="{{ route('cooperation.index') }}"><span>∞</span><strong>Сотрудничество</strong></a>
       @foreach(($customMenuPages ?? collect()) as $customPage)
-        <a href="{{ route('pages.show',$customPage) }}"><span>◆</span><strong>{{ $customPage->menu_title ?: $customPage->title }}</strong></a>
-        @foreach($customPage->children as $child)
-          <a href="{{ route('pages.show',$child) }}"><span>↳</span><strong>{{ $child->menu_title ?: $child->title }}</strong></a>
-        @endforeach
+        @if($customPage->children->count())
+          <details class="mobile-custom-section" {{ request()->routeIs('pages.show') && (optional(request()->route('page'))->id === $customPage->id || optional(request()->route('page'))->parent_id === $customPage->id) ? 'open' : '' }}>
+            <summary>
+              <span>◆</span>
+              <strong>{{ $customPage->menu_title ?: $customPage->title }}</strong>
+              <i>⌄</i>
+            </summary>
+            <div class="mobile-custom-children">
+              <a href="{{ route('pages.show',$customPage) }}"><span>⌂</span><strong>Главная раздела</strong></a>
+              @foreach($customPage->children as $child)
+                <a href="{{ route('pages.show',$child) }}" class="{{ request()->routeIs('pages.show') && optional(request()->route('page'))->id === $child->id ? 'active' : '' }}">
+                  <span>↳</span><strong>{{ $child->menu_title ?: $child->title }}</strong>
+                </a>
+              @endforeach
+            </div>
+          </details>
+        @else
+          <a href="{{ route('pages.show',$customPage) }}" class="{{ request()->routeIs('pages.show') && optional(request()->route('page'))->id === $customPage->id ? 'active' : '' }}">
+            <span>◆</span><strong>{{ $customPage->menu_title ?: $customPage->title }}</strong>
+          </a>
+        @endif
       @endforeach
       <a href="{{ route('home') }}#campus360"><span>360°</span><strong>Виртуальный тур</strong></a>
       <a href="{{ route('apply') }}"><span>＋</span><strong>Поступить</strong></a>
