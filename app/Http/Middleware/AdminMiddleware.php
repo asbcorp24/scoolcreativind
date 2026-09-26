@@ -88,6 +88,7 @@ class AdminMiddleware
             'admin/music'=>'music',
             'admin/clips'=>'clips',
             'admin/pages'=>'pages',
+            'admin/cooperation'=>'cooperation',
             'admin/applications'=>'applications',
             'admin/access-admins'=>'__super',
         ];
