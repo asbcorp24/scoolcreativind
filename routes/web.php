@@ -23,6 +23,8 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\AdminContactController;
 use App\Http\Controllers\AdminMusicController;
 use App\Http\Controllers\DesignClipController;
+use App\Http\Controllers\ClipController;
+use App\Http\Controllers\AdminClipController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class,'home'])->name('home');
