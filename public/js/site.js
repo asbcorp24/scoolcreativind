@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 
   initAccessibility();
+  initAdminSidebar();
   initMobileMoreMenu();
   initPWA();
   initGlobalMusicPlayer();
@@ -909,4 +910,53 @@ function initGlobalMusicPlayer(){
   window.addEventListener('pagehide',save);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
   renderPlaying();
+}
+
+
+function initAdminSidebar(){
+  const sidebar=document.querySelector('[data-admin-sidebar]');
+  if(!sidebar)return;
+
+  const toggle=document.querySelector('[data-admin-sidebar-toggle]');
+  const close=document.querySelector('[data-admin-sidebar-close]');
+  const backdrop=document.querySelector('[data-admin-sidebar-backdrop]');
+
+  const open=()=>{
+    sidebar.classList.add('open');
+    backdrop?.classList.add('open');
+    document.body.classList.add('admin-sidebar-open');
+  };
+
+  const hide=()=>{
+    sidebar.classList.remove('open');
+    backdrop?.classList.remove('open');
+    document.body.classList.remove('admin-sidebar-open');
+  };
+
+  toggle?.addEventListener('click',open);
+  close?.addEventListener('click',hide);
+  backdrop?.addEventListener('click',hide);
+
+  sidebar.querySelectorAll('[data-admin-group-toggle]').forEach(button=>{
+    button.addEventListener('click',()=>{
+      const group=button.closest('.admin-side-group');
+      if(!group)return;
+
+      const willOpen=!group.classList.contains('open');
+
+      sidebar.querySelectorAll('.admin-side-group.open').forEach(other=>{
+        if(other!==group)other.classList.remove('open');
+      });
+
+      group.classList.toggle('open',willOpen);
+    });
+  });
+
+  sidebar.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{
+    if(window.innerWidth<=1100)hide();
+  }));
+
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape')hide();
+  });
 }
