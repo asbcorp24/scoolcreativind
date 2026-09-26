@@ -22,6 +22,7 @@ use App\Http\Controllers\AdminQuestionController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\AdminContactController;
 use App\Http\Controllers\AdminMusicController;
+use App\Http\Controllers\DesignClipController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class,'home'])->name('home');
@@ -33,6 +34,7 @@ Route::get('/equipment', [PublicController::class,'equipment'])->name('equipment
 Route::get('/documents',[DocumentController::class,'index'])->name('documents.index');
 Route::get('/question',[QuestionController::class,'create'])->name('questions.create');
 Route::get('/contacts',[ContactController::class,'index'])->name('contacts.index');
+Route::get('/clips/design',[DesignClipController::class,'show'])->name('clips.design');
 Route::post('/question',[QuestionController::class,'store'])->name('questions.store');
 Route::get('/schedule',[LearningController::class,'schedule'])->name('schedule');
 Route::get('/projects',[LearningController::class,'projects'])->name('projects.index');
