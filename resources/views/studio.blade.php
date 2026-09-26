@@ -10,6 +10,9 @@
     <div class="eyebrow mt-4">{{ $studio->icon ?: '✦' }} / направление</div>
     <h1 class="studio-title">{{ $studio->title }}</h1>
     <p class="lead col-lg-8 text-white-50">{{ $studio->subtitle }}</p>
+    @if($studio->slug==='design')
+      <a href="{{ route('clips.design') }}" class="btn btn-neon btn-lg mt-4">▶ 3D-клип «Дизайн начинается с чувства»</a>
+    @endif
    </div>
   </div>
  </div>
