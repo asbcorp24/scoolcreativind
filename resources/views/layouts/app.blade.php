@@ -68,6 +68,12 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
           <a class="dropdown-item" href="{{ route('documents.index') }}">Документы</a>
           <a class="dropdown-item" href="{{ route('questions.create') }}">Задать вопрос</a>
           <a class="dropdown-item" href="{{ route('contacts.index') }}">Контакты</a>
+          @foreach(($customMenuPages ?? collect()) as $customPage)
+            <a class="dropdown-item" href="{{ route('pages.show',$customPage) }}">{{ $customPage->menu_title ?: $customPage->title }}</a>
+            @foreach($customPage->children as $child)
+              <a class="dropdown-item ps-4 small" href="{{ route('pages.show',$child) }}">↳ {{ $child->menu_title ?: $child->title }}</a>
+            @endforeach
+          @endforeach
           <a class="dropdown-item" href="{{ route('home') }}#campus360">360° тур</a>
           <button type="button" class="dropdown-item d-none" data-pwa-install>Установить приложение</button>
           @auth
@@ -132,6 +138,12 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
       <a href="{{ route('documents.index') }}"><span>▣</span><strong>Документы</strong></a>
       <a href="{{ route('questions.create') }}"><span>?</span><strong>Задать вопрос</strong></a>
       <a href="{{ route('contacts.index') }}"><span>⌖</span><strong>Контакты</strong></a>
+      @foreach(($customMenuPages ?? collect()) as $customPage)
+        <a href="{{ route('pages.show',$customPage) }}"><span>◆</span><strong>{{ $customPage->menu_title ?: $customPage->title }}</strong></a>
+        @foreach($customPage->children as $child)
+          <a href="{{ route('pages.show',$child) }}"><span>↳</span><strong>{{ $child->menu_title ?: $child->title }}</strong></a>
+        @endforeach
+      @endforeach
       <a href="{{ route('home') }}#campus360"><span>360°</span><strong>Виртуальный тур</strong></a>
       <a href="{{ route('apply') }}"><span>＋</span><strong>Поступить</strong></a>
       <button type="button" data-pwa-install class="mobile-more-install"><span>⇩</span><strong>Установить приложение</strong></button>
@@ -218,6 +230,7 @@ $musicPlaylist=$musicTracks->map(function($track){
       @if(auth()->user()->canAdminSection('contacts'))<a class="admin-nav-link {{ request()->routeIs('admin.contacts*') ? 'active' : '' }}" href="{{ route('admin.contacts') }}">Контакты</a>@endif
       @if(auth()->user()->canAdminSection('music'))<a class="admin-nav-link {{ request()->routeIs('admin.music*') ? 'active' : '' }}" href="{{ route('admin.music') }}">Музыка</a>@endif
       @if(auth()->user()->canAdminSection('clips'))<a class="admin-nav-link {{ request()->routeIs('admin.clips*') ? 'active' : '' }}" href="{{ route('admin.clips') }}">Клипы</a>@endif
+      @if(auth()->user()->canAdminSection('pages'))<a class="admin-nav-link {{ request()->routeIs('admin.pages*') ? 'active' : '' }}" href="{{ route('admin.pages') }}">Страницы</a>@endif
       @if(auth()->user()->is_admin)<a class="admin-nav-link {{ request()->routeIs('admin.access-admins*') ? 'active' : '' }}" href="{{ route('admin.access-admins') }}">Администраторы</a>@endif
       <a class="admin-nav-link admin-nav-site" href="{{ route('home') }}" target="_blank">Открыть сайт ↗</a>
       <form method="post" action="{{ route('admin.logout') }}" class="admin-logout-form">@csrf
