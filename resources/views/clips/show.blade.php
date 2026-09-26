@@ -23,7 +23,6 @@
       class="clip-frame"
       data-clip-frame
       allow="autoplay; fullscreen; accelerometer; gyroscope"
-      allowfullscreen
       loading="eager"></iframe>
   </div>
  </div>
