@@ -64,6 +64,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
           <a class="dropdown-item" href="{{ route('team') }}">Команда</a>
           <a class="dropdown-item" href="{{ route('equipment') }}">Оборудование</a>
           <a class="dropdown-item" href="{{ route('news.index') }}">Новости</a>
+          <a class="dropdown-item" href="{{ route('clips.index') }}">Клипы</a>
           <a class="dropdown-item" href="{{ route('documents.index') }}">Документы</a>
           <a class="dropdown-item" href="{{ route('questions.create') }}">Задать вопрос</a>
           <a class="dropdown-item" href="{{ route('contacts.index') }}">Контакты</a>
@@ -127,6 +128,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
       <a href="{{ route('team') }}"><span>◎</span><strong>Команда</strong></a>
       <a href="{{ route('equipment') }}"><span>⌘</span><strong>Оборудование</strong></a>
       <a href="{{ route('news.index') }}"><span>▤</span><strong>Новости</strong></a>
+      <a href="{{ route('clips.index') }}"><span>▶</span><strong>Клипы</strong></a>
       <a href="{{ route('documents.index') }}"><span>▣</span><strong>Документы</strong></a>
       <a href="{{ route('questions.create') }}"><span>?</span><strong>Задать вопрос</strong></a>
       <a href="{{ route('contacts.index') }}"><span>⌖</span><strong>Контакты</strong></a>
@@ -215,6 +217,7 @@ $musicPlaylist=$musicTracks->map(function($track){
       @if(auth()->user()->canAdminSection('questions'))<a class="admin-nav-link {{ request()->routeIs('admin.questions*') ? 'active' : '' }}" href="{{ route('admin.questions') }}">Вопросы</a>@endif
       @if(auth()->user()->canAdminSection('contacts'))<a class="admin-nav-link {{ request()->routeIs('admin.contacts*') ? 'active' : '' }}" href="{{ route('admin.contacts') }}">Контакты</a>@endif
       @if(auth()->user()->canAdminSection('music'))<a class="admin-nav-link {{ request()->routeIs('admin.music*') ? 'active' : '' }}" href="{{ route('admin.music') }}">Музыка</a>@endif
+      @if(auth()->user()->canAdminSection('clips'))<a class="admin-nav-link {{ request()->routeIs('admin.clips*') ? 'active' : '' }}" href="{{ route('admin.clips') }}">Клипы</a>@endif
       @if(auth()->user()->is_admin)<a class="admin-nav-link {{ request()->routeIs('admin.access-admins*') ? 'active' : '' }}" href="{{ route('admin.access-admins') }}">Администраторы</a>@endif
       <a class="admin-nav-link admin-nav-site" href="{{ route('home') }}" target="_blank">Открыть сайт ↗</a>
       <form method="post" action="{{ route('admin.logout') }}" class="admin-logout-form">@csrf
@@ -242,6 +245,7 @@ $musicPlaylist=$musicTracks->map(function($track){
     <div class="mt-2"><a href="{{ route('documents.index') }}">Официальные документы</a></div>
     <div class="mt-2"><a href="{{ route('questions.create') }}">Задать вопрос</a></div>
     <div class="mt-2"><a href="{{ route('contacts.index') }}">Контакты</a></div>
+    <div class="mt-2"><a href="{{ route('clips.index') }}">Клипы</a></div>
    </div>
   </div>
   <hr><div class="small opacity-50">© {{ date('Y') }} Школа креативных индустрий</div>
