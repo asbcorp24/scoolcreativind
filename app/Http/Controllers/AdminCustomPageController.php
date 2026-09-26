@@ -93,6 +93,25 @@ class AdminCustomPageController extends Controller
         return $html;
     }
 
+    public function uploadEditorImage(Request $request)
+    {
+        $request->validate([
+            'image'=>'required|image|max:15360|mimes:jpg,jpeg,png,webp,gif',
+        ]);
+
+        $file=$request->file('image');
+
+        if(!StorageQuota::canStore((int)$file->getSize())){
+            return response()->json(['message'=>'Недостаточно места в хранилище.'],422);
+        }
+
+        $path=$file->store('pages/editor','public');
+
+        return response()->json([
+            'url'=>Storage::disk('public')->url($path),
+        ]);
+    }
+
     public function addMedia(Request $request, CustomPage $page)
     {
         $data=$request->validate([
