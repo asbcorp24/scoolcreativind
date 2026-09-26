@@ -68,6 +68,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
           <a class="dropdown-item" href="{{ route('documents.index') }}">Документы</a>
           <a class="dropdown-item" href="{{ route('questions.create') }}">Задать вопрос</a>
           <a class="dropdown-item" href="{{ route('contacts.index') }}">Контакты</a>
+          <a class="dropdown-item" href="{{ route('cooperation.index') }}">Сотрудничество</a>
           @foreach(($customMenuPages ?? collect()) as $customPage)
             <a class="dropdown-item" href="{{ route('pages.show',$customPage) }}">{{ $customPage->menu_title ?: $customPage->title }}</a>
             @foreach($customPage->children as $child)
@@ -139,6 +140,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
       <a href="{{ route('documents.index') }}"><span>▣</span><strong>Документы</strong></a>
       <a href="{{ route('questions.create') }}"><span>?</span><strong>Задать вопрос</strong></a>
       <a href="{{ route('contacts.index') }}"><span>⌖</span><strong>Контакты</strong></a>
+      <a href="{{ route('cooperation.index') }}"><span>∞</span><strong>Сотрудничество</strong></a>
       @foreach(($customMenuPages ?? collect()) as $customPage)
         <a href="{{ route('pages.show',$customPage) }}"><span>◆</span><strong>{{ $customPage->menu_title ?: $customPage->title }}</strong></a>
         @foreach($customPage->children as $child)
@@ -262,6 +264,7 @@ $musicPlaylist=$musicTracks->map(function($track){
         @if(auth()->user()->canAdminSection('questions'))<a class="{{ request()->routeIs('admin.questions*') ? 'active' : '' }}" href="{{ route('admin.questions') }}">Вопросы и обращения</a>@endif
         @if(auth()->user()->canAdminSection('contacts'))<a class="{{ request()->routeIs('admin.contacts*') ? 'active' : '' }}" href="{{ route('admin.contacts') }}">Контакты и карта</a>@endif
         @if(auth()->user()->canAdminSection('applications'))<a href="{{ route('admin.dashboard') }}">Заявки на поступление</a>@endif
+        @if(auth()->user()->canAdminSection('cooperation'))<a class="{{ request()->routeIs('admin.cooperation*') ? 'active' : '' }}" href="{{ route('admin.cooperation') }}">Сотрудничество</a>@endif
       </div>
     </div>
 
@@ -341,6 +344,7 @@ $musicPlaylist=$musicTracks->map(function($track){
     <div class="mt-2"><a href="{{ route('documents.index') }}">Официальные документы</a></div>
     <div class="mt-2"><a href="{{ route('questions.create') }}">Задать вопрос</a></div>
     <div class="mt-2"><a href="{{ route('contacts.index') }}">Контакты</a></div>
+    <div class="mt-2"><a href="{{ route('cooperation.index') }}">Сотрудничество</a></div>
     <div class="mt-2"><a href="{{ route('clips.index') }}">Клипы</a></div>
    </div>
   </div>
