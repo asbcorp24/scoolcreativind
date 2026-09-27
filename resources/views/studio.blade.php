@@ -146,8 +146,30 @@
   <div class="row g-4">
    @foreach($videos as $m)
    <div class="col-lg-6"><div class="video-card"><div class="ratio ratio-16x9">
-    <iframe src="{{ preg_replace('~rutube\.ru/video/([^/]+)/?.*~','rutube.ru/play/embed/$1',$m->url) }}" allow="clipboard-write; autoplay" webkitAllowFullScreen mozallowfullscreen allowfullscreen></iframe>
+    @if(preg_match('~rutube\.ru/video/([^/]+)~',$m->url,$match))
+      <iframe src="https://rutube.ru/play/embed/{{ $match[1] }}" allow="clipboard-write; autoplay; fullscreen" allowfullscreen></iframe>
+    @elseif(preg_match('~^(https?:)?//~i',$m->url))
+      <iframe src="{{ $m->url }}" allow="autoplay; fullscreen" allowfullscreen></iframe>
+    @else
+      <video controls playsinline preload="metadata" src="{{ $m->display_url }}" class="w-100 h-100"></video>
+    @endif
    </div><div class="p-3"><h4>{{ $m->title }}</h4><p class="text-white-50 mb-0">{{ $m->caption }}</p></div></div></div>
+   @endforeach
+  </div>
+ </div>
+</section>
+@endif
+
+@php($materials=$studio->media->whereIn('type',['file','link']))
+@if($materials->count())
+<section class="section-space pt-0">
+ <div class="container">
+  <div class="section-head"><div><div class="eyebrow">Materials</div><h2>Файлы и ссылки</h2></div></div>
+  <div class="d-grid gap-2">
+   @foreach($materials as $m)
+    <a href="{{ $m->display_url }}" target="_blank" rel="noopener" class="glass-card p-3 d-flex justify-content-between align-items-center">
+     <div><strong>{{ $m->title ?: 'Открыть материал' }}</strong>@if($m->caption)<div class="small text-white-50">{{ $m->caption }}</div>@endif</div><span>↗</span>
+    </a>
    @endforeach
   </div>
  </div>
