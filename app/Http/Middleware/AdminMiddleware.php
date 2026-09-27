@@ -28,6 +28,13 @@ class AdminMiddleware
                 return redirect()->route($user->adminLandingRoute());
             }
 
+            if (
+                ($request->is('admin/projects/*/media') || $request->is('admin/project-media/*')) &&
+                ($user->canAdminSection('projects') || $user->canAdminSection('students'))
+            ) {
+                return $next($request);
+            }
+
             if ($section && $user->canAdminSection($section)) {
                 return $next($request);
             }
