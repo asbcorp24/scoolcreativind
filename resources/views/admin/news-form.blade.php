@@ -65,7 +65,11 @@
           <strong>{{ $media->title ?: ($media->file_name ?: $media->url) }}</strong>
           @if($media->human_file_size)<div class="small text-white-50">{{ $media->human_file_size }}</div>@endif
         </div>
-        <div class="d-flex gap-2 flex-shrink-0">
+        <div class="d-flex gap-2 flex-shrink-0 align-items-center">
+          <form method="post" action="{{ route('admin.news.media.flags',$media) }}" class="d-flex gap-2 align-items-center">@csrf @method('PATCH')
+            <label class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" name="is_visible" value="1" @checked($media->is_visible) onchange="this.form.submit()"><span class="small">Сайт</span></label>
+            <label class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" name="is_featured" value="1" @checked($media->is_featured) onchange="this.form.submit()"><span class="small">Главное</span></label>
+          </form>
           <a class="btn btn-sm btn-ghost" href="{{ $media->display_url }}" target="_blank" rel="noopener">Открыть</a>
           <form method="post" action="{{ route('admin.news.media.delete',$media) }}" onsubmit="return confirm('Удалить медиа?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">Удалить</button></form>
         </div>
