@@ -157,6 +157,10 @@ Route::prefix('admin')->name('admin.')->group(function(){
 
     Route::get('/projects',[AdminContentController::class,'projects'])->name('projects');
     Route::post('/projects/save/{project?}',[AdminContentController::class,'saveProject'])->name('projects.save');
+    Route::get('/projects/{project}/media',[AdminContentController::class,'projectMedia'])->name('projects.media');
+    Route::post('/projects/{project}/media',[AdminContentController::class,'addProjectMedia'])->name('projects.media.add');
+    Route::patch('/project-media/{media}/flags',[AdminContentController::class,'updateProjectMediaFlags'])->name('projects.media.flags');
+    Route::delete('/project-media/{media}',[AdminContentController::class,'deleteProjectMedia'])->name('projects.media.delete');
     Route::delete('/projects/{project}',[AdminContentController::class,'deleteProject'])->name('projects.delete');
 
     Route::get('/events',[AdminContentController::class,'events'])->name('events');
