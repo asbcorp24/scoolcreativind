@@ -15,13 +15,19 @@
  @forelse($projects as $project)
   <div class="col-md-6 col-xl-4">
    <article class="glass-card h-100 project-card tilt-card">
-    <div class="project-media">
-     @if($project->cover_url)
+    @php
+      $preview=$project->media->firstWhere('is_featured',true)
+          ?: $project->media->first(fn($m)=>in_array($m->type,['photo','panorama']));
+    @endphp
+    <a class="project-media" href="{{ route('projects.show',$project) }}">
+     @if($preview && in_array($preview->type,['photo','panorama']))
+      <img src="{{ $preview->thumbnail_url ?: $preview->display_url }}" alt="{{ $project->title }}">
+     @elseif($project->cover_url)
       <img src="{{ $project->cover_url }}" alt="{{ $project->title }}">
      @else
       <div class="project-noise"></div>
      @endif
-    </div>
+    </a>
     <div class="p-4">
      <div class="eyebrow">{{ $project->studio->title ?? $project->type }}</div>
      <h3 class="mt-3">{{ $project->title }}</h3>
@@ -31,9 +37,8 @@
       @if($project->completed_at) · {{ $project->completed_at->format('Y') }} @endif
      </div>
      <div class="d-flex gap-2 flex-wrap">
-      @if($project->project_url)<a class="btn btn-ghost" href="{{ $project->project_url }}" target="_blank">Открыть проект ↗</a>@endif
-      @if($project->video_url)<a class="btn btn-ghost" href="{{ $project->video_url }}" target="_blank">Видео ↗</a>@endif
-      @if($project->file_url)<a class="btn btn-neon" href="{{ $project->file_url }}" target="_blank">Файл{{ $project->human_file_size ? ' · '.$project->human_file_size : '' }}</a>@endif
+      <a class="btn btn-neon" href="{{ route('projects.show',$project) }}">Смотреть работу</a>
+      @if($project->media->count())<span class="badge-soft align-self-center">{{ $project->media->count() }} медиа</span>@endif
      </div>
     </div>
    </article>
