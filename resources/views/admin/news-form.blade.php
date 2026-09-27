@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title','Новость · Админ')
 @section('content')
-<section class="page-top"><div class="container"><div class="eyebrow">Админ / новости</div><h1 class="display-3 fw-bold">{{ $post?'Редактировать новость':'Новая новость' }}</h1></div></section>
+<section class="page-top"><div class="container"><div class="eyebrow">Админ / новости</div><div class="d-flex justify-content-between align-items-end gap-3 flex-wrap"><h1 class="display-3 fw-bold mb-0">{{ $post?'Редактировать новость':'Новая новость' }}</h1><a href="{{ route('admin.news.index') }}" class="btn btn-ghost">← Все новости</a></div></div></section>
 
 <section class="pb-5">
  <div class="container">
