@@ -807,3 +807,71 @@ body:has(.admin-sidebar) .toast-success{right:24px}
 @media(max-width:1080px){.ski-brand-logo img{width:132px}}
 @media(max-width:991px){.ski-brand-logo{display:none!important}}
 .accessibility-mode .ski-brand-logo img,.accessibility-mode .page-transition-logo img,.accessibility-mode .clip-frame-loader img{filter:none!important}
+
+
+/* Large page transition branding */
+.page-transition-logo{gap:12px!important;text-align:center}
+.page-transition-mark{
+ width:min(360px,68vw);
+ aspect-ratio:1.9/1;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ flex-direction:column;
+ border:1px solid rgba(255,255,255,.12);
+ border-radius:34px;
+ background:
+  radial-gradient(circle at 28% 35%,rgba(0,229,255,.18),transparent 34%),
+  radial-gradient(circle at 72% 65%,rgba(255,79,216,.16),transparent 32%),
+  linear-gradient(145deg,rgba(138,92,255,.13),rgba(7,10,17,.96));
+ box-shadow:
+  0 0 0 1px rgba(0,229,255,.04) inset,
+  0 30px 90px rgba(0,0,0,.5),
+  0 0 70px rgba(0,229,255,.08);
+ animation:skiMarkPulse 1.4s ease-in-out infinite
+}
+.page-transition-mark span{
+ font-size:clamp(4.2rem,11vw,8.5rem);
+ line-height:.82;
+ font-weight:950;
+ letter-spacing:-.085em;
+ background:linear-gradient(105deg,#fff 4%,var(--cyan) 34%,#7080ff 58%,var(--pink) 83%,#fff);
+ -webkit-background-clip:text;
+ background-clip:text;
+ color:transparent;
+ filter:drop-shadow(0 0 22px rgba(0,229,255,.16))
+}
+.page-transition-mark i{
+ margin-top:12px;
+ font-style:normal;
+ font-size:clamp(.72rem,1.4vw,1rem);
+ font-weight:900;
+ letter-spacing:.55em;
+ color:#dfe7f5;
+ text-indent:.55em
+}
+.page-transition-logo>strong{
+ margin-top:8px;
+ font-size:clamp(.75rem,1.4vw,1.05rem);
+ font-weight:800;
+ letter-spacing:.16em;
+ text-transform:uppercase;
+ color:#eef2f8
+}
+.page-transition-logo>small{
+ font-size:.62rem;
+ letter-spacing:.28em;
+ text-transform:uppercase;
+ color:#7f8b9f
+}
+@keyframes skiMarkPulse{
+ 0%,100%{transform:scale(.98);box-shadow:0 30px 90px rgba(0,0,0,.5),0 0 45px rgba(0,229,255,.06)}
+ 50%{transform:scale(1.02);box-shadow:0 30px 90px rgba(0,0,0,.5),0 0 90px rgba(138,92,255,.16)}
+}
+@media(max-width:600px){
+ .page-transition-mark{width:min(300px,82vw);border-radius:26px}
+ .page-transition-logo>strong{font-size:.7rem;letter-spacing:.1em}
+}
+.accessibility-mode .page-transition-mark{background:#fff!important;border:2px solid #000!important;box-shadow:none!important}
+.accessibility-mode .page-transition-mark span{-webkit-text-fill-color:#000!important;color:#000!important;background:none!important}
+.accessibility-mode .page-transition-mark i,.accessibility-mode .page-transition-logo>strong,.accessibility-mode .page-transition-logo>small{color:#000!important}
