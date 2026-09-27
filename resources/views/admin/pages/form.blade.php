@@ -96,7 +96,14 @@
     @forelse($page->media as $media)
      <div class="d-flex justify-content-between align-items-center gap-3 p-3 rounded-3" style="background:rgba(255,255,255,.025)">
       <div><div class="small text-white-50">{{ ['photo'=>'Фото','panorama'=>'360°','video'=>'Видео','model'=>'3D','audio'=>'Аудио','file'=>'Файл','link'=>'Ссылка'][$media->type] ?? $media->type }} · {{ $media->sort_order }}</div><strong>{{ $media->title ?: ($media->file_name ?: $media->url) }}</strong></div>
-      <div class="d-flex gap-2"><a href="{{ $media->display_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-ghost">Открыть</a><form method="post" action="{{ route('admin.pages.media.delete',$media) }}">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">Удалить</button></form></div>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+       <form method="post" action="{{ route('admin.pages.media.flags',$media) }}" class="d-flex gap-2 align-items-center">@csrf @method('PATCH')
+        <label class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" name="is_visible" value="1" @checked($media->is_visible) onchange="this.form.submit()"><span class="small">Сайт</span></label>
+        <label class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" name="is_featured" value="1" @checked($media->is_featured) onchange="this.form.submit()"><span class="small">Главное</span></label>
+       </form>
+       <a href="{{ $media->display_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-ghost">Открыть</a>
+       <form method="post" action="{{ route('admin.pages.media.delete',$media) }}">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">Удалить</button></form>
+      </div>
      </div>
     @empty<div class="text-white-50">Медиа ещё не добавлено.</div>@endforelse
     </div>
