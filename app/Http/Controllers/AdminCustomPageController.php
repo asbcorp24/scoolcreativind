@@ -2,7 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CustomPage;
-use App\Models\CustomPageMedia;
+use App\Models\MediaLibraryItem;
 use App\Services\StorageQuota;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -115,37 +115,36 @@ class AdminCustomPageController extends Controller
     public function addMedia(Request $request, CustomPage $page)
     {
         $data=$request->validate([
-            'type'=>'required|in:image,video,audio,file,link',
+            'type'=>'required|in:photo,panorama,video,model,audio,file,link',
             'title'=>'nullable|string|max:255',
-            'url'=>'nullable|url|max:2000',
+            'url'=>'nullable|string|max:2000',
             'file'=>'nullable|file|max:102400',
+            'thumbnail'=>'nullable|string|max:2000',
+            'caption'=>'nullable|string|max:3000',
+            'hotspots_json'=>'nullable|json',
             'sort_order'=>'nullable|integer|min:0|max:999999',
+            'is_visible'=>'nullable|boolean',
+            'is_featured'=>'nullable|boolean',
         ]);
 
         if(!$request->hasFile('file') && !$request->filled('url')){
             return back()->withErrors(['file'=>'Загрузите файл или укажите ссылку.'])->withInput();
         }
 
-        $allowed=[
-            'image'=>['jpg','jpeg','png','webp','gif'],
-            'video'=>['mp4','webm'],
-            'audio'=>['mp3','wav','ogg','m4a','aac'],
-            'file'=>['pdf','doc','docx','xls','xlsx','ppt','pptx','zip'],
-            'link'=>[],
-        ];
-
-        $mediaData=[
-            'type'=>$data['type'],
-            'title'=>$data['title'] ?? null,
-            'url'=>$data['url'] ?? null,
-            'sort_order'=>$data['sort_order'] ?? 0,
-        ];
-
         if($request->hasFile('file')){
             $file=$request->file('file');
             $ext=strtolower($file->getClientOriginalExtension());
+            $allowed=[
+                'photo'=>['jpg','jpeg','png','webp','gif'],
+                'panorama'=>['jpg','jpeg','png','webp'],
+                'video'=>['mp4','webm','mov'],
+                'model'=>['glb','gltf'],
+                'audio'=>['mp3','wav','ogg','m4a','aac'],
+                'file'=>['pdf','doc','docx','xls','xlsx','ppt','pptx','zip'],
+                'link'=>[],
+            ];
 
-            if($data['type']==='link' || !in_array($ext,$allowed[$data['type']] ?? [],true)){
+            if(!in_array($ext,$allowed[$data['type']] ?? [],true)){
                 return back()->withErrors(['file'=>'Формат файла не подходит для выбранного типа медиа.'])->withInput();
             }
 
@@ -153,19 +152,27 @@ class AdminCustomPageController extends Controller
                 return back()->withErrors(['file'=>'Недостаточно места в хранилище.'])->withInput();
             }
 
-            $mediaData['path']=$file->store('pages/media/'.$data['type'],'public');
-            $mediaData['file_name']=$file->getClientOriginalName();
-            $mediaData['mime_type']=$file->getMimeType();
-            $mediaData['file_size']=$file->getSize();
+            $data['url']=$file->store('media/'.$data['type'],'public');
+            $data['file_name']=$file->getClientOriginalName();
+            $data['mime_type']=$file->getMimeType();
+            $data['file_size']=$file->getSize();
         }
 
-        $page->media()->create($mediaData);
+        unset($data['file']);
+        $data['sort_order']=$data['sort_order'] ?? 0;
+        $data['is_visible']=$request->boolean('is_visible');
+        $data['is_featured']=$request->boolean('is_featured');
+        $page->media()->create($data);
+
         return back()->with('success','Медиа добавлено.');
     }
 
-    public function deleteMedia(CustomPageMedia $media)
+    public function deleteMedia(MediaLibraryItem $media)
     {
-        if($media->path)Storage::disk('public')->delete($media->path);
+        abort_unless($media->attachable_type===CustomPage::class,404);
+        if($media->url && !preg_match('~^(https?:)?//~i',$media->url)){
+            Storage::disk('public')->delete($media->url);
+        }
         $media->delete();
         return back()->with('success','Медиа удалено.');
     }
@@ -173,7 +180,10 @@ class AdminCustomPageController extends Controller
     public function delete(CustomPage $page)
     {
         foreach($page->media as $media){
-            if($media->path)Storage::disk('public')->delete($media->path);
+            if($media->url && !preg_match('~^(https?:)?//~i',$media->url)){
+                Storage::disk('public')->delete($media->url);
+            }
+            $media->delete();
         }
         if($page->cover_path)Storage::disk('public')->delete($page->cover_path);
         $page->delete();
