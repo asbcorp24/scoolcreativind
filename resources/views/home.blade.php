@@ -71,10 +71,25 @@
   <div class="section-head reveal"><div><div class="eyebrow">Student output</div><h2>{{ $siteSettings['home_works_title'] ?? 'Сделано здесь' }}</h2></div><p>{{ $siteSettings['home_works_text'] ?? 'Не учебные упражнения, а портфолио: ролики, сцены, треки, брендинг, AR/VR и цифровые эксперименты.' }}</p></div>
   <div class="projects-rail">
    @forelse($projects as $project)
-   <article class="project-card reveal">
-    <div class="project-media">@if($project->cover)<img src="{{ $project->cover }}" alt="">@else<div class="project-noise"></div>@endif</div>
-    <div class="d-flex justify-content-between gap-3 pt-3"><div><h4>{{ $project->title }}</h4><div class="small text-white-50">{{ $project->author }}</div></div><div class="project-year">{{ $project->year }}</div></div>
-   </article>
+   @php
+     $projectPreview=$project->media->firstWhere('is_featured',true)
+       ?: $project->media->first(fn($m)=>in_array($m->type,['photo','panorama']));
+   @endphp
+   <a href="{{ route('projects.show',$project) }}" class="project-card reveal">
+    <div class="project-media">
+     @if($projectPreview && in_array($projectPreview->type,['photo','panorama']))
+      <img src="{{ $projectPreview->thumbnail_url ?: $projectPreview->display_url }}" alt="{{ $project->title }}">
+     @elseif($project->cover_url)
+      <img src="{{ $project->cover_url }}" alt="{{ $project->title }}">
+     @else
+      <div class="project-noise"></div>
+     @endif
+    </div>
+    <div class="d-flex justify-content-between gap-3 pt-3">
+     <div><h4>{{ $project->title }}</h4><div class="small text-white-50">{{ $project->student->user->name ?? 'Ученик ШКИ' }}</div></div>
+     <div class="project-year">{{ optional($project->completed_at)->format('Y') }}</div>
+    </div>
+   </a>
    @empty
    <div class="text-white-50">Нет опубликованных работ.</div>
    @endforelse
