@@ -63,7 +63,7 @@ class LearningController extends Controller
     public function portfolio(StudentProfile $profile)
     {
         abort_unless($profile->is_public || (auth()->check() && auth()->id()===$profile->user_id),404);
-        $profile->load(['user','studio','portfolio.studio','achievements.competition']);
+        $profile->load(['user','studio','portfolio.studio','portfolio.media'=>fn($q)=>$q->where('is_visible',true)->orderBy('sort_order'),'achievements.competition']);
         return view('portfolio.show',compact('profile'));
     }
 
