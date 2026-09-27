@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="44" y1="52" x2="470" y2="470" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#111A2B"/><stop offset="1" stop-color="#070B12"/></linearGradient>
+    <linearGradient id="gradMain" x1="170" y1="120" x2="326" y2="248" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#10D7FF"/><stop offset="0.35" stop-color="#2E8BFF"/><stop offset="0.62" stop-color="#6C4CFF"/><stop offset="1" stop-color="#FF8A5B"/></linearGradient>
+    <linearGradient id="gradWave" x1="72" y1="268" x2="205" y2="268" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#18D9FF"/><stop offset="0.46" stop-color="#4378FF"/><stop offset="1" stop-color="#00C8FF"/></linearGradient>
+  </defs>
+  <rect x="28" y="28" width="456" height="456" rx="98" fill="url(#bg)"/>
+  <g transform="translate(72 118)">
+    <g>
+      <rect x="0" y="0" width="42" height="154" rx="18" fill="#0E1628"/>
+      <rect x="58" y="0" width="42" height="154" rx="18" fill="#0E1628"/>
+      <path d="M0 112C24 100 45 102 67 114C90 126 112 126 136 114C157 103 176 100 205 103V154H0V112Z" fill="#0E1628"/>
+      <path d="M0 118C24 104 45 106 67 118C90 130 112 130 136 118C157 107 176 104 205 107V154H0V118Z" fill="url(#gradWave)"/>
+    </g>
+    <g transform="translate(132 0)">
+      <path d="M52 0H174L117 46L174 92H52C23 92 0 72 0 46C0 20 23 0 52 0Z" fill="url(#gradMain)"/>
+      <path d="M82 14L39 46L82 78L134 115H76L20 74C8 65 8 54 20 45L76 4H134L82 14Z" fill="url(#gradMain)" opacity="0.95"/>
+      <path d="M120 10L172 46L120 82" stroke="#F2F8FF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <rect x="336" y="0" width="42" height="154" rx="18" fill="#0E1628"/>
+    <g transform="translate(392 0)">
+      <path d="M38 0H96V154H38C17 154 0 137 0 116V38C0 17 17 0 38 0Z" fill="#0E1628"/>
+      <g transform="translate(19 39)" fill="none" stroke="#F4FAFF" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+        <path d="M20 0L40 20L20 40L0 20L20 0Z"/>
+        <path d="M20 19L31 30L20 41L9 30L20 19Z"/>
+        <path d="M20 44L40 64L20 84L0 64L20 44Z"/>
+        <path d="M20 63L31 74L20 85L9 74L20 63Z"/>
+      </g>
+    </g>
+  </g>
+</svg>
