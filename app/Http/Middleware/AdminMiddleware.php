@@ -69,6 +69,7 @@ class AdminMiddleware
             'admin/media'=>'studios',
             'admin/news'=>'news',
             'admin/projects'=>'projects',
+            'admin/project-media'=>'projects',
             'admin/events'=>'events',
             'admin/team'=>'team',
             'admin/equipment'=>'equipment',
