@@ -269,7 +269,7 @@ $musicPlaylist=$musicTracks->map(function($track){
       <button type="button" class="admin-side-group-title" data-admin-group-toggle><span>◆</span><strong>Контент</strong><i>⌄</i></button>
       <div class="admin-side-group-body">
         @if(auth()->user()->canAdminSection('studios'))<a class="{{ request()->routeIs('admin.studios.*') || request()->routeIs('admin.media*') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}#studiosAdmin">Студии и медиа</a>@endif
-        @if(auth()->user()->canAdminSection('news'))<a class="{{ request()->routeIs('admin.news.*') ? 'active' : '' }}" href="{{ route('admin.news.create') }}">Новости</a>@endif
+        @if(auth()->user()->canAdminSection('news'))<a class="{{ request()->routeIs('admin.news.*') ? 'active' : '' }}" href="{{ route('admin.news.index') }}">Новости</a>@endif
         @if(auth()->user()->canAdminSection('projects'))<a class="{{ request()->routeIs('admin.projects*') ? 'active' : '' }}" href="{{ route('admin.projects') }}">Работы учеников</a>@endif
         @if(auth()->user()->canAdminSection('events'))<a class="{{ request()->routeIs('admin.events*') ? 'active' : '' }}" href="{{ route('admin.events') }}">События</a>@endif
         @if(auth()->user()->canAdminSection('team'))<a class="{{ request()->routeIs('admin.team*') ? 'active' : '' }}" href="{{ route('admin.team') }}">Команда</a>@endif
@@ -336,7 +336,7 @@ $musicPlaylist=$musicTracks->map(function($track){
   @if(auth()->user()->canAdminSection('pages'))
     <a class="admin-mobile-item {{ request()->routeIs('admin.pages*') ? 'active' : '' }}" href="{{ route('admin.pages') }}"><span>◆</span><small>Контент</small></a>
   @elseif(auth()->user()->canAdminSection('news'))
-    <a class="admin-mobile-item {{ request()->routeIs('admin.news*') ? 'active' : '' }}" href="{{ route('admin.news.create') }}"><span>◆</span><small>Контент</small></a>
+    <a class="admin-mobile-item {{ request()->routeIs('admin.news*') ? 'active' : '' }}" href="{{ route('admin.news.index') }}"><span>◆</span><small>Контент</small></a>
   @elseif(auth()->user()->canAdminSection('studios'))
     <a class="admin-mobile-item {{ request()->routeIs('admin.studios*') || request()->routeIs('admin.media*') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}#studiosAdmin"><span>◆</span><small>Контент</small></a>
   @else
