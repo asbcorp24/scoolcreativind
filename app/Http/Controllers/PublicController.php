@@ -5,7 +5,7 @@ use App\Models\AdmissionApplication;
 use App\Models\Event;
 use App\Models\EquipmentItem;
 use App\Models\TeamMember;
-use App\Models\MediaItem;
+use App\Models\MediaLibraryItem;
 use App\Models\NewsPost;
 use App\Models\StudentProject;
 use App\Models\Studio;
@@ -19,7 +19,7 @@ class PublicController extends Controller
     {
         return view('home', [
             'studios' => Studio::where('is_active', true)->orderBy('sort_order')->get(),
-            'featuredMedia' => MediaItem::where('is_visible',true)->where('is_featured', true)->latest()->take(12)->get(),
+            'featuredMedia' => MediaLibraryItem::where('is_visible',true)->where('is_featured', true)->latest()->take(12)->get(),
             'projects' => StudentProject::where('is_featured', true)->latest()->take(8)->get(),
             'news' => NewsPost::where('is_published', true)->latest('published_at')->take(6)->get(),
             'events' => Event::where('is_published', true)->where('starts_at','>=',now()->subDay())->orderBy('starts_at')->take(4)->get(),
