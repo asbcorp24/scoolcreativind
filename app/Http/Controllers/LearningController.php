@@ -35,7 +35,7 @@ class LearningController extends Controller
 
     public function projects(Request $request)
     {
-        $query=PortfolioItem::with(['student.user','studio'])
+        $query=PortfolioItem::with(['student.user','studio','media'=>fn($q)=>$q->where('is_visible',true)->orderBy('sort_order')])
             ->where('is_public',true);
 
         if($request->filled('type')){
@@ -47,6 +47,17 @@ class LearningController extends Controller
             'types'=>PortfolioItem::where('is_public',true)->whereNotNull('type')->distinct()->orderBy('type')->pluck('type'),
             'activeType'=>$request->input('type'),
         ]);
+    }
+
+    public function project(PortfolioItem $project)
+    {
+        abort_unless($project->is_public,404);
+        $project->load([
+            'student.user',
+            'studio',
+            'media'=>fn($q)=>$q->where('is_visible',true)->orderBy('sort_order'),
+        ]);
+        return view('projects.show',compact('project'));
     }
 
     public function portfolio(StudentProfile $profile)
