@@ -16,7 +16,7 @@ class AdminContentController extends Controller
     public function projects()
     {
         return view('admin.projects', [
-            'projects'=>PortfolioItem::with(['student.user','studio'])->latest()->get(),
+            'projects'=>PortfolioItem::with(['student.user','studio'])->withCount('media')->latest()->get(),
             'profiles'=>StudentProfile::with('user')->orderByDesc('id')->get(),
             'studios'=>Studio::orderBy('sort_order')->get(),
         ]);
@@ -39,6 +39,7 @@ class AdminContentController extends Controller
             'is_featured'=>'nullable|boolean',
         ]);
 
+        $isNew=$project===null;
         $project ??= new PortfolioItem();
 
         if($request->hasFile('cover')){
@@ -61,6 +62,10 @@ class AdminContentController extends Controller
         $data['is_public']=$request->boolean('is_public');
         $data['is_featured']=$request->boolean('is_featured');
         $project->fill($data)->save();
+
+        if($isNew){
+            return redirect()->route('admin.projects.media',$project)->with('success','Работа создана. Теперь добавьте фото, 360°, 3D, видео или аудио.');
+        }
 
         return back()->with('success','Проект / работа сохранён.');
     }
