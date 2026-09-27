@@ -335,8 +335,6 @@ $musicPlaylist=$musicTracks->map(function($track){
   @if(auth()->user()->canAdminSection('pages'))
     <a class="admin-mobile-item {{ request()->routeIs('admin.pages*') ? 'active' : '' }}" href="{{ route('admin.pages') }}"><span>◆</span><small>Контент</small></a>
   @elseif(auth()->user()->canAdminSection('news'))
-    <a class="admin-mobile-item {{ request()->routeIs('admin.pages*') ? 'active' : '' }}" href="{{ route('admin.pages') }}"><span>◆</span><small>Контент</small></a>
-  @elseif(auth()->user()->canAdminSection('news'))
     <a class="admin-mobile-item {{ request()->routeIs('admin.news*') ? 'active' : '' }}" href="{{ route('admin.news.create') }}"><span>◆</span><small>Контент</small></a>
   @elseif(auth()->user()->canAdminSection('studios'))
     <a class="admin-mobile-item {{ request()->routeIs('admin.studios*') || request()->routeIs('admin.media*') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}#studiosAdmin"><span>◆</span><small>Контент</small></a>
