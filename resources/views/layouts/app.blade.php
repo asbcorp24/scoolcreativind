@@ -295,6 +295,7 @@ $musicPlaylist=$musicTracks->map(function($track){
     <div class="admin-side-group {{ request()->routeIs('admin.music*','admin.clips*','admin.documents*') ? 'open' : '' }}">
       <button type="button" class="admin-side-group-title" data-admin-group-toggle><span>◉</span><strong>Медиа</strong><i>⌄</i></button>
       <div class="admin-side-group-body">
+        @if(auth()->user()->is_admin)<a class="{{ request()->routeIs('admin.media-library') ? 'active' : '' }}" href="{{ route('admin.media-library') }}">Медиабиблиотека</a>@endif
         @if(auth()->user()->canAdminSection('music'))<a class="{{ request()->routeIs('admin.music*') ? 'active' : '' }}" href="{{ route('admin.music') }}">Музыка сайта</a>@endif
         @if(auth()->user()->canAdminSection('clips'))<a class="{{ request()->routeIs('admin.clips*') ? 'active' : '' }}" href="{{ route('admin.clips') }}">Клипы</a>@endif
         @if(auth()->user()->canAdminSection('documents'))<a class="{{ request()->routeIs('admin.documents*') ? 'active' : '' }}" href="{{ route('admin.documents') }}">Документы</a>@endif
