@@ -9,8 +9,7 @@
 <div class="col-md-5"><label class="form-label">Тип</label><select class="form-select" name="type"><option value="project">Проект</option><option value="video">Видео</option><option value="3d">3D</option><option value="audio">Аудио</option><option value="design">Дизайн</option></select></div>
 <div class="col-md-6"><label class="form-label">Студия</label><select class="form-select" name="studio_id"><option value="">Не выбрана</option>@foreach($studios as $s)<option value="{{ $s->id }}">{{ $s->title }}</option>@endforeach</select></div>
 <div class="col-md-6"><label class="form-label">Дата завершения</label><input type="date" class="form-control" name="completed_at"></div>
-<div class="col-md-6"><label class="form-label">Ссылка на проект</label><input class="form-control" name="project_url"></div>
-<div class="col-md-6"><label class="form-label">Ссылка на видео</label><input class="form-control" name="video_url"></div>
+<div class="col-12"><div class="form-text text-white-50">Все фото, видео, 360°, 3D, звук, файлы и ссылки добавляются через медиагалерею после создания работы.</div></div>
 <div class="col-12"><label class="form-label">Описание</label><textarea class="form-control" rows="4" name="description"></textarea></div>
 <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_public" value="1" checked><label class="form-check-label">Публично</label></div></div>
 <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_featured" value="1"><label class="form-check-label">Избранное</label></div></div>
