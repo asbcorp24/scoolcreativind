@@ -53,7 +53,7 @@ class PublicController extends Controller
     public function newsShow(NewsPost $post)
     {
         abort_unless($post->is_published,404);
-        $post->load('media');
+        $post->load(['media'=>fn($q)=>$q->where('is_visible',true)->orderBy('sort_order')]);
         return view('news.show', compact('post'));
     }
 
