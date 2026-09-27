@@ -151,12 +151,15 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::post('/studios/{studio}/media',[AdminController::class,'addMedia'])->name('media.add');
     Route::patch('/media/{media}/flags',[AdminController::class,'updateMediaFlags'])->name('media.flags');
     Route::delete('/media/{media}',[AdminController::class,'deleteMedia'])->name('media.delete');
+    Route::get('/news',[AdminController::class,'newsIndex'])->name('news.index');
     Route::get('/news/create',[AdminController::class,'newsForm'])->name('news.create');
     Route::get('/news/{post}/edit',[AdminController::class,'newsForm'])->name('news.edit');
     Route::post('/news/save/{post?}',[AdminController::class,'saveNews'])->name('news.save');
     Route::post('/news/{post}/media',[AdminController::class,'addNewsMedia'])->name('news.media.add');
     Route::patch('/news-media/{media}/flags',[AdminController::class,'updateNewsMediaFlags'])->name('news.media.flags');
     Route::delete('/news-media/{media}',[AdminController::class,'deleteNewsMedia'])->name('news.media.delete');
+    Route::patch('/news/{post}/toggle',[AdminController::class,'toggleNews'])->name('news.toggle');
+    Route::delete('/news/{post}',[AdminController::class,'deleteNews'])->name('news.delete');
     Route::post('/applications/{application}/enroll',[AdminController::class,'enrollApplication'])->name('applications.enroll');
     Route::patch('/applications/{application}',[AdminController::class,'applicationStatus'])->name('applications.status');
 
