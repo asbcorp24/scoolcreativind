@@ -49,6 +49,7 @@ Route::post('/question',[QuestionController::class,'store'])->name('questions.st
 Route::get('/page/{page}',[CustomPageController::class,'show'])->name('pages.show');
 Route::get('/schedule',[LearningController::class,'schedule'])->name('schedule');
 Route::get('/projects',[LearningController::class,'projects'])->name('projects.index');
+Route::get('/projects/{project}',[LearningController::class,'project'])->name('projects.show');
 Route::get('/portfolio/{profile}',[LearningController::class,'portfolio'])->name('portfolio.show');
 Route::get('/my-portfolio',[LearningController::class,'myPortfolio'])->middleware('auth')->name('portfolio.mine');
 Route::middleware('auth')->group(function(){
