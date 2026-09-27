@@ -29,6 +29,7 @@ use App\Http\Controllers\CustomPageController;
 use App\Http\Controllers\AdminCustomPageController;
 use App\Http\Controllers\CooperationController;
 use App\Http\Controllers\AdminCooperationController;
+use App\Http\Controllers\AdminMediaLibraryController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class,'home'])->name('home');
@@ -102,6 +103,7 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::delete('/cooperation/items/{item}',[AdminCooperationController::class,'deleteItem'])->name('cooperation.items.delete');
     Route::patch('/cooperation/applications/{application}',[AdminCooperationController::class,'updateApplication'])->name('cooperation.applications.update');
     Route::delete('/cooperation/applications/{application}',[AdminCooperationController::class,'deleteApplication'])->name('cooperation.applications.delete');
+    Route::get('/media-library',[AdminMediaLibraryController::class,'index'])->name('media-library');
     Route::get('/music',[AdminMusicController::class,'index'])->name('music');
     Route::get('/clips',[AdminClipController::class,'index'])->name('clips');
     Route::get('/pages',[AdminCustomPageController::class,'index'])->name('pages');
