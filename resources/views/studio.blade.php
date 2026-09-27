@@ -159,9 +159,26 @@
   <div class="section-head"><div><div class="eyebrow">Portfolio</div><h2>Проекты учеников</h2></div></div>
   <div class="row g-4">
    @forelse($studio->projects as $project)
-    <div class="col-md-6 col-xl-4"><article class="project-card"><div class="project-media">@if($project->cover)<img src="{{ $project->cover }}" alt="">@else<div class="project-noise"></div>@endif</div><div class="pt-3"><h4>{{ $project->title }}</h4><p class="text-white-50">{{ $project->description }}</p></div></article></div>
+    @php
+      $projectPreview=$project->media->firstWhere('is_featured',true)
+        ?: $project->media->first(fn($m)=>in_array($m->type,['photo','panorama']));
+    @endphp
+    <div class="col-md-6 col-xl-4">
+     <a href="{{ route('projects.show',$project) }}" class="project-card d-block">
+      <div class="project-media">
+       @if($projectPreview && in_array($projectPreview->type,['photo','panorama']))
+        <img src="{{ $projectPreview->thumbnail_url ?: $projectPreview->display_url }}" alt="{{ $project->title }}">
+       @elseif($project->cover_url)
+        <img src="{{ $project->cover_url }}" alt="{{ $project->title }}">
+       @else
+        <div class="project-noise"></div>
+       @endif
+      </div>
+      <div class="pt-3"><h4>{{ $project->title }}</h4><p class="text-white-50">{{ $project->description }}</p><div class="small text-white-50">{{ $project->student->user->name ?? 'Ученик ШКИ' }} · {{ $project->media->count() }} медиа</div></div>
+     </a>
+    </div>
    @empty
-    <div class="text-white-50">Проекты будут добавляться через админ-панель.</div>
+    <div class="text-white-50">Нет опубликованных работ.</div>
    @endforelse
   </div>
  </div>
