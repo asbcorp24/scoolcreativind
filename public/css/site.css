@@ -918,3 +918,118 @@ body:has(.admin-sidebar) .toast-success{right:24px}
 @media(max-width:600px){
  .page-transition-original-logo{width:92vw;max-height:38vh}
 }
+
+
+/* Native date/time controls + recurring schedule wizard */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"]{
+  color-scheme:dark;
+  position:relative;
+  min-height:48px;
+  cursor:pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator{
+  cursor:pointer;
+  opacity:.95;
+  filter:invert(1) brightness(1.8);
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator{
+  cursor:pointer;
+  opacity:.95;
+  filter:invert(1) brightness(1.8);
+}
+
+.accessibility-mode input[type="date"],
+.accessibility-mode input[type="time"],
+.accessibility-mode input[type="datetime-local"],
+.accessibility-mode input[type="month"]{
+  color-scheme:light;
+}
+
+.accessibility-mode input[type="date"]::-webkit-calendar-picker-indicator,
+.accessibility-mode input[type="time"]::-webkit-calendar-picker-indicator,
+.accessibility-mode input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.accessibility-mode input[type="month"]::-webkit-calendar-picker-indicator{
+  filter:none;
+}
+
+.schedule-admin-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:22px;
+}
+
+.schedule-admin-card{
+  padding:26px;
+  border:1px solid var(--line);
+  border-radius:24px;
+  background:
+    radial-gradient(circle at 90% 0,rgba(138,92,255,.09),transparent 34%),
+    rgba(255,255,255,.025);
+  box-shadow:0 22px 70px rgba(0,0,0,.16);
+}
+
+.schedule-master-card{
+  background:
+    radial-gradient(circle at 88% 8%,rgba(0,229,255,.10),transparent 32%),
+    radial-gradient(circle at 10% 90%,rgba(138,92,255,.08),transparent 35%),
+    rgba(255,255,255,.025);
+}
+
+.schedule-admin-card-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:18px;
+  margin-bottom:20px;
+}
+
+.schedule-admin-card-head h3{
+  margin:.45rem 0 0;
+  font-size:clamp(1.5rem,2.5vw,2.25rem);
+  letter-spacing:-.04em;
+}
+
+.schedule-mode-badge{
+  padding:.45rem .7rem;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.04);
+  color:#aeb8c8;
+  font-size:.65rem;
+  font-weight:800;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+.schedule-mode-badge.accent{
+  color:#dffcff;
+  border-color:rgba(0,229,255,.20);
+  background:rgba(0,229,255,.07);
+}
+
+.schedule-master-summary{
+  padding:14px 16px;
+  border:1px solid rgba(0,229,255,.14);
+  border-radius:15px;
+  background:rgba(0,229,255,.045);
+  color:#c9d7e6;
+  font-size:.88rem;
+  line-height:1.5;
+}
+
+.schedule-master-summary strong{color:#fff}
+
+@media(max-width:1100px){
+  .schedule-admin-grid{grid-template-columns:1fr}
+}
+
+@media(max-width:600px){
+  .schedule-admin-card{padding:18px;border-radius:20px}
+}
