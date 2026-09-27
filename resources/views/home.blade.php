@@ -68,7 +68,13 @@
 
 <section id="works" class="section-space">
  <div class="container-fluid px-lg-5">
-  <div class="section-head reveal"><div><div class="eyebrow">Student output</div><h2>{{ $siteSettings['home_works_title'] ?? 'Сделано здесь' }}</h2></div><p>{{ $siteSettings['home_works_text'] ?? 'Не учебные упражнения, а портфолио: ролики, сцены, треки, брендинг, AR/VR и цифровые эксперименты.' }}</p></div>
+  <div class="section-head reveal">
+   <div>
+    <div class="eyebrow">Student output</div>
+    <h2>{{ $siteSettings['home_works_title'] ?? 'Сделано здесь' }}</h2>
+   </div>
+   <p>{{ $siteSettings['home_works_text'] ?? 'Не учебные упражнения, а портфолио: ролики, сцены, треки, брендинг, AR/VR и цифровые эксперименты.' }}</p>
+  </div>
   <div class="projects-rail">
    @forelse($projects as $project)
    @php
