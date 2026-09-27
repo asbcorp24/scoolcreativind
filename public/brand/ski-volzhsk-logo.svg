@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 210" role="img" aria-labelledby="title desc">
+<title id="title">Школа креативных индустрий Волжск</title>
+<desc id="desc">Фирменный знак ШКИ Волжск: технологическая геометрия, волна Волги и марийский орнамент.</desc>
+<defs>
+  <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#00e5ff"/>
+    <stop offset=".42" stop-color="#5276ff"/>
+    <stop offset=".72" stop-color="#a65cff"/>
+    <stop offset="1" stop-color="#ff6e91"/>
+  </linearGradient>
+  <linearGradient id="wave" x1="0" y1=".5" x2="1" y2=".5">
+    <stop stop-color="#00e5ff"/>
+    <stop offset=".52" stop-color="#3d83ff"/>
+    <stop offset="1" stop-color="#8a5cff"/>
+  </linearGradient>
+  <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+    <feGaussianBlur stdDeviation="4" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+
+<!-- Ш -->
+<g transform="translate(12 18)">
+  <path d="M0 0h50v105c18 5 35 3 50-5V0h50v105c18 5 35 3 50-5V0h50v137H0z"
+        fill="#f7f9ff"/>
+  <path d="M0 100c44 31 78 33 118 9 40-24 78-21 132 8v26H0z"
+        fill="url(#wave)" filter="url(#glow)"/>
+</g>
+
+<!-- K -->
+<g transform="translate(292 18)">
+  <path d="M0 0h50v53L108 0h69l-80 69 84 68h-73L50 84v53H0z" fill="url(#g)"/>
+  <path d="M36 69L102 9h38L69 69l71 59h-38z" fill="#ffffff" opacity=".86"/>
+</g>
+
+<!-- И + Mari motif -->
+<g transform="translate(493 18)">
+  <path d="M0 0h50v83L112 0h50v137h-50V54L50 137H0z" fill="#f7f9ff"/>
+  <g transform="translate(114 27)" fill="none" stroke="url(#g)" stroke-width="9">
+    <path d="M16 0l16 16-16 16L0 16z"/>
+    <path d="M16 40l16 16-16 16L0 56z"/>
+    <path d="M16 80l16 16-16 16L0 96z"/>
+    <path d="M-4 36l20-20 20 20"/>
+    <path d="M-4 76l20-20 20 20"/>
+  </g>
+</g>
+
+<g transform="translate(14 170)" font-family="Inter,Segoe UI,Arial,sans-serif">
+  <text x="0" y="0" fill="#f7f9ff" font-size="27" font-weight="800" letter-spacing="1.5">ШКОЛА КРЕАТИВНЫХ ИНДУСТРИЙ</text>
+  <text x="548" y="0" fill="#00e5ff" font-size="22" font-weight="800" letter-spacing="5">ВОЛЖСК</text>
+</g>
+</svg>
