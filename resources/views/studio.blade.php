@@ -27,7 +27,9 @@
  </div>
 </section>
 
-@php($photos=$studio->media->where('type','photo'))
+@php
+ $photos = $studio->media->where('type','photo');
+@endphp
 @if($photos->count())
 <section class="section-space pt-0">
  <div class="container-fluid px-lg-5">
@@ -40,7 +42,9 @@
 </section>
 @endif
 
-@php($panos=$studio->media->where('type','panorama'))
+@php
+ $panos = $studio->media->where('type','panorama');
+@endphp
 @if($panos->count())
 <section class="section-space immersive-section">
  <div class="container">
@@ -69,7 +73,9 @@
 @endif
 
 
-@php($models=$studio->media->where('type','model'))
+@php
+ $models = $studio->media->where('type','model');
+@endphp
 @if($models->count())
 <section class="section-space">
  <div class="container-fluid px-lg-5">
@@ -106,7 +112,9 @@
 @endif
 
 
-@php($audioTracks=$studio->media->where('type','audio'))
+@php
+ $audioTracks = $studio->media->where('type','audio');
+@endphp
 @if($audioTracks->count())
 <section class="section-space audio-section">
  <div class="container">
@@ -138,7 +146,9 @@
 </section>
 @endif
 
-@php($videos=$studio->media->where('type','video'))
+@php
+ $videos = $studio->media->where('type','video');
+@endphp
 @if($videos->count())
 <section class="section-space">
  <div class="container-fluid px-lg-5">
@@ -160,7 +170,9 @@
 </section>
 @endif
 
-@php($materials=$studio->media->whereIn('type',['file','link']))
+@php
+ $materials = $studio->media->whereIn('type',['file','link']);
+@endphp
 @if($materials->count())
 <section class="section-space pt-0">
  <div class="container">
