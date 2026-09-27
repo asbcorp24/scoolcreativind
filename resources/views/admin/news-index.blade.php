@@ -67,7 +67,7 @@
         <td>
          <strong>{{ $post->title }}</strong>
          <div class="small text-white-50">/{{ $post->slug }}</div>
-         @if($post->excerpt)<div class="small text-white-50 mt-1">{{ IlluminateSupportStr::limit($post->excerpt,90) }}</div>@endif
+         @if($post->excerpt)<div class="small text-white-50 mt-1">{{ \Illuminate\Support\Str::limit($post->excerpt,90) }}</div>@endif
         </td>
         <td>
          @if($post->published_at)
