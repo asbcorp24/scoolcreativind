@@ -264,12 +264,24 @@ $musicPlaylist=$musicTracks->map(function($track){
       <a class="admin-side-home {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}"><span>⌂</span><strong>Обзор</strong></a>
     @endif
 
+    @if(auth()->user()->canAdminSection('projects'))
+      <a class="admin-side-home admin-side-quick {{ request()->routeIs('admin.projects*') ? 'active' : '' }}" href="{{ route('admin.projects') }}">
+        <span>◇</span><strong>Работы учеников</strong>
+      </a>
+    @endif
+
+    @if(auth()->user()->canAdminSection('students'))
+      <a class="admin-side-home admin-side-quick {{ request()->routeIs('admin.students*') ? 'active' : '' }}" href="{{ route('admin.students') }}">
+        <span>◎</span><strong>Ученики и портфолио</strong>
+      </a>
+    @endif
+
     <div class="admin-side-group {{ request()->routeIs('admin.studios.*','admin.media*','admin.news.*','admin.projects*','admin.events*','admin.team*','admin.equipment*','admin.pages*') ? 'open' : '' }}">
       <button type="button" class="admin-side-group-title" data-admin-group-toggle><span>◆</span><strong>Контент</strong><i>⌄</i></button>
       <div class="admin-side-group-body">
         @if(auth()->user()->canAdminSection('studios'))<a class="{{ request()->routeIs('admin.studios.*') || request()->routeIs('admin.media*') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}#studiosAdmin">Студии и медиа</a>@endif
         @if(auth()->user()->canAdminSection('news'))<a class="{{ request()->routeIs('admin.news.*') ? 'active' : '' }}" href="{{ route('admin.news.create') }}">Новости</a>@endif
-        @if(auth()->user()->canAdminSection('projects'))<a class="{{ request()->routeIs('admin.projects*') ? 'active' : '' }}" href="{{ route('admin.projects') }}">Проекты / портфолио</a>@endif
+        @if(auth()->user()->canAdminSection('projects'))<a class="{{ request()->routeIs('admin.projects*') ? 'active' : '' }}" href="{{ route('admin.projects') }}">Работы учеников</a>@endif
         @if(auth()->user()->canAdminSection('events'))<a class="{{ request()->routeIs('admin.events*') ? 'active' : '' }}" href="{{ route('admin.events') }}">События</a>@endif
         @if(auth()->user()->canAdminSection('team'))<a class="{{ request()->routeIs('admin.team*') ? 'active' : '' }}" href="{{ route('admin.team') }}">Команда</a>@endif
         @if(auth()->user()->canAdminSection('equipment'))<a class="{{ request()->routeIs('admin.equipment*') ? 'active' : '' }}" href="{{ route('admin.equipment') }}">Оборудование</a>@endif
@@ -285,7 +297,7 @@ $musicPlaylist=$musicTracks->map(function($track){
         @if(auth()->user()->canAdminSection('schedule') || auth()->user()->teacherGroups()->exists())<a class="{{ request()->routeIs('admin.schedule*') ? 'active' : '' }}" href="{{ route('admin.schedule') }}">Расписание</a>@endif
         @if(auth()->user()->canAdminSection('journal') || auth()->user()->teacherGroups()->exists())<a class="{{ request()->routeIs('admin.journal*') ? 'active' : '' }}" href="{{ route('admin.journal') }}">Журнал</a>@endif
         @if(auth()->user()->canAdminSection('homework') || auth()->user()->teacherGroups()->exists())<a class="{{ request()->routeIs('admin.homework*') ? 'active' : '' }}" href="{{ route('admin.homework') }}">Домашние задания</a>@endif
-        @if(auth()->user()->canAdminSection('students'))<a class="{{ request()->routeIs('admin.students*') ? 'active' : '' }}" href="{{ route('admin.students') }}">Ученики</a>@endif
+        @if(auth()->user()->canAdminSection('students'))<a class="{{ request()->routeIs('admin.students*') ? 'active' : '' }}" href="{{ route('admin.students') }}">Ученики и портфолио</a>@endif
         @if(auth()->user()->canAdminSection('competitions'))<a class="{{ request()->routeIs('admin.competitions*') || request()->routeIs('admin.achievements*') ? 'active' : '' }}" href="{{ route('admin.competitions') }}">Конкурсы и достижения</a>@endif
         @if(auth()->user()->canAdminSection('quizzes'))<a class="{{ request()->routeIs('admin.quizzes*') ? 'active' : '' }}" href="{{ route('admin.quizzes') }}">Викторины</a>@endif
       </div>
@@ -331,7 +343,9 @@ $musicPlaylist=$musicTracks->map(function($track){
     <span>⌂</span><small>Обзор</small>
   </a>
 
-  @if(auth()->user()->canAdminSection('pages'))
+  @if(auth()->user()->canAdminSection('projects'))
+    <a class="admin-mobile-item {{ request()->routeIs('admin.projects*') ? 'active' : '' }}" href="{{ route('admin.projects') }}"><span>◇</span><small>Работы</small></a>
+  @elseif(auth()->user()->canAdminSection('pages'))
     <a class="admin-mobile-item {{ request()->routeIs('admin.pages*') ? 'active' : '' }}" href="{{ route('admin.pages') }}"><span>◆</span><small>Контент</small></a>
   @elseif(auth()->user()->canAdminSection('news'))
     <a class="admin-mobile-item {{ request()->routeIs('admin.news*') ? 'active' : '' }}" href="{{ route('admin.news.create') }}"><span>◆</span><small>Контент</small></a>
@@ -341,10 +355,10 @@ $musicPlaylist=$musicTracks->map(function($track){
     <button type="button" class="admin-mobile-item" data-admin-sidebar-toggle><span>◆</span><small>Контент</small></button>
   @endif
 
-  @if(auth()->user()->canAdminSection('groups'))
+  @if(auth()->user()->canAdminSection('students'))
+    <a class="admin-mobile-item {{ request()->routeIs('admin.students*') ? 'active' : '' }}" href="{{ route('admin.students') }}"><span>◎</span><small>Ученики</small></a>
+  @elseif(auth()->user()->canAdminSection('groups'))
     <a class="admin-mobile-item {{ request()->routeIs('admin.groups*') ? 'active' : '' }}" href="{{ route('admin.groups') }}"><span>▦</span><small>Учёба</small></a>
-  @elseif(auth()->user()->canAdminSection('students'))
-    <a class="admin-mobile-item {{ request()->routeIs('admin.students*') ? 'active' : '' }}" href="{{ route('admin.students') }}"><span>▦</span><small>Учёба</small></a>
   @elseif(auth()->user()->canAdminSection('journal') || auth()->user()->teacherGroups()->exists())
     <a class="admin-mobile-item {{ request()->routeIs('admin.journal*') ? 'active' : '' }}" href="{{ route('admin.journal') }}"><span>▦</span><small>Учёба</small></a>
   @elseif(auth()->user()->canAdminSection('quizzes'))
