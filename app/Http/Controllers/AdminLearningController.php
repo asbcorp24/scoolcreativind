@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class AdminLearningController extends Controller
 {
@@ -56,6 +57,94 @@ class AdminLearningController extends Controller
         $data['is_published']=$request->boolean('is_published');
         $lesson->fill($data)->save();
         return back()->with('success','Занятие сохранено.');
+    }
+
+    public function generateSchedule(Request $request)
+    {
+        $data=$request->validate([
+            'studio_id'=>'nullable|exists:studios,id',
+            'study_group_id'=>'nullable|exists:study_groups,id',
+            'title'=>'required|string|max:220',
+            'teacher_name'=>'nullable|string|max:180',
+            'weekday'=>'required|integer|min:1|max:7',
+            'date_from'=>'required|date',
+            'date_to'=>'required|date|after_or_equal:date_from',
+            'starts_at'=>'required|date_format:H:i',
+            'ends_at'=>'required|date_format:H:i|after:starts_at',
+            'room'=>'nullable|string|max:120',
+            'description'=>'nullable|string|max:5000',
+            'color'=>'nullable|string|max:32',
+            'is_published'=>'nullable|boolean',
+        ]);
+
+        if (!auth()->user()->is_admin && !empty($data['study_group_id'])) {
+            abort_unless(
+                auth()->user()->teacherGroups()->where('study_groups.id',$data['study_group_id'])->exists(),
+                403
+            );
+        }
+
+        $from=Carbon::parse($data['date_from'])->startOfDay();
+        $to=Carbon::parse($data['date_to'])->startOfDay();
+
+        if($from->diffInDays($to)>730){
+            return back()->withErrors([
+                'date_to'=>'Диапазон мастера расписания не может превышать 2 года.'
+            ])->withInput();
+        }
+
+        $created=0;
+        $skipped=0;
+        $date=$from->copy();
+
+        while($date->lte($to)){
+            if($date->isoWeekday()===(int)$data['weekday']){
+                $lessonDate=$date->toDateString();
+
+                $exists=ScheduleLesson::query()
+                    ->whereDate('lesson_date',$lessonDate)
+                    ->where('starts_at',$data['starts_at'])
+                    ->where('ends_at',$data['ends_at'])
+                    ->where('title',$data['title'])
+                    ->when(
+                        !empty($data['study_group_id']),
+                        fn($q)=>$q->where('study_group_id',$data['study_group_id']),
+                        fn($q)=>$q->whereNull('study_group_id')
+                    )
+                    ->exists();
+
+                if($exists){
+                    $skipped++;
+                }else{
+                    ScheduleLesson::create([
+                        'studio_id'=>$data['studio_id'] ?? null,
+                        'study_group_id'=>$data['study_group_id'] ?? null,
+                        'title'=>$data['title'],
+                        'teacher_name'=>$data['teacher_name'] ?? null,
+                        'lesson_date'=>$lessonDate,
+                        'starts_at'=>$data['starts_at'],
+                        'ends_at'=>$data['ends_at'],
+                        'room'=>$data['room'] ?? null,
+                        'description'=>$data['description'] ?? null,
+                        'color'=>$data['color'] ?? '#8a5cff',
+                        'is_published'=>$request->boolean('is_published'),
+                    ]);
+                    $created++;
+                }
+            }
+            $date->addDay();
+        }
+
+        if($created===0 && $skipped===0){
+            return back()->withErrors([
+                'date_from'=>'В выбранном диапазоне нет выбранного дня недели.'
+            ])->withInput();
+        }
+
+        $message='Мастер расписания: создано занятий — '.$created.'.';
+        if($skipped)$message.=' Уже существовало и пропущено — '.$skipped.'.';
+
+        return back()->with('success',$message);
     }
 
     public function deleteLesson(ScheduleLesson $lesson)
