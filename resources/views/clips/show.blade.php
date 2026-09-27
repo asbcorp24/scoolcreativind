@@ -15,7 +15,8 @@
 
   <div class="clip-frame-shell" data-clip-frame-shell>
     <div class="clip-frame-loader" data-clip-frame-loader>
-      <span>◈</span><strong>Загрузка клипа</strong>
+      <img src="{{ asset('brand/ski-volzhsk-logo.svg') }}" alt="ШКИ Волжск">
+      <strong>Загрузка клипа</strong>
     </div>
     <iframe
       src="{{ $clip->player_url }}"
