@@ -1004,3 +1004,83 @@ function initAdminSidebar(){
     if(e.key==='Escape')hide();
   });
 }
+
+
+function initNativePickers(){
+  const inputs=[...document.querySelectorAll('input[type="date"],input[type="time"],input[type="datetime-local"],input[type="month"]')];
+  inputs.forEach(input=>{
+    if(input.dataset.nativePickerReady==='1')return;
+    input.dataset.nativePickerReady='1';
+
+    input.addEventListener('click',()=>{
+      if(typeof input.showPicker==='function'){
+        try{ input.showPicker(); }catch{}
+      }
+    });
+
+    input.addEventListener('keydown',event=>{
+      if((event.key==='Enter'||event.key===' ') && typeof input.showPicker==='function'){
+        event.preventDefault();
+        try{ input.showPicker(); }catch{}
+      }
+    });
+  });
+}
+
+function initScheduleMasterSummary(){
+  const output=document.querySelector('[data-schedule-master-summary]');
+  if(!output)return;
+
+  const form=output.closest('form');
+  if(!form)return;
+
+  const from=form.querySelector('[name="date_from"]');
+  const to=form.querySelector('[name="date_to"]');
+  const weekday=form.querySelector('[name="weekday"]');
+  const starts=form.querySelector('[name="starts_at"]');
+  const ends=form.querySelector('[name="ends_at"]');
+
+  const dayNames=['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'];
+
+  const isoDay=date=>{
+    const jsDay=date.getDay();
+    return jsDay===0?7:jsDay;
+  };
+
+  const update=()=>{
+    if(!from?.value || !to?.value || !weekday?.value){
+      output.textContent='Выберите даты — здесь появится предварительное количество занятий.';
+      return;
+    }
+
+    const start=new Date(from.value+'T12:00:00');
+    const finish=new Date(to.value+'T12:00:00');
+    if(Number.isNaN(start.getTime()) || Number.isNaN(finish.getTime()) || finish<start){
+      output.textContent='Проверьте диапазон дат.';
+      return;
+    }
+
+    const wanted=Number(weekday.value);
+    let count=0;
+    const cursor=new Date(start);
+    while(cursor<=finish && count<1000){
+      if(isoDay(cursor)===wanted)count++;
+      cursor.setDate(cursor.getDate()+1);
+    }
+
+    const time=(starts?.value && ends?.value)?` с ${starts.value} до ${ends.value}`:'';
+    output.innerHTML=`Будет создано: <strong>${count}</strong> занятий · ${dayNames[wanted-1] || ''}${time}.`;
+  };
+
+  [from,to,weekday,starts,ends].forEach(el=>{
+    el?.addEventListener('change',update);
+    el?.addEventListener('input',update);
+  });
+
+  update();
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  initNativePickers();
+  initScheduleMasterSummary();
+});
