@@ -292,7 +292,7 @@ $musicPlaylist=$musicTracks->map(function($track){
       </div>
     </div>
 
-    <div class="admin-side-group {{ request()->routeIs('admin.music*','admin.clips*','admin.documents*') ? 'open' : '' }}">
+    <div class="admin-side-group {{ request()->routeIs('admin.media-library','admin.music*','admin.clips*','admin.documents*') ? 'open' : '' }}">
       <button type="button" class="admin-side-group-title" data-admin-group-toggle><span>◉</span><strong>Медиа</strong><i>⌄</i></button>
       <div class="admin-side-group-body">
         @if(auth()->user()->is_admin)<a class="{{ request()->routeIs('admin.media-library') ? 'active' : '' }}" href="{{ route('admin.media-library') }}">Медиабиблиотека</a>@endif
@@ -355,7 +355,9 @@ $musicPlaylist=$musicTracks->map(function($track){
     <button type="button" class="admin-mobile-item" data-admin-sidebar-toggle><span>▦</span><small>Учёба</small></button>
   @endif
 
-  @if(auth()->user()->canAdminSection('clips'))
+  @if(auth()->user()->is_admin)
+    <a class="admin-mobile-item {{ request()->routeIs('admin.media-library') ? 'active' : '' }}" href="{{ route('admin.media-library') }}"><span>◉</span><small>Медиа</small></a>
+  @elseif(auth()->user()->canAdminSection('clips'))
     <a class="admin-mobile-item {{ request()->routeIs('admin.clips*') ? 'active' : '' }}" href="{{ route('admin.clips') }}"><span>▶</span><small>Медиа</small></a>
   @elseif(auth()->user()->canAdminSection('music'))
     <a class="admin-mobile-item {{ request()->routeIs('admin.music*') ? 'active' : '' }}" href="{{ route('admin.music') }}"><span>♫</span><small>Медиа</small></a>
