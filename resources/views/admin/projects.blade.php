@@ -53,8 +53,7 @@
     <div class="col-md-2"><label class="form-label">Дата</label><input type="date" class="form-control" name="completed_at" value="{{ old('completed_at',date('Y-m-d')) }}"></div>
 
     <div class="col-12"><label class="form-label">Описание</label><textarea class="form-control" rows="4" name="description">{{ old('description') }}</textarea></div>
-    <div class="col-md-6"><label class="form-label">Ссылка на проект</label><input class="form-control" name="project_url" value="{{ old('project_url') }}" placeholder="https://..."></div>
-    <div class="col-md-6"><label class="form-label">Ссылка на видео</label><input class="form-control" name="video_url" value="{{ old('video_url') }}" placeholder="https://..."></div>
+    <div class="col-12"><div class="form-text text-white-50">Фото, видео, 360°, 3D, аудио, файлы и внешние ссылки добавляются после создания работы через единую медиагалерею.</div></div>
 
     <div class="col-md-4 d-flex align-items-center"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_public" value="1" id="public" checked><label class="form-check-label" for="public">Показывать на сайте</label></div></div>
     <div class="col-md-4 d-flex align-items-center"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_featured" value="1" id="featured"><label class="form-check-label" for="featured">Показывать на главной</label></div></div>
