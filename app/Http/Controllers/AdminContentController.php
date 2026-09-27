@@ -72,6 +72,12 @@ class AdminContentController extends Controller
 
     public function deleteProject(PortfolioItem $project)
     {
+        foreach($project->media as $media){
+            if($media->url && !preg_match('~^(https?:)?//~i',$media->url)){
+                Storage::disk('public')->delete($media->url);
+            }
+            $media->delete();
+        }
         if($project->cover && !preg_match('~^(https?:)?//~i',$project->cover)){
             Storage::disk('public')->delete($project->cover);
         }
