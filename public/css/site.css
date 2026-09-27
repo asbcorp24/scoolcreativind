@@ -875,3 +875,46 @@ body:has(.admin-sidebar) .toast-success{right:24px}
 .accessibility-mode .page-transition-mark{background:#fff!important;border:2px solid #000!important;box-shadow:none!important}
 .accessibility-mode .page-transition-mark span{-webkit-text-fill-color:#000!important;color:#000!important;background:none!important}
 .accessibility-mode .page-transition-mark i,.accessibility-mode .page-transition-logo>strong,.accessibility-mode .page-transition-logo>small{color:#000!important}
+
+
+/* Original SKI artwork in page transition */
+.page-transition-original-logo{
+ display:block;
+ width:min(760px,82vw);
+ max-height:46vh;
+ object-fit:contain;
+ filter:
+   drop-shadow(0 0 22px rgba(0,229,255,.10))
+   drop-shadow(0 0 48px rgba(138,92,255,.08));
+ animation:originalLogoReveal 1.15s cubic-bezier(.2,.8,.2,1) both
+}
+.page-transition-ambient{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.page-transition-ambient i{
+ position:absolute;left:50%;top:50%;
+ width:min(900px,92vw);height:1px;
+ transform-origin:center;
+ background:linear-gradient(90deg,transparent,rgba(0,229,255,.34),rgba(255,255,255,.52),rgba(255,79,216,.30),transparent);
+ opacity:.42;
+ box-shadow:0 0 20px rgba(0,229,255,.12)
+}
+.page-transition-ambient i:nth-child(1){transform:translate(-50%,-50%) rotate(0deg)}
+.page-transition-ambient i:nth-child(2){transform:translate(-50%,-50%) rotate(45deg)}
+.page-transition-ambient i:nth-child(3){transform:translate(-50%,-50%) rotate(90deg)}
+.page-transition-ambient i:nth-child(4){transform:translate(-50%,-50%) rotate(135deg)}
+#pageTransition.leaving .page-transition-ambient i{animation:transitionLineBurst .48s ease-out both}
+#pageTransition.leaving .page-transition-ambient i:nth-child(2){animation-delay:.04s}
+#pageTransition.leaving .page-transition-ambient i:nth-child(3){animation-delay:.08s}
+#pageTransition.leaving .page-transition-ambient i:nth-child(4){animation-delay:.12s}
+@keyframes originalLogoReveal{
+ 0%{opacity:0;transform:scale(.88);filter:blur(12px)}
+ 55%{opacity:1;transform:scale(1.025)}
+ 100%{opacity:1;transform:scale(1);filter:drop-shadow(0 0 24px rgba(0,229,255,.10))}
+}
+@keyframes transitionLineBurst{
+ 0%{opacity:0;scale:.15 1}
+ 45%{opacity:.85}
+ 100%{opacity:.18;scale:1 1}
+}
+@media(max-width:600px){
+ .page-transition-original-logo{width:92vw;max-height:38vh}
+}
