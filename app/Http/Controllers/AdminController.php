@@ -58,6 +58,12 @@ class AdminController extends Controller
 
     public function deleteStudio(Studio $studio)
     {
+        foreach($studio->media as $media){
+            if($media->url && !preg_match('~^(https?:)?//~i',$media->url)){
+                Storage::disk('public')->delete($media->url);
+            }
+            $media->delete();
+        }
         $studio->delete();
         return back()->with('success','Раздел удалён.');
     }
