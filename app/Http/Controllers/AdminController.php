@@ -162,6 +162,52 @@ class AdminController extends Controller
         return back()->with('success','Медиа удалено.');
     }
 
+    public function newsIndex(Request $request)
+    {
+        $query=NewsPost::withCount('media')->latest('published_at')->latest();
+
+        if($request->filled('q')){
+            $q=trim((string)$request->input('q'));
+            $query->where(function($builder) use($q){
+                $builder->where('title','like','%'.$q.'%')
+                    ->orWhere('excerpt','like','%'.$q.'%')
+                    ->orWhere('slug','like','%'.$q.'%');
+            });
+        }
+
+        if($request->filled('status')){
+            if($request->input('status')==='published')$query->where('is_published',true);
+            if($request->input('status')==='draft')$query->where('is_published',false);
+        }
+
+        return view('admin.news-index',[
+            'posts'=>$query->paginate(30)->withQueryString(),
+        ]);
+    }
+
+    public function toggleNews(NewsPost $post)
+    {
+        $post->update(['is_published'=>!$post->is_published]);
+        return back()->with('success',$post->is_published ? 'Новость опубликована.' : 'Новость скрыта.');
+    }
+
+    public function deleteNews(NewsPost $post)
+    {
+        foreach($post->media as $media){
+            if($media->url && !preg_match('~^(https?:)?//~i',$media->url)){
+                Storage::disk('public')->delete($media->url);
+            }
+            $media->delete();
+        }
+
+        if($post->cover && !preg_match('~^(https?:)?//~i',$post->cover)){
+            Storage::disk('public')->delete($post->cover);
+        }
+
+        $post->delete();
+        return redirect()->route('admin.news.index')->with('success','Новость удалена.');
+    }
+
     public function newsForm(?NewsPost $post=null)
     {
         if($post)$post->load('media');
