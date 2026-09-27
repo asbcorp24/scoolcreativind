@@ -13,10 +13,6 @@
    @if($project->type)<span>· {{ $project->type }}</span>@endif
   </div>
   @if($project->description)<p class="lead col-lg-9 mt-4 text-white-50">{{ $project->description }}</p>@endif
-  <div class="d-flex gap-2 flex-wrap mt-4">
-   @if($project->project_url)<a class="btn btn-neon" href="{{ $project->project_url }}" target="_blank" rel="noopener">Открыть проект ↗</a>@endif
-   @if($project->video_url)<a class="btn btn-ghost" href="{{ $project->video_url }}" target="_blank" rel="noopener">Видео ↗</a>@endif
-  </div>
  </div>
 </section>
 
