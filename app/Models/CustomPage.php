@@ -22,7 +22,7 @@ class CustomPage extends Model
 
     public function parent(){ return $this->belongsTo(self::class,'parent_id'); }
     public function children(){ return $this->hasMany(self::class,'parent_id')->orderBy('sort_order')->orderBy('title'); }
-    public function media(){ return $this->hasMany(CustomPageMedia::class)->orderBy('sort_order')->orderBy('id'); }
+    public function media(){ return $this->morphMany(MediaLibraryItem::class,'attachable')->orderBy('sort_order')->orderBy('id'); }
 
     public function getCoverUrlAttribute(): ?string
     {
