@@ -2,10 +2,13 @@
 @media(max-width:991px){.studio-card,.studio-card:nth-child(3n),.studio-card:nth-child(3n+1){grid-column:span 12}.split-panel{grid-template-columns:1fr 1fr}.split-copy{grid-column:span 2}.projects-rail{grid-auto-columns:78vw}.hero-side{display:none}.section-space{padding:82px 0}.section-head{align-items:start;flex-direction:column}.studio-content p{max-width:100%}}
 @media(max-width:576px){.hero-title{font-size:3.8rem}.form-shell{padding:24px}.split-panel{display:block}.stat{border-right:0;border-bottom:1px solid var(--line)}.pano-shell{min-height:380px}.section-space{padding:68px 0}}
 
-#pageTransition{position:fixed;inset:0;z-index:9999;background:#050609;display:grid;place-items:center;transform:translateY(0);transition:transform .55s cubic-bezier(.8,0,.2,1);pointer-events:none}
-#pageTransition span{font-size:clamp(3rem,8vw,7rem);font-weight:950;letter-spacing:-.08em;background:linear-gradient(100deg,var(--violet),var(--cyan),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
+#pageTransition{position:fixed;inset:0;z-index:9999;background:radial-gradient(circle at center,rgba(42,30,78,.38),transparent 34%),#050609;display:grid;place-items:center;transform:translateY(0);transition:transform .55s cubic-bezier(.8,0,.2,1);pointer-events:none}
+.page-transition-logo{display:flex;flex-direction:column;align-items:center;gap:16px}
+.page-transition-logo img{width:min(520px,72vw);height:auto;filter:drop-shadow(0 0 34px rgba(0,229,255,.12));animation:skiLogoPulse 1.8s ease-in-out infinite}
+.page-transition-logo small{font-size:.62rem;letter-spacing:.28em;text-transform:uppercase;color:#788398}
 #pageTransition.ready{transform:translateY(-105%)}
 #pageTransition.leaving{transform:translateY(0)}
+@keyframes skiLogoPulse{0%,100%{opacity:.82;transform:scale(.985)}50%{opacity:1;transform:scale(1)}}
 .model-card{border:1px solid var(--line);border-radius:28px;overflow:hidden;background:radial-gradient(circle at 50% 30%,rgba(138,92,255,.16),transparent 35%),#0b0e14}
 .model-viewer-local{display:block;position:relative;width:100%;height:min(70vh,640px);background:radial-gradient(circle at center,rgba(255,255,255,.055),transparent 42%);overflow:hidden}.model-viewer-local canvas{display:block;width:100%!important;height:100%!important}.model-loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:.9rem;letter-spacing:.08em;text-transform:uppercase;pointer-events:none}
 .model-meta{padding:24px 26px 28px}.model-meta h3{font-size:2rem;font-weight:850;letter-spacing:-.04em;margin:.7rem 0}.model-meta p{color:var(--muted);margin:0}
@@ -792,3 +795,15 @@ body:has(.admin-sidebar) .toast-success{right:24px}
 .accessibility-mode .custom-page-shell .cms-public-content *{
   color:#000!important;
 }
+
+
+/* SKI Volzhsk brand logo */
+.ski-brand-logo{display:flex!important;align-items:center;flex:0 0 auto;margin-right:18px;padding:0}
+.ski-brand-logo img{display:block;width:188px;height:auto;max-height:52px;object-fit:contain;filter:drop-shadow(0 0 16px rgba(0,229,255,.08))}
+.clip-frame-loader img{display:block;width:min(330px,62%);height:auto;filter:drop-shadow(0 0 28px rgba(0,229,255,.14));animation:skiLoaderFloat 1.8s ease-in-out infinite}
+.clip-frame-loader strong{margin-top:2px}
+@keyframes skiLoaderFloat{0%,100%{transform:translateY(0);opacity:.82}50%{transform:translateY(-6px);opacity:1}}
+@media(max-width:1280px){.ski-brand-logo img{width:150px}}
+@media(max-width:1080px){.ski-brand-logo img{width:132px}}
+@media(max-width:991px){.ski-brand-logo{display:none!important}}
+.accessibility-mode .ski-brand-logo img,.accessibility-mode .page-transition-logo img,.accessibility-mode .clip-frame-loader img{filter:none!important}
