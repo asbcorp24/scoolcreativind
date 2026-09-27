@@ -7,6 +7,7 @@ use App\Models\CompetitionRegistration;
 use App\Models\PortfolioItem;
 use App\Models\ScheduleLesson;
 use App\Models\StudentProfile;
+use App\Models\Studio;
 use Illuminate\Http\Request;
 
 class LearningController extends Controller
@@ -19,6 +20,17 @@ class LearningController extends Controller
 
         $query=ScheduleLesson::with(['studio','group'])->where('is_published',true);
 
+        $activeStudio=$request->input('studio');
+        $activeTeacher=trim((string)$request->input('teacher',''));
+
+        if($activeStudio!==''){
+            $query->where('studio_id',$activeStudio);
+        }
+
+        if($activeTeacher!==''){
+            $query->where('teacher_name',$activeTeacher);
+        }
+
         if (auth()->check() && !auth()->user()->is_admin) {
             $groupIds=auth()->user()->studentGroups()->pluck('study_groups.id');
             $query->where(function($q) use ($groupIds){
@@ -30,7 +42,20 @@ class LearningController extends Controller
             ->whereBetween('lesson_date',[$start->toDateString(),$end->toDateString()])
             ->orderBy('lesson_date')->orderBy('starts_at')->get();
 
-        return view('schedule',compact('lessons','start','month'));
+        $studios=Studio::whereHas('scheduleLessons',fn($q)=>$q->where('is_published',true))
+            ->orderBy('sort_order')
+            ->get();
+
+        $teachers=ScheduleLesson::where('is_published',true)
+            ->whereNotNull('teacher_name')
+            ->where('teacher_name','<>','')
+            ->distinct()
+            ->orderBy('teacher_name')
+            ->pluck('teacher_name');
+
+        return view('schedule',compact(
+            'lessons','start','month','studios','teachers','activeStudio','activeTeacher'
+        ));
     }
 
     public function projects(Request $request)
