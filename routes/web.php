@@ -182,6 +182,7 @@ Route::prefix('admin')->name('admin.')->group(function(){
 
     Route::get('/schedule',[AdminLearningController::class,'schedule'])->name('schedule');
     Route::post('/schedule/save/{lesson?}',[AdminLearningController::class,'saveLesson'])->name('schedule.save');
+    Route::post('/schedule/generate',[AdminLearningController::class,'generateSchedule'])->name('schedule.generate');
     Route::delete('/schedule/{lesson}',[AdminLearningController::class,'deleteLesson'])->name('schedule.delete');
 
     Route::get('/students',[AdminLearningController::class,'students'])->name('students');
