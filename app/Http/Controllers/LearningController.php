@@ -42,7 +42,12 @@ class LearningController extends Controller
             ->whereBetween('lesson_date',[$start->toDateString(),$end->toDateString()])
             ->orderBy('lesson_date')->orderBy('starts_at')->get();
 
-        $studios=Studio::whereHas('scheduleLessons',fn($q)=>$q->where('is_published',true))
+        $studioIds=ScheduleLesson::where('is_published',true)
+            ->whereNotNull('studio_id')
+            ->distinct()
+            ->pluck('studio_id');
+
+        $studios=Studio::whereIn('id',$studioIds)
             ->orderBy('sort_order')
             ->get();
 
