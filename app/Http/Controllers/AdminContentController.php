@@ -3,10 +3,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use App\Models\PortfolioItem;
+use App\Models\MediaLibraryItem;
 use App\Models\StudentProfile;
 use App\Models\Studio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use App\Services\StorageQuota;
 use Illuminate\Support\Str;
 
 class AdminContentController extends Controller
@@ -71,6 +73,84 @@ class AdminContentController extends Controller
         if($project->file_path) Storage::disk('public')->delete($project->file_path);
         $project->delete();
         return back()->with('success','Проект удалён.');
+    }
+
+    public function projectMedia(PortfolioItem $project)
+    {
+        $project->load(['student.user','studio','media']);
+        return view('admin.project-media',compact('project'));
+    }
+
+    public function addProjectMedia(Request $request, PortfolioItem $project)
+    {
+        $data=$request->validate([
+            'type'=>'required|in:photo,panorama,video,model,audio,file,link',
+            'title'=>'nullable|string|max:180',
+            'url'=>'nullable|string|max:2000',
+            'file'=>'nullable|file|max:102400',
+            'thumbnail'=>'nullable|string|max:2000',
+            'caption'=>'nullable|string|max:3000',
+            'hotspots_json'=>'nullable|json',
+            'sort_order'=>'nullable|integer|min:0',
+            'is_visible'=>'nullable|boolean',
+            'is_featured'=>'nullable|boolean',
+        ]);
+
+        if(!$request->filled('url') && !$request->hasFile('file')){
+            return back()->withErrors(['file'=>'Укажите URL или загрузите файл.'])->withInput();
+        }
+
+        if($request->hasFile('file')){
+            $file=$request->file('file');
+            $ext=strtolower($file->getClientOriginalExtension());
+            $allowed=[
+                'photo'=>['jpg','jpeg','png','webp','gif'],
+                'panorama'=>['jpg','jpeg','png','webp'],
+                'video'=>['mp4','webm','mov'],
+                'model'=>['glb','gltf'],
+                'audio'=>['mp3','wav','ogg','m4a','aac'],
+                'file'=>['pdf','doc','docx','xls','xlsx','ppt','pptx','zip'],
+                'link'=>[],
+            ];
+
+            if(!in_array($ext,$allowed[$data['type']] ?? [],true)){
+                return back()->withErrors(['file'=>'Формат файла не подходит для выбранного типа медиа.'])->withInput();
+            }
+
+            if(!StorageQuota::canStore((int)$file->getSize())){
+                return back()->withErrors(['file'=>'Недостаточно места в хранилище.'])->withInput();
+            }
+
+            $data['url']=$file->store('media/'.$data['type'],'public');
+        }
+
+        unset($data['file']);
+        $data['sort_order']=$data['sort_order'] ?? 0;
+        $data['is_visible']=$request->boolean('is_visible');
+        $data['is_featured']=$request->boolean('is_featured');
+        $project->media()->create($data);
+
+        return back()->with('success','Медиа добавлено к работе.');
+    }
+
+    public function updateProjectMediaFlags(Request $request, MediaLibraryItem $media)
+    {
+        abort_unless($media->attachable_type===PortfolioItem::class,404);
+        $media->update([
+            'is_visible'=>$request->boolean('is_visible'),
+            'is_featured'=>$request->boolean('is_featured'),
+        ]);
+        return back()->with('success','Настройки медиа обновлены.');
+    }
+
+    public function deleteProjectMedia(MediaLibraryItem $media)
+    {
+        abort_unless($media->attachable_type===PortfolioItem::class,404);
+        if($media->url && !preg_match('~^(https?:)?//~i',$media->url)){
+            Storage::disk('public')->delete($media->url);
+        }
+        $media->delete();
+        return back()->with('success','Медиа удалено.');
     }
 
     public function events()
