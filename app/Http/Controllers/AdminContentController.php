@@ -133,6 +133,9 @@ class AdminContentController extends Controller
             }
 
             $data['url']=$file->store('media/'.$data['type'],'public');
+            $data['file_name']=$file->getClientOriginalName();
+            $data['mime_type']=$file->getMimeType();
+            $data['file_size']=$file->getSize();
         }
 
         unset($data['file']);
