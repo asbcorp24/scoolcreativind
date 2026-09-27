@@ -110,6 +110,7 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::post('/pages/save/{page?}',[AdminCustomPageController::class,'save'])->name('pages.save');
     Route::post('/pages/editor-image',[AdminCustomPageController::class,'uploadEditorImage'])->name('pages.editor-image');
     Route::post('/pages/{page}/media',[AdminCustomPageController::class,'addMedia'])->name('pages.media.add');
+    Route::patch('/page-media/{media}/flags',[AdminCustomPageController::class,'updateMediaFlags'])->name('pages.media.flags');
     Route::delete('/page-media/{media}',[AdminCustomPageController::class,'deleteMedia'])->name('pages.media.delete');
     Route::delete('/pages/{page}',[AdminCustomPageController::class,'delete'])->name('pages.delete');
     Route::get('/clips/{clip}/edit',[AdminClipController::class,'edit'])->name('clips.edit');
@@ -152,6 +153,7 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::get('/news/{post}/edit',[AdminController::class,'newsForm'])->name('news.edit');
     Route::post('/news/save/{post?}',[AdminController::class,'saveNews'])->name('news.save');
     Route::post('/news/{post}/media',[AdminController::class,'addNewsMedia'])->name('news.media.add');
+    Route::patch('/news-media/{media}/flags',[AdminController::class,'updateNewsMediaFlags'])->name('news.media.flags');
     Route::delete('/news-media/{media}',[AdminController::class,'deleteNewsMedia'])->name('news.media.delete');
     Route::post('/applications/{application}/enroll',[AdminController::class,'enrollApplication'])->name('applications.enroll');
     Route::patch('/applications/{application}',[AdminController::class,'applicationStatus'])->name('applications.status');
