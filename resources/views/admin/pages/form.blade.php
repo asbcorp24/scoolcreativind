@@ -71,25 +71,32 @@
  <div class="row g-4 mt-4">
   <div class="col-lg-5">
    <form method="post" enctype="multipart/form-data" action="{{ route('admin.pages.media.add',$page) }}" class="glass-card p-4">@csrf
-    <div class="eyebrow">Медиа</div><h3 class="mt-2">Добавить материал</h3>
+    <div class="eyebrow">Единая медиагалерея</div><h3 class="mt-2">Добавить материал</h3>
     <div class="row g-3 mt-1">
-     <div class="col-md-6"><label class="form-label">Тип</label><select class="form-select" name="type"><option value="image">Изображение</option><option value="video">Видео</option><option value="audio">Аудио</option><option value="file">Файл</option><option value="link">Ссылка</option></select></div>
-     <div class="col-md-6"><label class="form-label">Порядок</label><input type="number" class="form-control" name="sort_order" min="0" value="0"></div>
-     <div class="col-12"><label class="form-label">Название / подпись</label><input class="form-control" name="title"></div>
-     <div class="col-12"><label class="form-label">Файл</label><input type="file" class="form-control" name="file"></div>
-     <div class="col-12"><label class="form-label">Или ссылка</label><input type="url" class="form-control" name="url" placeholder="https://..."></div>
+     <div class="col-md-7"><label class="form-label">Тип</label><select class="form-select" name="type">
+      <option value="photo">Фото</option><option value="panorama">360° панорама</option><option value="video">Видео</option><option value="model">3D модель GLB/GLTF</option><option value="audio">Аудио</option><option value="file">Файл</option><option value="link">Ссылка</option>
+     </select></div>
+     <div class="col-md-5"><label class="form-label">Порядок</label><input type="number" class="form-control" name="sort_order" min="0" value="0"></div>
+     <div class="col-12"><label class="form-label">Название</label><input class="form-control" name="title"></div>
+     <div class="col-12"><label class="form-label">Описание</label><input class="form-control" name="caption"></div>
+     <div class="col-12"><label class="form-label">URL</label><input class="form-control" name="url" placeholder="https://..."></div>
+     <div class="col-12"><label class="form-label">Или файл</label><input type="file" class="form-control" name="file" accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.webm,.mov,.glb,.gltf,.mp3,.wav,.ogg,.m4a,.aac,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"></div>
+     <div class="col-12"><label class="form-label">Превью URL</label><input class="form-control" name="thumbnail"></div>
+     <div class="col-12"><label class="form-label">Hotspots 360° (JSON)</label><textarea class="form-control font-monospace" rows="3" name="hotspots_json"></textarea></div>
+     <div class="col-md-6"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_visible" value="1" checked><label class="form-check-label">Показывать</label></div></div>
+     <div class="col-md-6"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_featured" value="1"><label class="form-check-label">Главное медиа</label></div></div>
      <div class="col-12 text-end"><button class="btn btn-neon">Добавить</button></div>
     </div>
    </form>
   </div>
   <div class="col-lg-7">
    <div class="glass-card p-4">
-    <h3>Медиа страницы</h3>
+    <div class="d-flex justify-content-between align-items-center"><h3>Медиа страницы</h3><span class="badge-soft">{{ $page->media->count() }}</span></div>
     <div class="d-grid gap-3 mt-3">
     @forelse($page->media as $media)
      <div class="d-flex justify-content-between align-items-center gap-3 p-3 rounded-3" style="background:rgba(255,255,255,.025)">
-      <div><div class="small text-white-50">{{ strtoupper($media->type) }} · {{ $media->sort_order }}</div><strong>{{ $media->title ?: ($media->file_name ?: $media->url) }}</strong></div>
-      <div class="d-flex gap-2">@if($media->display_url)<a href="{{ $media->display_url }}" target="_blank" class="btn btn-sm btn-ghost">Открыть</a>@endif<form method="post" action="{{ route('admin.pages.media.delete',$media) }}">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">Удалить</button></form></div>
+      <div><div class="small text-white-50">{{ ['photo'=>'Фото','panorama'=>'360°','video'=>'Видео','model'=>'3D','audio'=>'Аудио','file'=>'Файл','link'=>'Ссылка'][$media->type] ?? $media->type }} · {{ $media->sort_order }}</div><strong>{{ $media->title ?: ($media->file_name ?: $media->url) }}</strong></div>
+      <div class="d-flex gap-2"><a href="{{ $media->display_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-ghost">Открыть</a><form method="post" action="{{ route('admin.pages.media.delete',$media) }}">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">Удалить</button></form></div>
      </div>
     @empty<div class="text-white-50">Медиа ещё не добавлено.</div>@endforelse
     </div>
