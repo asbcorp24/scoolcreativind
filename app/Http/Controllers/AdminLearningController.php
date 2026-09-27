@@ -106,7 +106,7 @@ class AdminLearningController extends Controller
     public function portfolio(StudentProfile $profile)
     {
         return view('admin.portfolio', [
-            'profile'=>$profile->load(['user','portfolio.studio','achievements.competition']),
+            'profile'=>$profile->load(['user','portfolio.studio','portfolio.media','achievements.competition']),
             'studios'=>Studio::orderBy('sort_order')->get(),
         ]);
     }
@@ -127,6 +127,7 @@ class AdminLearningController extends Controller
             'is_public'=>'nullable|boolean',
         ]);
 
+        $isNew=$item===null;
         $item ??= new PortfolioItem(['student_profile_id'=>$profile->id]);
         $item->student_profile_id=$profile->id;
 
@@ -152,11 +153,20 @@ class AdminLearningController extends Controller
         $data['is_public']=$request->boolean('is_public');
         $item->fill($data)->save();
 
+        if($isNew){
+            return redirect()->route('admin.projects.media',$item)->with('success','Работа создана. Добавьте медиа в галерею.');
+        }
         return back()->with('success','Работа добавлена в портфолио.');
     }
 
     public function deletePortfolio(PortfolioItem $item)
     {
+        foreach($item->media as $media){
+            if($media->url && !preg_match('~^(https?:)?//~i',$media->url)){
+                Storage::disk('public')->delete($media->url);
+            }
+            $media->delete();
+        }
         if ($item->cover && !preg_match('~^(https?:)?//~i',$item->cover)) {
             Storage::disk('public')->delete($item->cover);
         }
