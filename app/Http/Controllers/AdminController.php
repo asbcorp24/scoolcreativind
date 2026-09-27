@@ -267,6 +267,16 @@ class AdminController extends Controller
         return back()->with('success','Медиа добавлено к новости.');
     }
 
+    public function updateNewsMediaFlags(Request $request, MediaLibraryItem $media)
+    {
+        abort_unless($media->attachable_type===NewsPost::class,404);
+        $media->update([
+            'is_visible'=>$request->boolean('is_visible'),
+            'is_featured'=>$request->boolean('is_featured'),
+        ]);
+        return back()->with('success','Настройки медиа обновлены.');
+    }
+
     public function deleteNewsMedia(MediaLibraryItem $media)
     {
         abort_unless($media->attachable_type===NewsPost::class,404);
