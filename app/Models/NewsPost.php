@@ -11,6 +11,6 @@ class NewsPost extends Model {
    if(preg_match('~^(https?:)?//~i',$this->cover))return $this->cover;
    return \Illuminate\Support\Facades\Storage::disk('public')->url($this->cover);
  }
- public function media(){ return $this->hasMany(NewsMedia::class)->orderBy('sort_order')->orderBy('id'); }
- public function images(){ return $this->hasMany(NewsMedia::class)->where('type','image')->orderBy('sort_order')->orderBy('id'); }
+ public function media(){ return $this->morphMany(MediaLibraryItem::class,'attachable')->orderBy('sort_order')->orderBy('id'); }
+ public function images(){ return $this->morphMany(MediaLibraryItem::class,'attachable')->where('type','photo')->orderBy('sort_order')->orderBy('id'); }
 }
