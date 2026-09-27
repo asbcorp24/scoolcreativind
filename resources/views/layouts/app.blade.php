@@ -39,9 +39,11 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
 </head>
 <body>
 <div id="pageTransition">
+  <div class="page-transition-ambient" aria-hidden="true">
+    <i></i><i></i><i></i><i></i>
+  </div>
   <div class="page-transition-logo">
-    <div class="page-transition-mark"><span>ШКИ</span><i>ВОЛЖСК</i></div>
-    <strong>Школа креативных индустрий</strong>
+    <img class="page-transition-original-logo" src="{{ asset('brand/ski-volzhsk-logo.svg') }}" alt="Школа креативных индустрий Волжск">
     <small>Загрузка пространства</small>
   </div>
 </div>
