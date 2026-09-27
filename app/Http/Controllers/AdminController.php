@@ -2,7 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AdmissionApplication;
-use App\Models\MediaItem;
+use App\Models\MediaLibraryItem;
 use App\Models\NewsPost;
 use App\Models\NewsMedia;
 use App\Models\Studio;
@@ -132,7 +132,7 @@ class AdminController extends Controller
         return back()->with('success','Медиа добавлено.');
     }
 
-    public function updateMediaFlags(Request $request, MediaItem $media)
+    public function updateMediaFlags(Request $request, MediaLibraryItem $media)
     {
         $data=$request->validate([
             'is_visible'=>'nullable|boolean',
@@ -147,7 +147,7 @@ class AdminController extends Controller
         return back()->with('success','Настройки медиа обновлены.');
     }
 
-    public function deleteMedia(MediaItem $media)
+    public function deleteMedia(MediaLibraryItem $media)
     {
         if ($media->url && !preg_match('~^(https?:)?//~i',$media->url)) {
             Storage::disk('public')->delete($media->url);
