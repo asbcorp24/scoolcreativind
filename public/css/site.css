@@ -1033,3 +1033,35 @@ input[type="time"]::-webkit-calendar-picker-indicator{
 @media(max-width:600px){
   .schedule-admin-card{padding:18px;border-radius:20px}
 }
+
+
+/* Public schedule filters */
+.schedule-filter-panel{
+  padding:18px;
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:
+    radial-gradient(circle at 85% 10%,rgba(0,229,255,.06),transparent 28%),
+    rgba(255,255,255,.025);
+  backdrop-filter:blur(12px);
+}
+.schedule-active-filters{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  padding:12px 14px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  background:rgba(255,255,255,.025);
+  font-size:.9rem;
+}
+.schedule-active-filters strong{
+  padding:.35rem .65rem;
+  border-radius:999px;
+  background:rgba(138,92,255,.12);
+  border:1px solid rgba(138,92,255,.20);
+}
+@media(max-width:767px){
+  .schedule-filter-panel{padding:14px}
+}
