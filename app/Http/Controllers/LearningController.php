@@ -85,6 +85,7 @@ class LearningController extends Controller
         $project->load([
             'student.user',
             'studio',
+            'lesson.subject',
             'media'=>fn($q)=>$q->where('is_visible',true)->orderBy('sort_order'),
         ]);
         return view('projects.show',compact('project'));
