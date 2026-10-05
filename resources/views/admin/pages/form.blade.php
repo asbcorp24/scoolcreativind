@@ -74,13 +74,13 @@
     <div class="eyebrow">Единая медиагалерея</div><h3 class="mt-2">Добавить материал</h3>
     <div class="row g-3 mt-1">
      <div class="col-md-7"><label class="form-label">Тип</label><select class="form-select" name="type">
-      <option value="photo">Фото</option><option value="panorama">360° панорама</option><option value="video">Видео</option><option value="model">3D модель GLB/GLTF</option><option value="audio">Аудио</option><option value="file">Файл</option><option value="link">Ссылка</option>
+      <option value="photo">Фото</option><option value="panorama">360° панорама</option><option value="video">Видео</option><option value="model">3D модель GLB/GLTF/STL</option><option value="audio">Аудио</option><option value="file">Файл</option><option value="link">Ссылка</option>
      </select></div>
      <div class="col-md-5"><label class="form-label">Порядок</label><input type="number" class="form-control" name="sort_order" min="0" value="0"></div>
      <div class="col-12"><label class="form-label">Название</label><input class="form-control" name="title"></div>
      <div class="col-12"><label class="form-label">Описание</label><input class="form-control" name="caption"></div>
      <div class="col-12"><label class="form-label">URL</label><input class="form-control" name="url" placeholder="https://..."></div>
-     <div class="col-12"><label class="form-label">Или файл</label><input type="file" class="form-control" name="file" accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.webm,.mov,.glb,.gltf,.mp3,.wav,.ogg,.m4a,.aac,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"></div>
+     <div class="col-12"><label class="form-label">Или файл</label><input type="file" class="form-control" name="file" accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.webm,.mov,.glb,.gltf,.stl,.mp3,.wav,.ogg,.m4a,.aac,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"></div>
      <div class="col-12"><label class="form-label">Превью URL</label><input class="form-control" name="thumbnail"></div>
      <div class="col-12"><label class="form-label">Hotspots 360° (JSON)</label><textarea class="form-control font-monospace" rows="3" name="hotspots_json"></textarea></div>
      <div class="col-md-6"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_visible" value="1" checked><label class="form-check-label">Показывать</label></div></div>
