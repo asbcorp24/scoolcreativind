@@ -139,6 +139,7 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::delete('/subjects/{subject}',[AdminAcademicController::class,'deleteSubject'])->name('subjects.delete');
     Route::post('/groups/{group}/subjects',[AdminAcademicController::class,'attachSubject'])->name('groups.subjects.attach');
     Route::get('/journal',[AdminAcademicController::class,'journal'])->name('journal');
+    Route::get('/attendance',[AdminAcademicController::class,'attendance'])->name('attendance');
     Route::post('/journal/lessons',[AdminAcademicController::class,'createJournalLesson'])->name('journal.lessons.create');
     Route::patch('/journal/entries/{entry}',[AdminAcademicController::class,'saveJournalEntry'])->name('journal.entries.update');
     Route::get('/homework',[AdminAcademicController::class,'homework'])->name('homework');
