@@ -3,10 +3,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 class PortfolioItem extends Model {
- protected $fillable=['student_profile_id','studio_id','title','type','description','cover','file_path','file_name','mime_type','file_size','project_url','video_url','completed_at','is_featured','is_public'];
+ protected $fillable=['student_profile_id','journal_lesson_id','practical_kind','studio_id','title','type','description','cover','file_path','file_name','mime_type','file_size','project_url','video_url','completed_at','is_featured','is_public'];
  protected $casts=['completed_at'=>'date','is_featured'=>'boolean','is_public'=>'boolean'];
  protected $appends=['cover_url','file_url','human_file_size'];
  public function student(){return $this->belongsTo(StudentProfile::class,'student_profile_id');}
+ public function lesson(){return $this->belongsTo(JournalLesson::class,'journal_lesson_id');}
  public function studio(){return $this->belongsTo(Studio::class);}
  public function media(){return $this->morphMany(MediaLibraryItem::class,'attachable')->orderBy('sort_order');}
  public function getCoverUrlAttribute(){if(!$this->cover)return null; if(preg_match('~^(https?:)?//~i',$this->cover))return $this->cover; return Storage::disk('public')->url($this->cover);}
