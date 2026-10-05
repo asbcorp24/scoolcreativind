@@ -11,6 +11,7 @@ use App\Models\PortfolioItem;
 use App\Models\Studio;
 use App\Models\CompetitionRegistration;
 use App\Models\QuizAttempt;
+use App\Models\JournalEntry;
 use Illuminate\Http\Request;
 
 class PublicController extends Controller
@@ -75,10 +76,56 @@ class PublicController extends Controller
 
     public function cabinet()
     {
+        $user=auth()->user();
+        $groupIds=$user->studentGroups()->pluck('study_groups.id');
+
+        $attendanceEntries=JournalEntry::with(['lesson.subject'])
+            ->where('student_id',$user->id)
+            ->whereHas('lesson',function($q) use($groupIds){
+                $q->whereIn('study_group_id',$groupIds)
+                    ->whereDate('lesson_date','<=',now()->toDateString());
+            })
+            ->get();
+
+        $attendanceTotal=$attendanceEntries->count();
+        $present=$attendanceEntries->where('attendance','present')->count();
+        $late=$attendanceEntries->where('attendance','late')->count();
+
+        $attendanceSummary=[
+            'total'=>$attendanceTotal,
+            'present'=>$present,
+            'late'=>$late,
+            'absent'=>$attendanceEntries->where('attendance','absent')->count(),
+            'excused'=>$attendanceEntries->where('attendance','excused')->count(),
+            'rate'=>$attendanceTotal ? round((($present+$late)/$attendanceTotal)*100,1) : null,
+        ];
+
+        $attendanceBySubject=$attendanceEntries
+            ->groupBy(fn($entry)=>$entry->lesson?->subject_id ?: 0)
+            ->map(function($items){
+                $total=$items->count();
+                $present=$items->where('attendance','present')->count();
+                $late=$items->where('attendance','late')->count();
+
+                return [
+                    'subject'=>$items->first()?->lesson?->subject?->title ?: 'Без предмета',
+                    'total'=>$total,
+                    'present'=>$present,
+                    'late'=>$late,
+                    'absent'=>$items->where('attendance','absent')->count(),
+                    'excused'=>$items->where('attendance','excused')->count(),
+                    'rate'=>$total ? round((($present+$late)/$total)*100,1) : 0,
+                ];
+            })
+            ->sortBy('subject')
+            ->values();
+
         return view('cabinet', [
-            'applications'=>AdmissionApplication::where('user_id',auth()->id())->latest()->get(),
-            'competitionRegistrations'=>CompetitionRegistration::with(['competition','documents'])->where('user_id',auth()->id())->latest()->get(),
-            'quizCertificates'=>QuizAttempt::with('quiz')->where('user_id',auth()->id())->where('passed',true)->whereNotNull('certificate_code')->latest('completed_at')->get(),
+            'applications'=>AdmissionApplication::where('user_id',$user->id)->latest()->get(),
+            'competitionRegistrations'=>CompetitionRegistration::with(['competition','documents'])->where('user_id',$user->id)->latest()->get(),
+            'quizCertificates'=>QuizAttempt::with('quiz')->where('user_id',$user->id)->where('passed',true)->whereNotNull('certificate_code')->latest('completed_at')->get(),
+            'attendanceSummary'=>$attendanceSummary,
+            'attendanceBySubject'=>$attendanceBySubject,
         ]);
     }
 }
