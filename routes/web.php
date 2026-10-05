@@ -62,6 +62,8 @@ Route::middleware('auth')->group(function(){
     Route::delete('/competitions/{competition}/documents/{documentKey}',[CompetitionParticipationController::class,'deleteDocument'])->name('competitions.documents.delete');
     Route::delete('/competitions/{competition}/register',[CompetitionParticipationController::class,'cancel'])->name('competitions.cancel');
     Route::get('/study',[AcademicController::class,'dashboard'])->name('academic.dashboard');
+    Route::get('/study/lessons/{lesson}',[AcademicController::class,'lesson'])->name('academic.lesson');
+    Route::post('/study/lessons/{lesson}/practical',[AcademicController::class,'submitPractical'])->name('academic.lesson.practical');
     Route::get('/study/homework/{assignment}',[AcademicController::class,'homework'])->name('academic.homework');
     Route::post('/study/homework/{assignment}',[AcademicController::class,'submitHomework'])->name('academic.homework.submit');
 });
