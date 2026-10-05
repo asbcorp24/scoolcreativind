@@ -138,7 +138,7 @@ class AdminCustomPageController extends Controller
                 'photo'=>['jpg','jpeg','png','webp','gif'],
                 'panorama'=>['jpg','jpeg','png','webp'],
                 'video'=>['mp4','webm','mov'],
-                'model'=>['glb','gltf'],
+                'model'=>['glb','gltf','stl'],
                 'audio'=>['mp3','wav','ogg','m4a','aac'],
                 'file'=>['pdf','doc','docx','xls','xlsx','ppt','pptx','zip'],
                 'link'=>[],
