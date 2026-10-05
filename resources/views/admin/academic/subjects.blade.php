@@ -65,7 +65,7 @@
           <tr>
            <td><strong>{{ $subject->title }}</strong></td>
            <td>{{ $subject->studio->title ?? 'Общий' }}</td>
-           <td class="text-white-50">{{ IlluminateSupportStr::limit($subject->description,80) }}</td>
+           <td class="text-white-50">{{ \Illuminate\Support\Str::limit($subject->description,80) }}</td>
            <td class="text-end">
             <form method="post" action="{{ route('admin.subjects.delete',$subject) }}" onsubmit="return confirm('Удалить предмет?')">
              @csrf @method('DELETE')
