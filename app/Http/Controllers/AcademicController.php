@@ -55,8 +55,48 @@ class AcademicController extends Controller
             ->get()
             ->keyBy('journal_lesson_id');
 
+        $attendanceEntries=JournalEntry::with(['lesson.subject','lesson.group'])
+            ->where('student_id',$user->id)
+            ->whereHas('lesson',function($q) use($groupIds){
+                $q->whereIn('study_group_id',$groupIds)
+                    ->whereDate('lesson_date','<=',now()->toDateString());
+            })
+            ->get();
+
+        $attendanceTotal=$attendanceEntries->count();
+        $attendanceSummary=[
+            'total'=>$attendanceTotal,
+            'present'=>$attendanceEntries->where('attendance','present')->count(),
+            'late'=>$attendanceEntries->where('attendance','late')->count(),
+            'absent'=>$attendanceEntries->where('attendance','absent')->count(),
+            'excused'=>$attendanceEntries->where('attendance','excused')->count(),
+            'rate'=>$attendanceTotal
+                ? round((($attendanceEntries->where('attendance','present')->count()+$attendanceEntries->where('attendance','late')->count())/$attendanceTotal)*100,1)
+                : null,
+        ];
+
+        $attendanceBySubject=$attendanceEntries
+            ->groupBy(fn($entry)=>$entry->lesson?->subject_id ?: 0)
+            ->map(function($items){
+                $total=$items->count();
+                $present=$items->where('attendance','present')->count();
+                $late=$items->where('attendance','late')->count();
+                return [
+                    'subject'=>$items->first()?->lesson?->subject?->title ?: 'Без предмета',
+                    'total'=>$total,
+                    'present'=>$present,
+                    'late'=>$late,
+                    'absent'=>$items->where('attendance','absent')->count(),
+                    'excused'=>$items->where('attendance','excused')->count(),
+                    'rate'=>$total ? round((($present+$late)/$total)*100,1) : 0,
+                ];
+            })
+            ->sortBy('subject')
+            ->values();
+
         return view('academic.dashboard',compact(
-            'lessons','homework','grades','profile','practicalLessons','practicalWorks'
+            'lessons','homework','grades','profile','practicalLessons','practicalWorks',
+            'attendanceSummary','attendanceBySubject'
         ));
     }
 
