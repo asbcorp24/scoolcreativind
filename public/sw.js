@@ -1,8 +1,8 @@
-const CACHE_NAME='ski-pwa-v2';
+const CACHE_NAME='ski-pwa-v3';
 const STATIC_ASSETS=[
-  '/',
   '/offline.html',
   '/css/site.css',
+  '/js/site.js',
   '/assets/vendor/bootstrap/bootstrap.min.css',
   '/assets/vendor/bootstrap/bootstrap.bundle.min.js',
   '/icons/pwa.svg'
@@ -26,6 +26,17 @@ function canCacheResponse(response){
   if(!response || response.status!==200 || response.type!=='basic')return false;
   const cc=(response.headers.get('Cache-Control')||'').toLowerCase();
   return !cc.includes('no-store') && !cc.includes('private');
+}
+
+function offlineResponse(){
+  return new Response(
+    '<!doctype html><meta charset="utf-8"><title>Нет соединения</title><body style="font-family:sans-serif;padding:2rem;background:#071018;color:#fff"><h1>Нет соединения</h1><p>Подключитесь к сети и обновите страницу.</p></body>',
+    {status:503,headers:{'Content-Type':'text/html; charset=utf-8'}}
+  );
+}
+
+async function cachedOffline(){
+  return (await caches.match('/offline.html')) || offlineResponse();
 }
 
 self.addEventListener('install',event=>{
@@ -59,38 +70,64 @@ self.addEventListener('fetch',event=>{
   if(url.origin!==self.location.origin)return;
 
   if(isPrivatePath(url.pathname)){
-    event.respondWith(fetch(request));
-    return;
-  }
-
-  if(request.mode==='navigate'){
     event.respondWith(
-      fetch(request)
-        .then(response=>{
-          if(canCacheResponse(response)){
-            const copy=response.clone();
-            caches.open(CACHE_NAME).then(cache=>cache.put(request,copy)).catch(()=>{});
-          }
-          return response;
-        })
-        .catch(async()=>{
-          const cached=await caches.match(request);
-          return cached || caches.match('/offline.html');
-        })
+      fetch(request).catch(()=>request.mode==='navigate' ? cachedOffline() : new Response('',{status:503}))
     );
     return;
   }
 
-  event.respondWith(
-    caches.match(request).then(cached=>{
-      const network=fetch(request).then(response=>{
+  if(request.mode==='navigate'){
+    event.respondWith((async()=>{
+      try{
+        const response=await fetch(request);
         if(canCacheResponse(response)){
-          const copy=response.clone();
-          caches.open(CACHE_NAME).then(cache=>cache.put(request,copy)).catch(()=>{});
+          const cache=await caches.open(CACHE_NAME);
+          await cache.put(request,response.clone()).catch(()=>{});
         }
         return response;
-      }).catch(()=>cached);
-      return cached || network;
-    })
-  );
+      }catch{
+        const cached=await caches.match(request);
+        return cached || await cachedOffline();
+      }
+    })());
+    return;
+  }
+
+  const isCodeAsset=
+    request.destination==='script' ||
+    request.destination==='style' ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css');
+
+  if(isCodeAsset){
+    event.respondWith((async()=>{
+      try{
+        const response=await fetch(request);
+        if(canCacheResponse(response)){
+          const cache=await caches.open(CACHE_NAME);
+          await cache.put(request,response.clone()).catch(()=>{});
+        }
+        return response;
+      }catch{
+        return (await caches.match(request)) || new Response('',{status:503});
+      }
+    })());
+    return;
+  }
+
+  event.respondWith((async()=>{
+    const cached=await caches.match(request);
+    if(cached)return cached;
+
+    try{
+      const response=await fetch(request);
+      if(canCacheResponse(response)){
+        const cache=await caches.open(CACHE_NAME);
+        await cache.put(request,response.clone()).catch(()=>{});
+      }
+      return response;
+    }catch{
+      return new Response('',{status:503});
+    }
+  })());
 });
