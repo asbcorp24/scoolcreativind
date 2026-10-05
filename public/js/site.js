@@ -514,8 +514,10 @@ function initModelViewers(){
 
     let pathname='';
     try{pathname=new URL(url,location.href).pathname.toLowerCase();}catch{pathname=url.toLowerCase();}
+    const declaredFormat=(el.dataset.modelFormat||'').toLowerCase();
+    const isStl=declaredFormat==='stl' || pathname.endsWith('.stl');
 
-    if(pathname.endsWith('.stl')){
+    if(isStl){
       fetch(url)
         .then(response=>{
           if(!response.ok)throw new Error('HTTP '+response.status);
