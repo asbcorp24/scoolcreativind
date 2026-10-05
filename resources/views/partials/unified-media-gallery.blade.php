@@ -58,7 +58,7 @@
     @foreach($models as $m)
      <div class="media-slider-slide">
       <article class="model-card">
-       <div class="model-viewer-local" data-model-viewer data-model-url="{{ $m->display_url }}"><div class="model-loading">Загрузка 3D-модели…</div></div>
+       <div class="model-viewer-local" data-model-viewer data-model-url="{{ $m->display_url }}" data-model-format="{{ strtolower(pathinfo($m->file_name ?: $m->url, PATHINFO_EXTENSION)) }}"><div class="model-loading">Загрузка 3D-модели…</div></div>
        <div class="model-meta"><div class="eyebrow">3D object</div><h3>{{ $m->title ?: '3D модель' }}</h3>@if($m->caption)<p>{{ $m->caption }}</p>@endif</div>
       </article>
      </div>
