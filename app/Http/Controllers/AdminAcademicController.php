@@ -270,6 +270,93 @@ class AdminAcademicController extends Controller
         return back()->with('success','Запись журнала сохранена.');
     }
 
+    public function attendance(Request $request)
+    {
+        $groupId=$request->integer('group_id');
+        $subjectId=$request->integer('subject_id');
+        $dateFrom=$request->input('date_from') ?: now()->startOfMonth()->toDateString();
+        $dateTo=$request->input('date_to') ?: now()->toDateString();
+
+        $groups=StudyGroup::with(['students','subjects'])
+            ->whereIn('id',$this->allowedGroupIds())
+            ->orderBy('name')
+            ->get();
+
+        if($groupId){
+            $this->ensureGroupAllowed($groupId);
+        }
+
+        $group=$groupId ? $groups->firstWhere('id',$groupId) : null;
+        $subjects=$group ? $group->subjects : collect();
+
+        if($group && $subjectId && !$subjects->contains('id',$subjectId)){
+            $subjectId=0;
+        }
+
+        $entries=collect();
+        $rows=collect();
+        $summary=[
+            'total'=>0,
+            'present'=>0,
+            'late'=>0,
+            'absent'=>0,
+            'excused'=>0,
+            'rate'=>null,
+        ];
+
+        if($group){
+            $entries=JournalEntry::with(['lesson.subject','student'])
+                ->whereHas('lesson',function($q) use($group,$subjectId,$dateFrom,$dateTo){
+                    $q->where('study_group_id',$group->id)
+                        ->whereBetween('lesson_date',[$dateFrom,$dateTo]);
+
+                    if($subjectId){
+                        $q->where('subject_id',$subjectId);
+                    }
+                })
+                ->get();
+
+            $rows=$group->students
+                ->sortBy('name')
+                ->values()
+                ->map(function($student) use($entries){
+                    $items=$entries->where('student_id',$student->id);
+                    $total=$items->count();
+                    $present=$items->where('attendance','present')->count();
+                    $late=$items->where('attendance','late')->count();
+                    $absent=$items->where('attendance','absent')->count();
+                    $excused=$items->where('attendance','excused')->count();
+
+                    return [
+                        'student'=>$student,
+                        'total'=>$total,
+                        'present'=>$present,
+                        'late'=>$late,
+                        'absent'=>$absent,
+                        'excused'=>$excused,
+                        'rate'=>$total ? round((($present+$late)/$total)*100,1) : null,
+                    ];
+                });
+
+            $total=$entries->count();
+            $present=$entries->where('attendance','present')->count();
+            $late=$entries->where('attendance','late')->count();
+
+            $summary=[
+                'total'=>$total,
+                'present'=>$present,
+                'late'=>$late,
+                'absent'=>$entries->where('attendance','absent')->count(),
+                'excused'=>$entries->where('attendance','excused')->count(),
+                'rate'=>$total ? round((($present+$late)/$total)*100,1) : null,
+            ];
+        }
+
+        return view('admin.academic.attendance',compact(
+            'groups','group','subjects','subjectId','dateFrom','dateTo','rows','summary'
+        ));
+    }
+
     public function homework()
     {
         return view('admin.academic.homework',[
