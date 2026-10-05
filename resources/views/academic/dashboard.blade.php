@@ -38,6 +38,44 @@
 
 <div class="section-head"><div><div class="eyebrow">Homework</div><h2>Домашние задания</h2></div></div>
 <div class="row g-3 mb-5">@forelse($homework as $h)<div class="col-md-6"><article class="glass-card p-4 h-100"><div class="small text-white-50">{{ $h->subject->title ?? '' }} · {{ $h->group->name ?? '' }}</div><h3>{{ $h->title }}</h3><p>{{ \Illuminate\Support\Str::limit($h->description,180) }}</p><div class="d-flex justify-content-between align-items-center"><span class="badge-soft">{{ optional($h->due_at)->format('d.m.Y H:i') ?: 'Без срока' }}</span><a class="btn btn-ghost btn-sm" href="{{ route('academic.homework',$h) }}">Открыть</a></div></article></div>@empty<div class="text-white-50">Заданий нет.</div>@endforelse</div>
+<div class="section-head">
+ <div><div class="eyebrow">Attendance</div><h2>Моя посещаемость</h2></div>
+</div>
+
+<div class="row g-3 mb-4">
+ <div class="col-6 col-lg-2"><div class="glass-card p-3 h-100"><div class="small text-white-50">Всего занятий</div><strong class="fs-3">{{ $attendanceSummary['total'] }}</strong></div></div>
+ <div class="col-6 col-lg-2"><div class="glass-card p-3 h-100"><div class="small text-white-50">Был</div><strong class="fs-3 text-success">{{ $attendanceSummary['present'] }}</strong></div></div>
+ <div class="col-6 col-lg-2"><div class="glass-card p-3 h-100"><div class="small text-white-50">Опоздал</div><strong class="fs-3 text-warning">{{ $attendanceSummary['late'] }}</strong></div></div>
+ <div class="col-6 col-lg-2"><div class="glass-card p-3 h-100"><div class="small text-white-50">Пропустил</div><strong class="fs-3 text-danger">{{ $attendanceSummary['absent'] }}</strong></div></div>
+ <div class="col-6 col-lg-2"><div class="glass-card p-3 h-100"><div class="small text-white-50">Уваж.</div><strong class="fs-3">{{ $attendanceSummary['excused'] }}</strong></div></div>
+ <div class="col-6 col-lg-2"><div class="glass-card p-3 h-100"><div class="small text-white-50">Посещаемость</div><strong class="fs-3">{{ $attendanceSummary['rate'] !== null ? $attendanceSummary['rate'].'%' : '—' }}</strong></div></div>
+</div>
+
+@if($attendanceBySubject->count())
+<div class="glass-card p-4 mb-5">
+ <div class="table-responsive">
+  <table class="table admin-table align-middle">
+   <thead><tr><th>Предмет</th><th>Всего</th><th>Был</th><th>Опоздал</th><th>Пропуск</th><th>Уваж.</th><th>%</th></tr></thead>
+   <tbody>
+    @foreach($attendanceBySubject as $row)
+     <tr>
+      <td><strong>{{ $row['subject'] }}</strong></td>
+      <td>{{ $row['total'] }}</td>
+      <td class="text-success">{{ $row['present'] }}</td>
+      <td class="text-warning">{{ $row['late'] }}</td>
+      <td class="text-danger">{{ $row['absent'] }}</td>
+      <td>{{ $row['excused'] }}</td>
+      <td><strong>{{ $row['rate'] }}%</strong></td>
+     </tr>
+    @endforeach
+   </tbody>
+  </table>
+ </div>
+</div>
+@else
+ <div class="glass-card p-4 mb-5 text-white-50">Отметок посещаемости пока нет.</div>
+@endif
+
 <div class="section-head"><div><div class="eyebrow">Journal</div><h2>Оценки и посещаемость</h2></div></div>
 <div class="glass-card p-4"><div class="table-responsive"><table class="table admin-table"><thead><tr><th>Дата</th><th>Предмет</th><th>Тема</th><th>Посещение</th><th>Оценка</th></tr></thead><tbody>@forelse($grades as $g)<tr><td>{{ $g->lesson->lesson_date->format('d.m.Y') }}</td><td>{{ $g->lesson->subject->title ?? '' }}</td><td>{{ $g->lesson->topic }}</td><td>{{ ['present'=>'Был','absent'=>'Отсутствовал','late'=>'Опоздал','excused'=>'Уваж. причина'][$g->attendance] ?? $g->attendance }}</td><td><strong>{{ $g->grade ?? $g->grade_label ?? '—' }}</strong></td></tr>@empty<tr><td colspan="5" class="text-white-50">Оценок пока нет.</td></tr>@endforelse</tbody></table></div></div>
 </div></section>
