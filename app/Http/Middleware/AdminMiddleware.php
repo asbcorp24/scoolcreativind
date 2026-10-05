@@ -47,6 +47,7 @@ class AdminMiddleware
         $teacherAllowed=$request->is(
             'admin/journal',
             'admin/journal/*',
+            'admin/attendance',
             'admin/homework',
             'admin/homework/*',
             'admin/schedule',
@@ -88,6 +89,7 @@ class AdminMiddleware
             'admin/subjects'=>'subjects',
             'admin/schedule'=>'schedule',
             'admin/journal'=>'journal',
+            'admin/attendance'=>'journal',
             'admin/homework'=>'homework',
             'admin/settings'=>'settings',
             'admin/documents'=>'documents',
