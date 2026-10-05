@@ -91,7 +91,7 @@ class AdminController extends Controller
             $allowedExtensions=[
                 'photo'=>['jpg','jpeg','png','webp'],
                 'panorama'=>['jpg','jpeg','png','webp'],
-                'model'=>['glb','gltf'],
+                'model'=>['glb','gltf','stl'],
                 'audio'=>['mp3','wav','ogg','m4a','aac'],
                 'video'=>['mp4','webm','mov'],
                 'file'=>['pdf','doc','docx','xls','xlsx','ppt','pptx','zip'],
@@ -100,7 +100,7 @@ class AdminController extends Controller
 
             if (!in_array($extension,$allowedExtensions[$data['type']] ?? [],true)) {
                 return back()->withErrors([
-                    'file'=>'Недопустимый файл для выбранного типа. Для 3D используйте .glb или .gltf.'
+                    'file'=>'Недопустимый файл для выбранного типа. Для 3D используйте .glb, .gltf или .stl.'
                 ])->withInput();
             }
         }
@@ -284,7 +284,7 @@ class AdminController extends Controller
                 'photo'=>['jpg','jpeg','png','webp','gif'],
                 'panorama'=>['jpg','jpeg','png','webp'],
                 'video'=>['mp4','webm','mov'],
-                'model'=>['glb','gltf'],
+                'model'=>['glb','gltf','stl'],
                 'audio'=>['mp3','wav','ogg','m4a','aac'],
                 'file'=>['pdf','doc','docx','xls','xlsx','ppt','pptx','zip'],
                 'link'=>[],
