@@ -52,7 +52,7 @@
 @if($models->count())
 <section class="section-space">
  <div class="container-fluid px-lg-5">
-  <div class="section-head"><div><div class="eyebrow">Realtime 3D</div><h2>3D-модели</h2></div><p>GLB/GLTF можно вращать и приближать прямо в браузере.</p></div>
+  <div class="section-head"><div><div class="eyebrow">Realtime 3D</div><h2>3D-модели</h2></div><p>GLB/GLTF/STL можно вращать и приближать прямо в браузере.</p></div>
   <div class="media-slider-shell" data-media-slider>
    <div class="media-slider-track" data-slider-track>
     @foreach($models as $m)
