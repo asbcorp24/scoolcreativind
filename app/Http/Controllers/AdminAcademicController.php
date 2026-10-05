@@ -126,7 +126,7 @@ class AdminAcademicController extends Controller
     {
         return view('admin.academic.subjects',[
             'subjects'=>Subject::with('studio')->orderBy('title')->get(),
-            'groups'=>StudyGroup::where('is_active',true)->whereIn('id',$this->allowedGroupIds())->orderBy('name')->get(),
+            'groups'=>StudyGroup::with(['subjects'])->where('is_active',true)->whereIn('id',$this->allowedGroupIds())->orderBy('name')->get(),
             'teachers'=>User::whereHas('studyGroups',fn($q)=>$q->where('role','teacher'))->orderBy('name')->get(),
         ]);
     }
@@ -150,10 +150,22 @@ class AdminAcademicController extends Controller
             'teacher_id'=>'nullable|exists:users,id',
         ]);
         abort_unless(auth()->user()->is_admin,403);
-        $group->subjects()->syncWithoutDetaching([
-            $data['subject_id']=>['teacher_id'=>$data['teacher_id'] ?? null]
-        ]);
-        return back()->with('success','Предмет закреплён за группой.');
+        $teacherId=$data['teacher_id'] ?? null;
+
+        if($group->subjects()->where('subjects.id',$data['subject_id'])->exists()){
+            $group->subjects()->updateExistingPivot($data['subject_id'],[
+                'teacher_id'=>$teacherId,
+                'updated_at'=>now(),
+            ]);
+        }else{
+            $group->subjects()->attach($data['subject_id'],[
+                'teacher_id'=>$teacherId,
+                'created_at'=>now(),
+                'updated_at'=>now(),
+            ]);
+        }
+
+        return back()->with('success','Предмет и преподаватель закреплены за группой.');
     }
 
     public function journal(Request $request)
