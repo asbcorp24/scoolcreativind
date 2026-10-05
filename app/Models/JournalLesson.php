@@ -8,4 +8,5 @@ class JournalLesson extends Model {
  public function subject(){return $this->belongsTo(Subject::class);}
  public function teacher(){return $this->belongsTo(User::class,'teacher_id');}
  public function entries(){return $this->hasMany(JournalEntry::class);}
+ public function practicalWorks(){return $this->hasMany(PortfolioItem::class,'journal_lesson_id');}
 }
