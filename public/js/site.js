@@ -390,6 +390,54 @@ function initAudioPlayers(){
 }
 
 
+function parseStlGeometry(buffer){
+  const view=new DataView(buffer);
+  const byteLength=buffer.byteLength;
+  let binary=false;
+  let triangles=0;
+
+  if(byteLength>=84){
+    triangles=view.getUint32(80,true);
+    const expected=84+triangles*50;
+    binary=triangles>0 && expected===byteLength;
+  }
+
+  const positions=[];
+
+  if(binary){
+    let offset=84;
+    for(let i=0;i<triangles;i++){
+      offset+=12;
+      for(let v=0;v<3;v++){
+        positions.push(
+          view.getFloat32(offset,true),
+          view.getFloat32(offset+4,true),
+          view.getFloat32(offset+8,true)
+        );
+        offset+=12;
+      }
+      offset+=2;
+    }
+  }else{
+    const text=new TextDecoder().decode(buffer);
+    const vertex=/vertex\s+([-+0-9.eE]+)\s+([-+0-9.eE]+)\s+([-+0-9.eE]+)/g;
+    let match;
+    while((match=vertex.exec(text))){
+      positions.push(Number(match[1]),Number(match[2]),Number(match[3]));
+    }
+    if(positions.length<9){
+      throw new Error('STL не содержит читаемых треугольников');
+    }
+  }
+
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  geometry.computeVertexNormals();
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
 function initModelViewers(){
   document.querySelectorAll('[data-model-viewer]').forEach(el=>{
     const url=el.dataset.modelUrl;
@@ -422,9 +470,6 @@ function initModelViewers(){
     controls.autoRotate=true;
     controls.autoRotateSpeed=1.1;
 
-    const loader=new GLTFLoader();
-    loader.setMeshoptDecoder(MeshoptDecoder);
-
     const loading=el.querySelector('.model-loading');
     if(loading){
       loading.innerHTML='<div><strong>Загрузка 3D-модели…</strong><div class="small mt-2 model-load-url"></div></div>';
@@ -432,20 +477,19 @@ function initModelViewers(){
       if(urlEl)urlEl.textContent=url;
     }
 
-    loader.load(url,gltf=>{
-      const model=gltf.scene;
-      scene.add(model);
+    const fitObject=object=>{
+      scene.add(object);
 
-      const box=new THREE.Box3().setFromObject(model);
+      const box=new THREE.Box3().setFromObject(object);
       const size=box.getSize(new THREE.Vector3());
       const center=box.getCenter(new THREE.Vector3());
-      model.position.sub(center);
+      object.position.sub(center);
 
       const maxDim=Math.max(size.x,size.y,size.z)||1;
       const distance=maxDim*2.2;
       camera.position.set(distance*.8,distance*.45,distance);
       camera.near=Math.max(distance/1000,.01);
-      camera.far=distance*20;
+      camera.far=Math.max(distance*20,100);
       camera.updateProjectionMatrix();
       controls.target.set(0,0,0);
       controls.update();
@@ -453,15 +497,10 @@ function initModelViewers(){
       el.classList.add('loaded');
       const loading=el.querySelector('.model-loading');
       if(loading)loading.remove();
-    },progress=>{
-      const loading=el.querySelector('.model-loading');
-      if(loading && progress.total){
-        const pct=Math.round((progress.loaded/progress.total)*100);
-        const strong=loading.querySelector('strong');
-        if(strong)strong.textContent='Загрузка 3D-модели… '+pct+'%';
-      }
-    },err=>{
-      console.error('GLTF load error',err);
+    };
+
+    const showError=err=>{
+      console.error('3D model load error',err);
       const loading=el.querySelector('.model-loading');
       if(loading){
         const msg=err?.message || String(err || 'Неизвестная ошибка');
@@ -471,7 +510,51 @@ function initModelViewers(){
         const link=loading.querySelector('a');
         if(link)link.href=url;
       }
-    });
+    };
+
+    let pathname='';
+    try{pathname=new URL(url,location.href).pathname.toLowerCase();}catch{pathname=url.toLowerCase();}
+
+    if(pathname.endsWith('.stl')){
+      fetch(url)
+        .then(response=>{
+          if(!response.ok)throw new Error('HTTP '+response.status);
+          return response.arrayBuffer();
+        })
+        .then(buffer=>{
+          const geometry=parseStlGeometry(buffer);
+          const material=new THREE.MeshStandardMaterial({
+            color:0xb9c7ff,
+            metalness:.18,
+            roughness:.58,
+            side:THREE.DoubleSide
+          });
+          const mesh=new THREE.Mesh(geometry,material);
+          mesh.rotation.x=-Math.PI/2;
+
+          const edges=new THREE.LineSegments(
+            new THREE.EdgesGeometry(geometry,24),
+            new THREE.LineBasicMaterial({color:0x6f7cff,transparent:true,opacity:.22})
+          );
+          mesh.add(edges);
+          fitObject(mesh);
+        })
+        .catch(showError);
+    }else{
+      const loader=new GLTFLoader();
+      loader.setMeshoptDecoder(MeshoptDecoder);
+
+      loader.load(url,gltf=>{
+        fitObject(gltf.scene);
+      },progress=>{
+        const loading=el.querySelector('.model-loading');
+        if(loading && progress.total){
+          const pct=Math.round((progress.loaded/progress.total)*100);
+          const strong=loading.querySelector('strong');
+          if(strong)strong.textContent='Загрузка 3D-модели… '+pct+'%';
+        }
+      },showError);
+    }
 
     const ro=new ResizeObserver(()=>{
       const w=el.clientWidth,h=el.clientHeight;
@@ -489,7 +572,6 @@ function initModelViewers(){
     draw();
   });
 }
-
 
 function initMediaPagination(){
   document.querySelectorAll('[data-paginated-list]').forEach(list=>{
