@@ -139,6 +139,18 @@ class AcademicController extends Controller
             ?: $lesson->subject?->studio_id
             ?: $profile->studio_id;
 
+        if($data['kind']==='drawing' && $request->hasFile('image')){
+            if(!StorageQuota::canStore((int)$request->file('image')->getSize())){
+                return back()->withErrors(['image'=>'Недостаточно места в хранилище.'])->withInput();
+            }
+        }
+
+        if($data['kind']==='stl' && $request->hasFile('stl')){
+            if(!StorageQuota::canStore((int)$request->file('stl')->getSize())){
+                return back()->withErrors(['stl'=>'Недостаточно места в хранилище.'])->withInput();
+            }
+        }
+
         $work=PortfolioItem::firstOrNew([
             'student_profile_id'=>$profile->id,
             'journal_lesson_id'=>$lesson->id,
@@ -193,10 +205,6 @@ class AcademicController extends Controller
 
         if($data['kind']==='drawing'){
             $file=$request->file('image');
-            if(!StorageQuota::canStore((int)$file->getSize())){
-                return back()->withErrors(['image'=>'Недостаточно места в хранилище.'])->withInput();
-            }
-
             try{
                 $stored=$this->storePracticalJpeg($file->getRealPath(),$profile->id,$lesson->id);
             }catch(\Throwable $e){
@@ -221,10 +229,6 @@ class AcademicController extends Controller
 
         if($data['kind']==='stl'){
             $file=$request->file('stl');
-            if(!StorageQuota::canStore((int)$file->getSize())){
-                return back()->withErrors(['stl'=>'Недостаточно места в хранилище.'])->withInput();
-            }
-
             $path=$file->store('portfolio/practical/stl/'.$profile->id,'public');
 
             $work->media()->create([
