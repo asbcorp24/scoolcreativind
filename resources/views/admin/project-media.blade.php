@@ -32,7 +32,7 @@
       <option value="photo">Фото</option>
       <option value="panorama">360° панорама</option>
       <option value="video">Видео</option>
-      <option value="model">3D модель GLB/GLTF</option>
+      <option value="model">3D модель GLB/GLTF/STL</option>
       <option value="audio">Аудиотрек</option>
       <option value="file">Файл</option>
       <option value="link">Ссылка</option>
@@ -47,7 +47,7 @@
     </div>
     <div class="col-lg-5">
      <label class="form-label">Или загрузить файл</label>
-     <input type="file" class="form-control" name="file" accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.webm,.mov,.glb,.gltf,.mp3,.wav,.ogg,.m4a,.aac,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip">
+     <input type="file" class="form-control" name="file" accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.webm,.mov,.glb,.gltf,.stl,.mp3,.wav,.ogg,.m4a,.aac,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip">
      <div class="form-text text-white-50">До 100 МБ.</div>
     </div>
 
