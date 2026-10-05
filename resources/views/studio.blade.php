@@ -190,7 +190,7 @@
 
 <section class="section-space">
  <div class="container">
-  <div class="section-head"><div><div class="eyebrow">Portfolio</div><h2>Проекты учеников</h2></div></div>
+  <div class="section-head"><div><div class="eyebrow">Portfolio</div><h2>Работы учеников</h2></div></div>
   <div class="row g-4">
    @forelse($studio->projects as $project)
     @php
@@ -208,7 +208,7 @@
         <div class="project-noise"></div>
        @endif
       </div>
-      <div class="pt-3"><h4>{{ $project->title }}</h4><p class="text-white-50">{{ $project->description }}</p><div class="small text-white-50">{{ $project->student->user->name ?? 'Ученик ШКИ' }} · {{ $project->media->count() }} медиа</div></div>
+      <div class="pt-3"><h4>{{ $project->title }}</h4>@if($project->description)<p class="text-white-50">{{ mb_strimwidth($project->description,0,180,'…') }}</p>@endif<div class="small text-white-50">{{ $project->student->user->name ?? 'Ученик ШКИ' }} · {{ $project->media->count() }} медиа</div></div>
      </a>
     </div>
    @empty
