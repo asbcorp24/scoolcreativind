@@ -18,9 +18,21 @@
     <a class="btn btn-ghost" href="{{ route('portfolio.show',$project->student) }}">Все работы ученика →</a>
    </div>
   @endif
-  @if($project->description)<p class="lead col-lg-9 mt-4 text-white-50">{{ $project->description }}</p>@endif
+  @if($project->description && $project->practical_kind!=='text')<p class="lead col-lg-9 mt-4 text-white-50">{{ $project->description }}</p>@endif
  </div>
 </section>
+
+@if($project->practical_kind==='text' && $project->description)
+<section class="section-space pt-0">
+ <div class="container">
+  <article class="glass-card p-4 p-lg-5 practical-text-work">
+   <div class="eyebrow">Text work</div>
+   <h2 class="mt-2 mb-4">Текст практической работы</h2>
+   <div class="studio-description">{!! nl2br(e($project->description)) !!}</div>
+  </article>
+ </div>
+</section>
+@endif
 
 @php
  $photos=$project->media->where('type','photo');
