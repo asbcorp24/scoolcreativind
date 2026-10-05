@@ -189,18 +189,46 @@ class AdminAcademicController extends Controller
         $groupId=$request->integer('group_id');
         $subjectId=$request->integer('subject_id');
 
-        $groups=StudyGroup::with('subjects')->whereIn('id',$this->allowedGroupIds())->orderBy('name')->get();
+        $groups=StudyGroup::with(['subjects','students'])
+            ->whereIn('id',$this->allowedGroupIds())
+            ->orderBy('name')
+            ->get();
+
         if($groupId) $this->ensureGroupAllowed($groupId);
-        $group=$groupId ? StudyGroup::with('students')->find($groupId) : null;
-        $subject=$subjectId ? Subject::find($subjectId) : null;
+
+        $group=$groupId
+            ? $groups->firstWhere('id',$groupId)
+            : null;
+
+        $subject=null;
+        if($group && $subjectId){
+            $subject=$group->subjects->firstWhere('id',$subjectId);
+        }
 
         $lessons=collect();
         if($group && $subject){
-            $lessons=JournalLesson::with('entries')->where('study_group_id',$group->id)
-                ->where('subject_id',$subject->id)->orderBy('lesson_date')->get();
+            $lessons=JournalLesson::with('entries')
+                ->where('study_group_id',$group->id)
+                ->where('subject_id',$subject->id)
+                ->orderBy('lesson_date')
+                ->get();
         }
 
-        return view('admin.academic.journal',compact('groups','group','subject','lessons'));
+        $subjectOptions=$groups->mapWithKeys(function($item){
+            return [
+                $item->id=>$item->subjects->map(function($subject){
+                    return [
+                        'id'=>$subject->id,
+                        'title'=>$subject->title,
+                        'teacher_id'=>$subject->pivot->teacher_id,
+                    ];
+                })->values(),
+            ];
+        });
+
+        return view('admin.academic.journal',compact(
+            'groups','group','subject','lessons','subjectOptions'
+        ));
     }
 
     public function createJournalLesson(Request $request)
