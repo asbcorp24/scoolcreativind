@@ -229,7 +229,11 @@ class AcademicController extends Controller
 
         if($data['kind']==='stl'){
             $file=$request->file('stl');
-            $path=$file->store('portfolio/practical/stl/'.$profile->id,'public');
+            $path=$file->storeAs(
+                'portfolio/practical/stl/'.$profile->id,
+                'lesson-'.$lesson->id.'-'.Str::uuid().'.stl',
+                'public'
+            );
 
             $work->media()->create([
                 'type'=>'model',
