@@ -61,7 +61,7 @@
       <div class="eyebrow">Группа</div>
       <h3 class="mb-0">{{ $group->name }}</h3>
      </div>
-     <div class="small text-white-50">{{ CarbonCarbon::parse($dateFrom)->format('d.m.Y') }} — {{ CarbonCarbon::parse($dateTo)->format('d.m.Y') }}</div>
+     <div class="small text-white-50">{{ date('d.m.Y',strtotime($dateFrom)) }} — {{ date('d.m.Y',strtotime($dateTo)) }}</div>
     </div>
 
     <div class="table-responsive">
