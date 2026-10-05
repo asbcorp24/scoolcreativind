@@ -11,7 +11,13 @@
    <span>{{ $project->student->user->name ?? 'Ученик ШКИ' }}</span>
    @if($project->completed_at)<span>· {{ $project->completed_at->format('Y') }}</span>@endif
    @if($project->type)<span>· {{ $project->type }}</span>@endif
+   @if($project->lesson)<span>· Практическая работа к уроку «{{ $project->lesson->topic }}»</span>@endif
   </div>
+  @if($project->student)
+   <div class="mt-4">
+    <a class="btn btn-ghost" href="{{ route('portfolio.show',$project->student) }}">Все работы ученика →</a>
+   </div>
+  @endif
   @if($project->description)<p class="lead col-lg-9 mt-4 text-white-50">{{ $project->description }}</p>@endif
  </div>
 </section>
