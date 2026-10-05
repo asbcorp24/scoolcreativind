@@ -10,6 +10,50 @@
 <a href="{{ route('academic.dashboard') }}" class="cabinet-link"><span>05</span><strong>Моя учёба</strong><small>Оценки, посещаемость и домашние задания</small></a>
 @if(auth()->user()->teacherGroups()->exists())<a href="{{ route('admin.journal') }}" class="cabinet-link"><span>06</span><strong>Кабинет преподавателя</strong><small>Журнал, ДЗ и расписание</small></a>@endif
 </div></div></section>
+
+<section class="pb-5">
+ <div class="container">
+  <div class="section-head">
+   <div><div class="eyebrow">Attendance</div><h2>Моя посещаемость</h2></div>
+   <a href="{{ route('academic.dashboard') }}" class="btn btn-ghost">Полный учебный кабинет</a>
+  </div>
+
+  <div class="row g-3 mb-4">
+   <div class="col-6 col-lg-2"><div class="glass-card p-3 h-100"><div class="small text-white-50">Всего занятий</div><strong class="fs-3">{{ $attendanceSummary['total'] }}</strong></div></div>
+   <div class="col-6 col-lg-2"><div class="glass-card p-3 h-100"><div class="small text-white-50">Был</div><strong class="fs-3 text-success">{{ $attendanceSummary['present'] }}</strong></div></div>
+   <div class="col-6 col-lg-2"><div class="glass-card p-3 h-100"><div class="small text-white-50">Опоздал</div><strong class="fs-3 text-warning">{{ $attendanceSummary['late'] }}</strong></div></div>
+   <div class="col-6 col-lg-2"><div class="glass-card p-3 h-100"><div class="small text-white-50">Пропустил</div><strong class="fs-3 text-danger">{{ $attendanceSummary['absent'] }}</strong></div></div>
+   <div class="col-6 col-lg-2"><div class="glass-card p-3 h-100"><div class="small text-white-50">Уваж.</div><strong class="fs-3">{{ $attendanceSummary['excused'] }}</strong></div></div>
+   <div class="col-6 col-lg-2"><div class="glass-card p-3 h-100"><div class="small text-white-50">Посещаемость</div><strong class="fs-3">{{ $attendanceSummary['rate'] !== null ? $attendanceSummary['rate'].'%' : '—' }}</strong></div></div>
+  </div>
+
+  @if($attendanceBySubject->count())
+   <div class="glass-card p-4">
+    <div class="table-responsive">
+     <table class="table admin-table align-middle">
+      <thead><tr><th>Предмет</th><th>Всего</th><th>Был</th><th>Опоздал</th><th>Пропуск</th><th>Уваж.</th><th>%</th></tr></thead>
+      <tbody>
+       @foreach($attendanceBySubject as $row)
+        <tr>
+         <td><strong>{{ $row['subject'] }}</strong></td>
+         <td>{{ $row['total'] }}</td>
+         <td class="text-success">{{ $row['present'] }}</td>
+         <td class="text-warning">{{ $row['late'] }}</td>
+         <td class="text-danger">{{ $row['absent'] }}</td>
+         <td>{{ $row['excused'] }}</td>
+         <td><strong>{{ $row['rate'] }}%</strong></td>
+        </tr>
+       @endforeach
+      </tbody>
+     </table>
+    </div>
+   </div>
+  @else
+   <div class="glass-card p-4 text-white-50">Отметок посещаемости пока нет.</div>
+  @endif
+ </div>
+</section>
+
 <section class="pb-5 mb-5"><div class="container"><div class="section-head"><div><div class="eyebrow">Admission</div><h2>Мои заявки</h2></div><a href="{{ route('apply') }}" class="btn btn-neon">Новая заявка</a></div>
 <div class="glass-card p-3 p-lg-4"><div class="table-responsive"><table class="table admin-table align-middle"><thead><tr><th>Дата</th><th>Студия</th><th>Телефон</th><th>Статус</th></tr></thead><tbody>
 @forelse($applications as $a)<tr><td>{{ $a->created_at->format('d.m.Y H:i') }}</td><td>{{ $a->studio->title ?? 'Не выбрана' }}</td><td>{{ $a->phone }}</td><td><span class="badge-soft">{{ ['new'=>'Новая','processing'=>'В обработке','accepted'=>'Принята','rejected'=>'Отклонена'][$a->status] ?? $a->status }}</span></td></tr>@empty<tr><td colspan="4" class="text-white-50 py-4">У вас пока нет заявок.</td></tr>@endforelse
