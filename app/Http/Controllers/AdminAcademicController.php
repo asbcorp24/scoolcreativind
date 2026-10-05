@@ -7,6 +7,7 @@ use App\Models\JournalEntry;
 use App\Models\JournalLesson;
 use App\Models\StudyGroup;
 use App\Models\StudentProfile;
+use App\Models\Studio;
 use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -128,6 +129,7 @@ class AdminAcademicController extends Controller
             'subjects'=>Subject::with('studio')->orderBy('title')->get(),
             'groups'=>StudyGroup::with(['subjects'])->where('is_active',true)->whereIn('id',$this->allowedGroupIds())->orderBy('name')->get(),
             'teachers'=>User::whereHas('studyGroups',fn($q)=>$q->where('role','teacher'))->orderBy('name')->get(),
+            'studios'=>Studio::where('is_active',true)->orderBy('sort_order')->get(),
         ]);
     }
 
@@ -141,6 +143,20 @@ class AdminAcademicController extends Controller
         $subject ??= new Subject();
         $subject->fill($data)->save();
         return back()->with('success','Предмет сохранён.');
+    }
+
+    public function deleteSubject(Subject $subject)
+    {
+        abort_unless(auth()->user()->is_admin,403);
+
+        if($subject->groups()->exists()){
+            return back()->withErrors([
+                'subject'=>'Нельзя удалить предмет, пока он закреплён хотя бы за одной группой.'
+            ]);
+        }
+
+        $subject->delete();
+        return back()->with('success','Предмет удалён.');
     }
 
     public function attachSubject(Request $request, StudyGroup $group)
