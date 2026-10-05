@@ -81,14 +81,14 @@
  <div class="container-fluid px-lg-5">
   <div class="section-head">
    <div><div class="eyebrow">Realtime 3D</div><h2>3D-галерея</h2></div>
-   <p>Модели можно вращать, приближать и рассматривать прямо в браузере. Поддерживаются GLB и GLTF.</p>
+   <p>Модели можно вращать, приближать и рассматривать прямо в браузере. Поддерживаются GLB, GLTF и STL.</p>
   </div>
   <div class="media-slider-shell" data-media-slider>
    <div class="media-slider-track" data-slider-track>
    @foreach($models as $m)
    <div class="media-slider-slide">
     <article class="model-card">
-      <div class="model-viewer-local" data-model-viewer data-model-url="{{ $m->display_url }}">
+      <div class="model-viewer-local" data-model-viewer data-model-url="{{ $m->display_url }}" data-model-format="{{ strtolower(pathinfo($m->file_name ?: $m->url, PATHINFO_EXTENSION)) }}">
         <div class="model-loading">Загрузка 3D-модели…</div>
       </div>
       <div class="model-meta">
