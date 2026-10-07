@@ -1,9 +1,9 @@
 @extends('layouts.app')
-@section('title','Посещаемость · Админ')
+@section('title','Посещаемость · '.(auth()->user()->is_admin ? 'Админ' : 'Преподаватель'))
 @section('content')
 <section class="page-top">
  <div class="container">
-  <div class="eyebrow">Админ / обучение</div>
+  <div class="eyebrow">{{ auth()->user()->is_admin ? 'Админ' : 'Кабинет преподавателя' }} / посещаемость</div>
   <h1 class="display-3 fw-bold">Посещаемость</h1>
   <p class="text-white-50 mb-0">Отчёт по группе за выбранный период и предмет.</p>
  </div>
@@ -11,6 +11,13 @@
 
 <section class="pb-5">
  <div class="container">
+  <div class="d-flex gap-2 flex-wrap mb-4">
+   <a class="btn btn-ghost" href="{{ route('admin.journal') }}">Журнал</a>
+   <a class="btn btn-neon" href="{{ route('admin.attendance') }}">Посещаемость</a>
+   <a class="btn btn-ghost" href="{{ route('admin.homework') }}">Домашние задания</a>
+   <a class="btn btn-ghost" href="{{ route('admin.schedule') }}">Расписание</a>
+  </div>
+
   <form method="get" class="glass-card p-4 mb-4">
    <div class="row g-3 align-items-end">
     <div class="col-lg-4">
