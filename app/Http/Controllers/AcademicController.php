@@ -8,7 +8,6 @@ use App\Models\JournalLesson;
 use App\Models\PortfolioItem;
 use App\Models\ScheduleLesson;
 use App\Models\StudentProfile;
-use App\Models\StudyGroup;
 use App\Models\User;
 use App\Services\StorageQuota;
 use Illuminate\Http\Request;
