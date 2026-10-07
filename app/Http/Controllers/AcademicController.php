@@ -8,6 +8,8 @@ use App\Models\JournalLesson;
 use App\Models\PortfolioItem;
 use App\Models\ScheduleLesson;
 use App\Models\StudentProfile;
+use App\Models\StudyGroup;
+use App\Models\User;
 use App\Services\StorageQuota;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -15,10 +17,41 @@ use Illuminate\Support\Str;
 
 class AcademicController extends Controller
 {
+    /**
+     * Возвращает все группы, к которым ученик фактически относится.
+     *
+     * Основной источник — study_group_user. Для старых аккаунтов дополнительно
+     * учитываем группы из записей журнала: раньше часть учеников могла получить
+     * JournalEntry, но не иметь корректной pivot-записи role=student.
+     */
+    private function studentGroupIds(User $user)
+    {
+        $directGroupIds=$user->studentGroups()
+            ->pluck('study_groups.id');
+
+        $journalGroupIds=JournalEntry::query()
+            ->where('student_id',$user->id)
+            ->join('journal_lessons','journal_lessons.id','=','journal_entries.journal_lesson_id')
+            ->whereNotNull('journal_lessons.study_group_id')
+            ->pluck('journal_lessons.study_group_id');
+
+        return $directGroupIds
+            ->merge($journalGroupIds)
+            ->filter()
+            ->map(fn($id)=>(int)$id)
+            ->unique()
+            ->values();
+    }
+
+    private function canAccessLesson(User $user, JournalLesson $lesson): bool
+    {
+        return $this->studentGroupIds($user)->contains((int)$lesson->study_group_id);
+    }
+
     public function dashboard()
     {
         $user=auth()->user();
-        $groupIds=$user->studentGroups()->pluck('study_groups.id');
+        $groupIds=$this->studentGroupIds($user);
 
         $lessons=ScheduleLesson::with(['studio','group'])
             ->whereIn('study_group_id',$groupIds)
@@ -103,10 +136,7 @@ class AcademicController extends Controller
     public function lesson(JournalLesson $lesson)
     {
         $user=auth()->user();
-        abort_unless(
-            $user->studentGroups()->where('study_groups.id',$lesson->study_group_id)->exists(),
-            403
-        );
+        abort_unless($this->canAccessLesson($user,$lesson),403);
 
         $lesson->load(['subject','group','teacher']);
         $profile=StudentProfile::firstOrCreate(
@@ -130,10 +160,7 @@ class AcademicController extends Controller
     public function submitPractical(Request $request, JournalLesson $lesson)
     {
         $user=auth()->user();
-        abort_unless(
-            $user->studentGroups()->where('study_groups.id',$lesson->study_group_id)->exists(),
-            403
-        );
+        abort_unless($this->canAccessLesson($user,$lesson),403);
 
         $lesson->load(['subject','group']);
 
