@@ -49,8 +49,19 @@ class AdminLearningController extends Controller
             'is_published'=>'nullable|boolean',
         ]);
 
-        if (!auth()->user()->is_admin && !empty($data['study_group_id'])) {
-            abort_unless(auth()->user()->teacherGroups()->where('study_groups.id',$data['study_group_id'])->exists(),403);
+        if (!auth()->user()->is_admin) {
+            if($lesson && $lesson->study_group_id){
+                abort_unless(
+                    auth()->user()->teacherGroups()->where('study_groups.id',$lesson->study_group_id)->exists(),
+                    403
+                );
+            }
+
+            abort_unless(
+                !empty($data['study_group_id']) &&
+                auth()->user()->teacherGroups()->where('study_groups.id',$data['study_group_id'])->exists(),
+                403
+            );
         }
 
         $lesson ??= new ScheduleLesson();
@@ -149,6 +160,14 @@ class AdminLearningController extends Controller
 
     public function deleteLesson(ScheduleLesson $lesson)
     {
+        if(!auth()->user()->is_admin){
+            abort_unless(
+                $lesson->study_group_id &&
+                auth()->user()->teacherGroups()->where('study_groups.id',$lesson->study_group_id)->exists(),
+                403
+            );
+        }
+
         $lesson->delete();
         return back()->with('success','Занятие удалено.');
     }
