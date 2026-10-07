@@ -94,7 +94,7 @@ class AdminTeacherController extends Controller
 
             $password=$data['password'] ?? null;
             if(!$teacher->exists && !$password){
-                $password=Str::password(12);
+                $password=Str::random(12);
                 $generatedPassword=$password;
             }
 
@@ -187,7 +187,7 @@ class AdminTeacherController extends Controller
             'password'=>'nullable|string|min:8|max:255',
         ]);
 
-        $password=$data['password'] ?? Str::password(12);
+        $password=$data['password'] ?? Str::random(12);
         $teacher->update(['password'=>Hash::make($password)]);
 
         return back()
