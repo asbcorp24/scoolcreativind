@@ -1,15 +1,25 @@
 @extends('layouts.app')
-@section('title','Журнал · Админ')
+@section('title','Журнал · '.(auth()->user()->is_admin ? 'Админ' : 'Преподаватель'))
 @section('content')
 <section class="page-top">
  <div class="container">
-  <div class="eyebrow">Админ / журнал</div>
+  <div class="eyebrow">{{ auth()->user()->is_admin ? 'Админ' : 'Кабинет преподавателя' }} / журнал</div>
   <h1 class="display-3 fw-bold">Электронный журнал</h1>
+  @unless(auth()->user()->is_admin)
+   <p class="text-white-50 mb-0">Доступны только закреплённые за вами группы и предметы.</p>
+  @endunless
  </div>
 </section>
 
 <section class="pb-5">
  <div class="container">
+  <div class="d-flex gap-2 flex-wrap mb-4">
+   <a class="btn btn-neon" href="{{ route('admin.journal') }}">Журнал</a>
+   <a class="btn btn-ghost" href="{{ route('admin.attendance') }}">Посещаемость</a>
+   <a class="btn btn-ghost" href="{{ route('admin.homework') }}">Домашние задания</a>
+   <a class="btn btn-ghost" href="{{ route('admin.schedule') }}">Расписание</a>
+  </div>
+
   <form class="glass-card p-4 mb-4" method="get" id="journalFilterForm">
    <div class="row g-3 align-items-end">
     <div class="col-md-5">
@@ -64,9 +74,14 @@
     <input type="hidden" name="study_group_id" value="{{ $group->id }}">
     <input type="hidden" name="subject_id" value="{{ $subject->id }}">
     <div class="row g-3">
-     <div class="col-md-3"><label class="form-label">Дата</label><input type="date" class="form-control" name="lesson_date" required></div>
+     <div class="col-md-3"><label class="form-label">Дата</label><input type="date" class="form-control" name="lesson_date" value="{{ now()->toDateString() }}" required></div>
      <div class="col-md-7"><label class="form-label">Тема урока</label><input class="form-control" name="topic" placeholder="Тема урока" required></div>
      <div class="col-md-2 d-flex align-items-end"><button class="btn btn-ghost w-100">+ Урок</button></div>
+     <div class="col-12">
+      <label class="form-label">Практическое задание / описание урока</label>
+      <textarea class="form-control" rows="4" name="notes" placeholder="Что нужно выполнить, требования к работе, материалы, ссылки..."></textarea>
+      <div class="form-text text-white-50">Этот текст ученик увидит, когда откроет практическую работу к уроку.</div>
+     </div>
     </div>
    </form>
 
