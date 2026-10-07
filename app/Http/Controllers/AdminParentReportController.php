@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 
 class AdminParentReportController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         abort_unless(auth()->user()->is_admin || auth()->user()->canAdminSection('students'),403);
 
@@ -22,6 +22,7 @@ class AdminParentReportController extends Controller
             'links'=>ParentReportLink::with('student.user')
                 ->latest()
                 ->paginate(30),
+            'selectedProfileId'=>$request->integer('student_profile_id'),
         ]);
     }
 
