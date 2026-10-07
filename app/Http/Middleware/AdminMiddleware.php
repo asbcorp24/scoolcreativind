@@ -90,6 +90,8 @@ class AdminMiddleware
             'admin/schedule'=>'schedule',
             'admin/journal'=>'journal',
             'admin/attendance'=>'journal',
+            'admin/parent-reports'=>'students',
+            'admin/attendance'=>'journal',
             'admin/homework'=>'homework',
             'admin/settings'=>'settings',
             'admin/documents'=>'documents',
