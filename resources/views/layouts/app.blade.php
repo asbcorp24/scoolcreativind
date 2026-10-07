@@ -278,7 +278,7 @@ $musicPlaylist=$musicTracks->map(function($track){
       </div>
     </div>
 
-    <div class="admin-side-group {{ request()->routeIs('admin.groups*','admin.subjects*','admin.schedule*','admin.journal*','admin.attendance*','admin.homework*','admin.students*','admin.competitions*','admin.achievements*','admin.quizzes*') ? 'open' : '' }}">
+    <div class="admin-side-group {{ request()->routeIs('admin.groups*','admin.subjects*','admin.schedule*','admin.journal*','admin.attendance*','admin.parent-reports*','admin.homework*','admin.students*','admin.competitions*','admin.achievements*','admin.quizzes*') ? 'open' : '' }}">
       <button type="button" class="admin-side-group-title" data-admin-group-toggle><span>▦</span><strong>Обучение</strong><i>⌄</i></button>
       <div class="admin-side-group-body">
         @if(auth()->user()->canAdminSection('groups'))<a class="{{ request()->routeIs('admin.groups*') ? 'active' : '' }}" href="{{ route('admin.groups') }}">Учебные группы</a>@endif
@@ -286,6 +286,7 @@ $musicPlaylist=$musicTracks->map(function($track){
         @if(auth()->user()->canAdminSection('schedule') || auth()->user()->teacherGroups()->exists())<a class="{{ request()->routeIs('admin.schedule*') ? 'active' : '' }}" href="{{ route('admin.schedule') }}">Расписание</a>@endif
         @if(auth()->user()->canAdminSection('journal') || auth()->user()->teacherGroups()->exists())<a class="{{ request()->routeIs('admin.journal*') ? 'active' : '' }}" href="{{ route('admin.journal') }}">Журнал</a>@endif
         @if(auth()->user()->canAdminSection('journal') || auth()->user()->teacherGroups()->exists())<a class="{{ request()->routeIs('admin.attendance*') ? 'active' : '' }}" href="{{ route('admin.attendance') }}">Посещаемость</a>@endif
+        @if(auth()->user()->canAdminSection('students') || auth()->user()->teacherGroups()->exists())<a class="{{ request()->routeIs('admin.parent-reports*') ? 'active' : '' }}" href="{{ route('admin.parent-reports') }}">Отчёты родителям</a>@endif
         @if(auth()->user()->canAdminSection('homework') || auth()->user()->teacherGroups()->exists())<a class="{{ request()->routeIs('admin.homework*') ? 'active' : '' }}" href="{{ route('admin.homework') }}">Домашние задания</a>@endif
         @if(auth()->user()->canAdminSection('students'))<a class="{{ request()->routeIs('admin.students*') ? 'active' : '' }}" href="{{ route('admin.students') }}">Ученики и портфолио</a>@endif
         @if(auth()->user()->canAdminSection('competitions'))<a class="{{ request()->routeIs('admin.competitions*') || request()->routeIs('admin.achievements*') ? 'active' : '' }}" href="{{ route('admin.competitions') }}">Конкурсы и достижения</a>@endif
