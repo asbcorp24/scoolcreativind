@@ -30,7 +30,9 @@
      </thead>
      <tbody>
      @forelse($students as $student)
-      @php($profile=$profiles->get($student->id))
+      @php
+       $profile = $profiles->get($student->id);
+      @endphp
       <tr>
        <td>
         <strong>{{ $student->name }}</strong>
@@ -48,6 +50,7 @@
        <td class="text-end">
         @if($profile)
          <a href="{{ route('admin.students.portfolio',$profile) }}" class="btn btn-sm btn-ghost">Проекты / портфолио</a>
+         <a href="{{ route('admin.parent-reports',['student_profile_id'=>$profile->id]) }}" class="btn btn-sm btn-neon">Отчёт родителям</a>
          @if($profile->is_public)
           <a href="{{ route('portfolio.show',$profile) }}" class="btn btn-sm btn-ghost" target="_blank">Открыть ↗</a>
          @endif
