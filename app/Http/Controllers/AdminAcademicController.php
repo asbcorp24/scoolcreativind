@@ -126,18 +126,6 @@ class AdminAcademicController extends Controller
                 ]
             );
 
-            // Если ученика добавили в группу после создания уроков, создаём
-            // недостающие строки журнала. Это выравнивает старые аккаунты и
-            // позволяет кабинету одинаково видеть уроки/практические.
-            $lessonIds=JournalLesson::where('study_group_id',$group->id)->pluck('id');
-            foreach($lessonIds as $lessonId){
-                JournalEntry::firstOrCreate([
-                    'journal_lesson_id'=>$lessonId,
-                    'student_id'=>$student->id,
-                ],[
-                    'attendance'=>'present',
-                ]);
-            }
         }
 
         return back()->with('success','Пользователь добавлен в группу.');
