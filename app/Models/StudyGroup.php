@@ -10,4 +10,5 @@ class StudyGroup extends Model {
  public function teachers(){return $this->belongsToMany(User::class,'study_group_user')->wherePivot('role','teacher')->withTimestamps();}
  public function subjects(){return $this->belongsToMany(Subject::class,'group_subjects')->withPivot('teacher_id')->withTimestamps();}
  public function lessons(){return $this->hasMany(ScheduleLesson::class);}
+ public function parentReportLinks(){return $this->hasMany(ParentReportLink::class,'study_group_id');}
 }
