@@ -109,7 +109,9 @@
           <div id="teacher-group-{{ $group->id }}" class="accordion-collapse collapse" data-bs-parent="#teacherSubjects">
            <div class="accordion-body">
             @forelse($group->subjects as $subject)
-             @php($key=$group->id.':'.$subject->id)
+             @php
+              $key = $group->id . ':' . $subject->id;
+             @endphp
              <label class="d-flex align-items-center gap-2 py-2">
               <input class="form-check-input mt-0" type="checkbox" name="subjects[]" value="{{ $key }}"
                      @checked(in_array($key,$selectedSubjects,true))>
