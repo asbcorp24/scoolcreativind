@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 class ParentReportLink extends Model
 {
     protected $fillable=[
-        'student_profile_id','token','report_until','is_active','last_opened_at'
+        'target_type','student_profile_id','study_group_id','token','report_until','is_active','last_opened_at'
     ];
 
     protected $casts=[
@@ -18,5 +18,10 @@ class ParentReportLink extends Model
     public function student()
     {
         return $this->belongsTo(StudentProfile::class,'student_profile_id');
+    }
+
+    public function group()
+    {
+        return $this->belongsTo(StudyGroup::class,'study_group_id');
     }
 }
