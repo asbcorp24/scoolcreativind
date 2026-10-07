@@ -48,6 +48,8 @@ class AdminMiddleware
             'admin/journal',
             'admin/journal/*',
             'admin/attendance',
+            'admin/parent-reports',
+            'admin/parent-reports/*',
             'admin/homework',
             'admin/homework/*',
             'admin/schedule',
@@ -60,7 +62,7 @@ class AdminMiddleware
 
         if ($isTeacher) {
             return redirect()->route('admin.journal')
-                ->withErrors(['access'=>'Для преподавателя доступны журнал, домашние задания и расписание.']);
+                ->withErrors(['access'=>'Для преподавателя доступны журнал, посещаемость, родительские отчёты, домашние задания и расписание.']);
         }
 
         return redirect()->route('admin.login')->withErrors([
