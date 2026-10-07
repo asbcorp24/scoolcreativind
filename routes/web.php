@@ -31,6 +31,7 @@ use App\Http\Controllers\CooperationController;
 use App\Http\Controllers\AdminCooperationController;
 use App\Http\Controllers\AdminMediaLibraryController;
 use App\Http\Controllers\AdminParentReportController;
+use App\Http\Controllers\AdminTeacherController;
 use App\Http\Controllers\ParentReportController;
 use Illuminate\Support\Facades\Route;
 
@@ -132,6 +133,11 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::get('/documents/{document}/edit',[AdminDocumentController::class,'edit'])->name('documents.edit');
     Route::post('/documents/save/{document?}',[AdminDocumentController::class,'save'])->name('documents.save');
     Route::delete('/documents/{document}',[AdminDocumentController::class,'delete'])->name('documents.delete');
+    Route::get('/teachers',[AdminTeacherController::class,'index'])->name('teachers');
+    Route::get('/teachers/{teacher}/edit',[AdminTeacherController::class,'edit'])->name('teachers.edit');
+    Route::post('/teachers/save/{teacher?}',[AdminTeacherController::class,'save'])->name('teachers.save');
+    Route::post('/teachers/{teacher}/reset-password',[AdminTeacherController::class,'resetPassword'])->name('teachers.reset-password');
+    Route::delete('/teachers/{teacher}',[AdminTeacherController::class,'remove'])->name('teachers.remove');
     Route::get('/groups',[AdminAcademicController::class,'groups'])->name('groups');
     Route::post('/groups/save/{group?}',[AdminAcademicController::class,'saveGroup'])->name('groups.save');
     Route::post('/groups/{group}/students/create',[AdminAcademicController::class,'createStudent'])->name('groups.students.create');
