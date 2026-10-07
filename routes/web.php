@@ -30,6 +30,8 @@ use App\Http\Controllers\AdminCustomPageController;
 use App\Http\Controllers\CooperationController;
 use App\Http\Controllers\AdminCooperationController;
 use App\Http\Controllers\AdminMediaLibraryController;
+use App\Http\Controllers\AdminParentReportController;
+use App\Http\Controllers\ParentReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class,'home'])->name('home');
@@ -49,6 +51,7 @@ Route::get('/clips/{clip}',[ClipController::class,'show'])->name('clips.show');
 Route::post('/question',[QuestionController::class,'store'])->name('questions.store');
 Route::get('/page/{page}',[CustomPageController::class,'show'])->name('pages.show');
 Route::get('/schedule',[LearningController::class,'schedule'])->name('schedule');
+Route::get('/parent-report/{token}',[ParentReportController::class,'show'])->name('parent-report.show');
 Route::get('/projects',[LearningController::class,'projects'])->name('projects.index');
 Route::get('/projects/{project}',[LearningController::class,'project'])->name('projects.show');
 Route::get('/portfolio/{profile}',[LearningController::class,'portfolio'])->name('portfolio.show');
@@ -140,6 +143,10 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::post('/groups/{group}/subjects',[AdminAcademicController::class,'attachSubject'])->name('groups.subjects.attach');
     Route::get('/journal',[AdminAcademicController::class,'journal'])->name('journal');
     Route::get('/attendance',[AdminAcademicController::class,'attendance'])->name('attendance');
+    Route::get('/parent-reports',[AdminParentReportController::class,'index'])->name('parent-reports');
+    Route::post('/parent-reports',[AdminParentReportController::class,'store'])->name('parent-reports.store');
+    Route::patch('/parent-reports/{link}/revoke',[AdminParentReportController::class,'revoke'])->name('parent-reports.revoke');
+    Route::patch('/parent-reports/{link}/regenerate',[AdminParentReportController::class,'regenerate'])->name('parent-reports.regenerate');
     Route::post('/journal/lessons',[AdminAcademicController::class,'createJournalLesson'])->name('journal.lessons.create');
     Route::patch('/journal/entries/{entry}',[AdminAcademicController::class,'saveJournalEntry'])->name('journal.entries.update');
     Route::get('/homework',[AdminAcademicController::class,'homework'])->name('homework');
