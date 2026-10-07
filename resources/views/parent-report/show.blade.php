@@ -27,10 +27,13 @@
 <div class="parent-report-shell">
  <header class="parent-report-head mb-4">
   <img class="parent-report-logo" src="{{ asset('brand/ski-volzhsk-logo.svg') }}" alt="ШКИ Волжск">
+  @if(($isGroupReport ?? false) && isset($group))
+   <a class="btn btn-sm btn-ghost mb-3" href="{{ route('parent-report.show',$link->token) }}">← Вернуться к группе</a>
+  @endif
   <div class="eyebrow">Отчёт для родителей</div>
   <h1 class="display-5 fw-bold mt-2 mb-2">{{ $profile->user->name }}</h1>
   <div class="text-white-50">
-   @if($profile->class_name){{ $profile->class_name }} · @endif
+   @if(($isGroupReport ?? false) && isset($group)){{ $group->name }} · @elseif($profile->class_name){{ $profile->class_name }} · @endif
    данные по {{ $link->report_until->format('d.m.Y') }} включительно
   </div>
   <div class="mt-4"><button class="btn btn-ghost" onclick="window.print()">Печать / PDF</button></div>
