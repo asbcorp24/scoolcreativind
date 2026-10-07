@@ -9,6 +9,7 @@
 @if(auth()->user()->canAdminSection('team'))<a href="{{ route('admin.team') }}" class="btn btn-ghost">Команда</a>@endif
 @if(auth()->user()->canAdminSection('equipment'))<a href="{{ route('admin.equipment') }}" class="btn btn-ghost">Оборудование</a>@endif
 @if(auth()->user()->canAdminSection('schedule'))<a href="{{ route('admin.schedule') }}" class="btn btn-ghost">Расписание</a>@endif
+@if(auth()->user()->is_admin)<a href="{{ route('admin.teachers') }}" class="btn btn-ghost">Преподаватели</a>@endif
 @if(auth()->user()->canAdminSection('groups'))<a href="{{ route('admin.groups') }}" class="btn btn-ghost">Учебные группы</a>@endif
 @if(auth()->user()->canAdminSection('subjects'))<a href="{{ route('admin.subjects') }}" class="btn btn-ghost">Предметы</a>@endif
 @if(auth()->user()->canAdminSection('journal'))<a href="{{ route('admin.journal') }}" class="btn btn-ghost">Журнал</a>@endif
