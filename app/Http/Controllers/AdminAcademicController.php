@@ -113,6 +113,33 @@ class AdminAcademicController extends Controller
             $data['user_id']=>['role'=>$data['role']]
         ]);
 
+        if($data['role']==='student'){
+            $student=User::findOrFail($data['user_id']);
+
+            StudentProfile::firstOrCreate(
+                ['user_id'=>$student->id],
+                [
+                    'studio_id'=>$group->studio_id,
+                    'class_name'=>$group->name,
+                    'portfolio_slug'=>Str::slug($student->name).'-'.$student->id,
+                    'is_public'=>false,
+                ]
+            );
+
+            // Если ученика добавили в группу после создания уроков, создаём
+            // недостающие строки журнала. Это выравнивает старые аккаунты и
+            // позволяет кабинету одинаково видеть уроки/практические.
+            $lessonIds=JournalLesson::where('study_group_id',$group->id)->pluck('id');
+            foreach($lessonIds as $lessonId){
+                JournalEntry::firstOrCreate([
+                    'journal_lesson_id'=>$lessonId,
+                    'student_id'=>$student->id,
+                ],[
+                    'attendance'=>'present',
+                ]);
+            }
+        }
+
         return back()->with('success','Пользователь добавлен в группу.');
     }
 
