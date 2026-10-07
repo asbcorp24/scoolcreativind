@@ -321,7 +321,10 @@ class AdminAcademicController extends Controller
             'comment'=>'nullable|string|max:1000',
         ]);
         $entry->load('lesson');
-        $this->ensureGroupAllowed((int)$entry->lesson->study_group_id);
+        $this->ensureSubjectAllowed(
+            (int)$entry->lesson->study_group_id,
+            (int)$entry->lesson->subject_id
+        );
         $entry->update($data);
         return back()->with('success','Запись журнала сохранена.');
     }
@@ -363,13 +366,17 @@ class AdminAcademicController extends Controller
         ];
 
         if($group){
+            $allowedSubjectIds=$group->subjects->pluck('id');
+
             $entries=JournalEntry::with(['lesson.subject','student'])
-                ->whereHas('lesson',function($q) use($group,$subjectId,$dateFrom,$dateTo){
+                ->whereHas('lesson',function($q) use($group,$subjectId,$dateFrom,$dateTo,$allowedSubjectIds){
                     $q->where('study_group_id',$group->id)
                         ->whereBetween('lesson_date',[$dateFrom,$dateTo]);
 
                     if($subjectId){
                         $q->where('subject_id',$subjectId);
+                    }else{
+                        $q->whereIn('subject_id',$allowedSubjectIds);
                     }
                 })
                 ->get();
