@@ -33,7 +33,7 @@
      <select class="form-select" name="student_profile_id" required>
       <option value="">Выберите ученика</option>
       @foreach($students as $student)
-       <option value="{{ $student->id }}" @selected(old('student_profile_id')==$student->id)>
+       <option value="{{ $student->id }}" @selected((int)old('student_profile_id',$selectedProfileId)===$student->id)>
         {{ $student->user->name ?? ('Ученик #'.$student->id) }}
         @if($student->class_name) · {{ $student->class_name }} @endif
        </option>
