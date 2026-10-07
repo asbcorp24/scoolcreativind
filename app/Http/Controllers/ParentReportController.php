@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\JournalEntry;
 use App\Models\ParentReportLink;
+use App\Models\StudentProfile;
 use Illuminate\Support\Collection;
 
 class ParentReportController extends Controller
@@ -12,21 +13,71 @@ class ParentReportController extends Controller
         $link=ParentReportLink::with([
             'student.user',
             'student.studio',
-            'student.user.studyGroups',
+            'student.user.studentGroups',
+            'group.students',
+            'group.studio',
         ])->where('token',$token)->firstOrFail();
 
         abort_unless($link->is_active,404);
 
+        if($link->target_type==='group'){
+            return $this->showGroup($link);
+        }
+
         $profile=$link->student;
         abort_unless($profile && $profile->user,404);
 
+        $data=$this->buildStudentReport($profile,$link);
+        $link->updateQuietly(['last_opened_at'=>now()]);
+
+        return view('parent-report.show',$data);
+    }
+
+    private function showGroup(ParentReportLink $link)
+    {
+        $group=$link->group;
+        abort_unless($group,404);
+
+        $profiles=StudentProfile::with(['user','studio'])
+            ->whereIn('user_id',$group->students->pluck('id'))
+            ->get()
+            ->sortBy(fn($profile)=>mb_strtolower($profile->user->name ?? ''))
+            ->values();
+
+        $selectedId=(int)request('student_profile_id');
+        if(!$selectedId){
+            $link->updateQuietly(['last_opened_at'=>now()]);
+            return view('parent-report.group',compact('link','group','profiles'));
+        }
+
+        $profile=$profiles->firstWhere('id',$selectedId);
+        abort_unless($profile && $profile->user,404);
+
+        $data=$this->buildStudentReport($profile,$link);
+        $data['group']=$group;
+        $data['profiles']=$profiles;
+        $data['isGroupReport']=true;
+
+        $link->updateQuietly(['last_opened_at'=>now()]);
+
+        return view('parent-report.show',$data);
+    }
+
+    private function buildStudentReport(StudentProfile $profile, ParentReportLink $link): array
+    {
         $entries=JournalEntry::with([
                 'lesson.subject',
                 'lesson.group',
                 'lesson.teacher',
             ])
             ->where('student_id',$profile->user_id)
-            ->whereHas('lesson',fn($q)=>$q->whereDate('lesson_date','<=',$link->report_until))
+            ->whereHas('lesson',function($q) use($link){
+                $q->whereDate('lesson_date','<=',$link->report_until);
+
+                if($link->target_type==='group' && $link->study_group_id){
+                    $q->where('study_group_id',$link->study_group_id);
+                }
+            })
             ->get()
             ->sortByDesc(fn($entry)=>optional($entry->lesson->lesson_date)->format('Y-m-d'))
             ->values();
@@ -57,11 +108,9 @@ class ParentReportController extends Controller
             ->sortBy('subject')
             ->values();
 
-        $link->updateQuietly(['last_opened_at'=>now()]);
-
-        return view('parent-report.show',compact(
+        return compact(
             'link','profile','entries','attendance','performance','bySubject'
-        ));
+        );
     }
 
     private function attendanceSummary(Collection $entries): array
