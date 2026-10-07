@@ -10,5 +10,6 @@ class StudentProfile extends Model {
  public function studio(){return $this->belongsTo(Studio::class);}
  public function portfolio(){return $this->hasMany(PortfolioItem::class)->latest('completed_at');}
  public function achievements(){return $this->hasMany(Achievement::class)->latest('awarded_at');}
+ public function parentReportLinks(){return $this->hasMany(ParentReportLink::class);}
  public function getAvatarUrlAttribute(){if(!$this->avatar)return null; if(preg_match('~^(https?:)?//~i',$this->avatar))return $this->avatar; return Storage::disk('public')->url($this->avatar);}
 }
