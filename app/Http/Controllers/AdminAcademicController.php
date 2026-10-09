@@ -16,6 +16,7 @@ use App\Services\StorageQuota;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class AdminAcademicController extends Controller
@@ -266,6 +267,189 @@ class AdminAcademicController extends Controller
         return redirect()
             ->route('admin.subjects.lessons',$subject)
             ->with('success','Урок календарно-тематического плана сохранён.');
+    }
+
+    public function importSubjectLessonsJson(Request $request, Subject $subject)
+    {
+        $this->ensureSubjectPlanAllowed($subject);
+
+        $request->validate([
+            'json_file'=>'nullable|file|max:10240|required_without:json_text',
+            'json_text'=>'nullable|string|required_without:json_file',
+            'existing_action'=>'required|in:update,skip',
+        ],[
+            'json_file.required_without'=>'Выберите JSON-файл или вставьте JSON в поле.',
+            'json_text.required_without'=>'Выберите JSON-файл или вставьте JSON в поле.',
+        ]);
+
+        $json=$request->filled('json_text')
+            ? $request->input('json_text')
+            : file_get_contents($request->file('json_file')->getRealPath());
+
+        // Убираем UTF-8 BOM, который часто появляется после сохранения JSON в Windows.
+        $json=preg_replace('/^\xEF\xBB\xBF/','',$json ?? '');
+
+        try{
+            $payload=json_decode($json,true,512,JSON_THROW_ON_ERROR);
+        }catch(\JsonException $e){
+            return back()->withErrors([
+                'json_file'=>'Некорректный JSON: '.$e->getMessage()
+            ])->withInput();
+        }
+
+        // Поддерживаются два варианта:
+        // 1) {"lessons":[...]}
+        // 2) непосредственно массив уроков [...]
+        $lessons=is_array($payload) && array_key_exists('lessons',$payload)
+            ? $payload['lessons']
+            : $payload;
+
+        if(!is_array($lessons) || !array_is_list($lessons)){
+            return back()->withErrors([
+                'json_file'=>'JSON должен содержать массив lessons либо сам быть массивом уроков.'
+            ])->withInput();
+        }
+
+        if(count($lessons)===0){
+            return back()->withErrors(['json_file'=>'В JSON нет уроков для импорта.'])->withInput();
+        }
+
+        if(count($lessons)>1000){
+            return back()->withErrors(['json_file'=>'За один импорт допускается не более 1000 уроков.'])->withInput();
+        }
+
+        $prepared=[];
+
+        foreach($lessons as $index=>$row){
+            if(!is_array($row)){
+                return back()->withErrors([
+                    'json_file'=>'Элемент '.($index+1).' должен быть объектом урока.'
+                ])->withInput();
+            }
+
+            $validator=validator($row,[
+                'lesson_number'=>'required|integer|min:1|max:9999',
+                'title'=>'required|string|max:255',
+                'content'=>'nullable|string|max:50000',
+                'homework_description'=>'nullable|string|max:30000',
+                'homework_due_days'=>'nullable|integer|min:0|max:365',
+                'homework_max_score'=>'nullable|integer|min:1|max:100',
+                'sort_order'=>'nullable|integer|min:0|max:99999',
+                'is_published'=>'nullable|boolean',
+                'media'=>'nullable|array|max:100',
+                'media.*.type'=>'required_with:media|string|in:photo,panorama,video,model,audio,file,link',
+                'media.*.title'=>'nullable|string|max:255',
+                'media.*.url'=>'required_with:media|string|max:2000',
+                'media.*.caption'=>'nullable|string|max:3000',
+                'media.*.sort_order'=>'nullable|integer|min:0|max:99999',
+                'media.*.is_visible'=>'nullable|boolean',
+            ]);
+
+            if($validator->fails()){
+                return back()->withErrors([
+                    'json_file'=>'Ошибка в уроке '.($index+1).': '.$validator->errors()->first()
+                ])->withInput();
+            }
+
+            $data=$validator->validated();
+
+            $prepared[]=[
+                'lesson'=>[
+                    'lesson_number'=>(int)$data['lesson_number'],
+                    'title'=>$data['title'],
+                    'content'=>$data['content'] ?? null,
+                    'homework_description'=>$data['homework_description'] ?? null,
+                    'homework_due_days'=>$data['homework_due_days'] ?? null,
+                    'homework_max_score'=>$data['homework_max_score'] ?? 5,
+                    'sort_order'=>$data['sort_order'] ?? (int)$data['lesson_number'],
+                    'is_published'=>array_key_exists('is_published',$data)
+                        ? (bool)$data['is_published']
+                        : true,
+                ],
+                'media'=>$data['media'] ?? [],
+            ];
+        }
+
+        // Защита от двух одинаковых номеров внутри одного JSON.
+        $numbers=array_column(array_column($prepared,'lesson'),'lesson_number');
+        if(count($numbers)!==count(array_unique($numbers))){
+            return back()->withErrors([
+                'json_file'=>'В JSON есть повторяющиеся номера уроков.'
+            ])->withInput();
+        }
+
+        $created=0;
+        $updated=0;
+        $skipped=0;
+        $mediaCount=0;
+        $existingAction=$request->input('existing_action','update');
+
+        DB::transaction(function() use(
+            $subject,$prepared,$existingAction,
+            &$created,&$updated,&$skipped,&$mediaCount
+        ){
+            foreach($prepared as $item){
+                $lessonData=$item['lesson'];
+
+                $lesson=SubjectLesson::where('subject_id',$subject->id)
+                    ->where('lesson_number',$lessonData['lesson_number'])
+                    ->first();
+
+                if($lesson && $existingAction==='skip'){
+                    $skipped++;
+                    continue;
+                }
+
+                if($lesson){
+                    $lesson->fill($lessonData)->save();
+                    $updated++;
+                }else{
+                    $lesson=SubjectLesson::create(array_merge(
+                        ['subject_id'=>$subject->id],
+                        $lessonData
+                    ));
+                    $created++;
+                }
+
+                // Из JSON импортируются только материалы по URL.
+                // Повторный импорт обновляет существующую запись, а не плодит дубликаты.
+                foreach($item['media'] as $media){
+                    $type=$media['type'];
+                    $url=$media['url'];
+
+                    $lesson->media()->updateOrCreate(
+                        [
+                            'type'=>$type,
+                            'url'=>$url,
+                        ],
+                        [
+                            'title'=>$media['title'] ?? null,
+                            'caption'=>$media['caption'] ?? null,
+                            'sort_order'=>$media['sort_order'] ?? 0,
+                            'is_visible'=>array_key_exists('is_visible',$media)
+                                ? (bool)$media['is_visible']
+                                : true,
+                            'is_featured'=>false,
+                        ]
+                    );
+
+                    $mediaCount++;
+                }
+            }
+        });
+
+        $message="Импорт КТП завершён: создано {$created}, обновлено {$updated}";
+        if($skipped){
+            $message.=", пропущено {$skipped}";
+        }
+        if($mediaCount){
+            $message.=", материалов обработано {$mediaCount}";
+        }
+        $message.='.';
+
+        return redirect()
+            ->route('admin.subjects.lessons',$subject)
+            ->with('success',$message);
     }
 
     public function deleteSubjectLesson(Subject $subject, SubjectLesson $lesson)
