@@ -58,7 +58,9 @@ th.lesson{width:42px;font-size:8px;writing-mode:vertical-rl;transform:rotate(180
  </thead>
  <tbody>
  @foreach($students as $student)
-  @php($sum=$studentSummary[$student->id])
+  @php
+  $sum = $studentSummary[$student->id];
+ @endphp
   <tr>
    <td class="student">{{ $student->name }}</td>
    @foreach($lessons as $lesson)
@@ -91,7 +93,9 @@ th.lesson{width:42px;font-size:8px;writing-mode:vertical-rl;transform:rotate(180
  </thead>
  <tbody>
  @foreach($students as $student)
-  @php($sum=$studentSummary[$student->id])
+  @php
+  $sum = $studentSummary[$student->id];
+ @endphp
   <tr>
    <td class="student">{{ $student->name }}</td>
    @foreach($lessons as $lesson)
