@@ -66,6 +66,11 @@
            <td><strong>{{ $subject->title }}</strong></td>
            <td>{{ $subject->studio->title ?? 'Общий' }}</td>
            <td class="text-white-50">{{ \Illuminate\Support\Str::limit($subject->description,80) }}</td>
+           <td>
+            <a class="btn btn-sm btn-neon" href="{{ route('admin.subjects.lessons',$subject) }}">
+             КТП / уроки <span class="ms-1 opacity-75">({{ $subject->lessons_count }})</span>
+            </a>
+           </td>
            <td class="text-end">
             <form method="post" action="{{ route('admin.subjects.delete',$subject) }}" onsubmit="return confirm('Удалить предмет?')">
              @csrf @method('DELETE')
