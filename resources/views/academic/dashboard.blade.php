@@ -6,7 +6,7 @@
 <div class="section-head"><div><div class="eyebrow">Schedule</div><h2>Ближайшие занятия</h2></div><a class="btn btn-ghost" href="{{ route('schedule') }}">Календарь</a></div>
 <div class="row g-3 mb-5">@forelse($lessons as $l)<div class="col-md-6"><article class="glass-card p-4"><div class="eyebrow">{{ $l->lesson_date->format('d.m.Y') }} · {{ substr($l->starts_at,0,5) }}</div><h3 class="mt-3">{{ $l->title }}</h3><div class="text-white-50">{{ $l->group->name ?? '' }} @if($l->room) · {{ $l->room }} @endif</div></article></div>@empty<div class="text-white-50">Ближайших занятий нет.</div>@endforelse</div>
 <div class="section-head">
- <div><div class="eyebrow">Practice</div><h2>Практические работы</h2></div>
+ <div><div class="eyebrow">Lessons</div><h2>Проведённые уроки</h2></div>
  <a class="btn btn-ghost" href="{{ route('portfolio.show',$profile) }}">Моё портфолио</a>
 </div>
 <div class="row g-3 mb-5">
@@ -16,23 +16,23 @@
   @endphp
   <div class="col-md-6 col-xl-4">
    <article class="glass-card p-4 h-100 d-flex flex-column">
-    <div class="small text-white-50">{{ $lesson->lesson_date->format('d.m.Y') }} · {{ $lesson->subject->title ?? 'Урок' }}</div>
+    <div class="small text-white-50">
+     {{ $lesson->lesson_date->format('d.m.Y') }} · {{ $lesson->subject->title ?? 'Урок' }}
+     @if($lesson->planLesson) · Урок {{ $lesson->planLesson->lesson_number }} @endif
+    </div>
     <h3 class="mt-2">{{ $lesson->topic }}</h3>
-    <div class="text-white-50 mb-4">{{ $lesson->group->name ?? '' }}</div>
-    <div class="mt-auto d-flex justify-content-between align-items-center gap-2">
-     @if($practical)
-      <span class="badge-soft">Работа отправлена</span>
-     @else
-      <span class="badge-soft">Нет работы</span>
-     @endif
-     <a class="btn btn-sm {{ $practical ? 'btn-ghost' : 'btn-neon' }}" href="{{ route('academic.lesson',$lesson) }}">
-      {{ $practical ? 'Открыть' : 'Прикрепить' }}
-     </a>
+    <div class="text-white-50 mb-3">{{ $lesson->group->name ?? '' }}</div>
+    <div class="d-flex gap-2 flex-wrap mb-4">
+     @if($lesson->homeworkAssignment)<span class="badge-soft">Есть домашнее задание</span>@endif
+     @if($practical)<span class="badge-soft">Практическая отправлена</span>@else<span class="badge-soft">Практическая не сдана</span>@endif
+    </div>
+    <div class="mt-auto text-end">
+     <a class="btn btn-sm btn-neon" href="{{ route('academic.lesson',$lesson) }}">Открыть урок</a>
     </div>
    </article>
   </div>
  @empty
-  <div class="text-white-50">Уроков для практических работ пока нет.</div>
+  <div class="text-white-50">Проведённых уроков пока нет.</div>
  @endforelse
 </div>
 
