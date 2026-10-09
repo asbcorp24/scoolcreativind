@@ -421,16 +421,28 @@ class AdminAcademicController extends Controller
             : null;
 
         $subject=null;
+        $planLessons=collect();
+
         if($group && $subjectId){
             $subject=$group->subjects->firstWhere('id',$subjectId);
+
+            if($subject){
+                $subject->load([
+                    'lessons'=>fn($q)=>$q->where('is_published',true)
+                        ->orderBy('sort_order')
+                        ->orderBy('lesson_number')
+                ]);
+                $planLessons=$subject->lessons;
+            }
         }
 
         $lessons=collect();
         if($group && $subject){
-            $lessons=JournalLesson::with('entries')
+            $lessons=JournalLesson::with(['entries','planLesson','homeworkAssignment'])
                 ->where('study_group_id',$group->id)
                 ->where('subject_id',$subject->id)
                 ->orderBy('lesson_date')
+                ->orderBy('id')
                 ->get();
         }
 
@@ -447,7 +459,7 @@ class AdminAcademicController extends Controller
         });
 
         return view('admin.academic.journal',compact(
-            'groups','group','subject','lessons','subjectOptions'
+            'groups','group','subject','lessons','subjectOptions','planLessons'
         ));
     }
 
@@ -456,14 +468,30 @@ class AdminAcademicController extends Controller
         $data=$request->validate([
             'study_group_id'=>'required|exists:study_groups,id',
             'subject_id'=>'required|exists:subjects,id',
+            'subject_lesson_id'=>'required|exists:subject_lessons,id',
             'lesson_date'=>'required|date',
-            'topic'=>'required|string|max:255',
             'notes'=>'nullable|string|max:5000',
         ]);
 
-        $this->ensureSubjectAllowed((int)$data['study_group_id'],(int)$data['subject_id']);
-        $data['teacher_id']=auth()->id();
-        $lesson=JournalLesson::create($data);
+        $this->ensureSubjectAllowed(
+            (int)$data['study_group_id'],
+            (int)$data['subject_id']
+        );
+
+        $planLesson=SubjectLesson::where('id',$data['subject_lesson_id'])
+            ->where('subject_id',$data['subject_id'])
+            ->where('is_published',true)
+            ->firstOrFail();
+
+        $lesson=JournalLesson::create([
+            'study_group_id'=>$data['study_group_id'],
+            'subject_id'=>$data['subject_id'],
+            'subject_lesson_id'=>$planLesson->id,
+            'teacher_id'=>auth()->id(),
+            'lesson_date'=>$data['lesson_date'],
+            'topic'=>$planLesson->title,
+            'notes'=>$data['notes'] ?? null,
+        ]);
 
         $students=StudyGroup::findOrFail($data['study_group_id'])->students;
         foreach($students as $student){
@@ -473,7 +501,31 @@ class AdminAcademicController extends Controller
             ],['attendance'=>'present']);
         }
 
-        return back()->with('success','Урок добавлен в журнал.');
+        if(trim((string)$planLesson->homework_description)!==''){
+            $dueAt=null;
+            if($planLesson->homework_due_days!==null){
+                $dueAt=\Carbon\Carbon::parse($data['lesson_date'])
+                    ->addDays((int)$planLesson->homework_due_days)
+                    ->endOfDay();
+            }
+
+            HomeworkAssignment::firstOrCreate(
+                ['journal_lesson_id'=>$lesson->id],
+                [
+                    'study_group_id'=>$data['study_group_id'],
+                    'subject_id'=>$data['subject_id'],
+                    'subject_lesson_id'=>$planLesson->id,
+                    'teacher_id'=>auth()->id(),
+                    'title'=>'Домашнее задание: '.$planLesson->title,
+                    'description'=>$planLesson->homework_description,
+                    'due_at'=>$dueAt,
+                    'max_score'=>$planLesson->homework_max_score ?: 5,
+                    'is_published'=>true,
+                ]
+            );
+        }
+
+        return back()->with('success','Урок из календарно-тематического плана добавлен в журнал.');
     }
 
     public function saveJournalEntry(Request $request, JournalEntry $entry)
