@@ -196,7 +196,7 @@ class AdminAcademicController extends Controller
     public function subjects()
     {
         return view('admin.academic.subjects',[
-            'subjects'=>Subject::with('studio')->orderBy('title')->get(),
+            'subjects'=>Subject::with('studio')->withCount('lessons')->orderBy('title')->get(),
             'groups'=>StudyGroup::with(['subjects'])->where('is_active',true)->whereIn('id',$this->allowedGroupIds())->orderBy('name')->get(),
             'teachers'=>User::whereHas('studyGroups',fn($q)=>$q->where('role','teacher'))->orderBy('name')->get(),
             'studios'=>Studio::where('is_active',true)->orderBy('sort_order')->get(),
