@@ -20,6 +20,7 @@
      <option value="works" @selected(request('section')==='works')>Работы учеников</option>
      <option value="news" @selected(request('section')==='news')>Новости</option>
      <option value="pages" @selected(request('section')==='pages')>Страницы</option>
+     <option value="lessons" @selected(request('section')==='lessons')>Уроки / КТП</option>
     </select></div>
     <div class="col-md-2"><label class="form-label">Тип</label><select class="form-select" name="type">
      <option value="">Все</option>
@@ -47,6 +48,7 @@
         AppModelsPortfolioItem::class=>'Работа',
         AppModelsNewsPost::class=>'Новость',
         AppModelsCustomPage::class=>'Страница',
+        AppModelsSubjectLesson::class=>'Урок / КТП',
         default=>'Раздел',
        };
        $ownerTitle=$owner?->title ?? 'Удалённый раздел';
