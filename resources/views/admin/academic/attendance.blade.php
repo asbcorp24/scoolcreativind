@@ -16,6 +16,14 @@
    <a class="btn btn-neon" href="{{ route('admin.attendance') }}">Посещаемость</a>
    <a class="btn btn-ghost" href="{{ route('admin.homework') }}">Домашние задания</a>
    <a class="btn btn-ghost" href="{{ route('admin.schedule') }}">Расписание</a>
+   @if($group && $subjectId)
+    <a class="btn btn-ghost" target="_blank" href="{{ route('admin.attendance.print',[
+      'group_id'=>$group->id,
+      'subject_id'=>$subjectId,
+      'date_from'=>$dateFrom,
+      'date_to'=>$dateTo
+    ]) }}">Печать журнала</a>
+   @endif
   </div>
 
   <form method="get" class="glass-card p-4 mb-4">
