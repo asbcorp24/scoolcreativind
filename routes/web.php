@@ -145,6 +145,11 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::delete('/groups/{group}/members/{user}/{role}',[AdminAcademicController::class,'removeMember'])->name('groups.members.remove');
     Route::get('/subjects',[AdminAcademicController::class,'subjects'])->name('subjects');
     Route::post('/subjects/save/{subject?}',[AdminAcademicController::class,'saveSubject'])->name('subjects.save');
+    Route::get('/subjects/{subject}/lessons',[AdminAcademicController::class,'subjectLessons'])->name('subjects.lessons');
+    Route::post('/subjects/{subject}/lessons/save/{lesson?}',[AdminAcademicController::class,'saveSubjectLesson'])->name('subjects.lessons.save');
+    Route::delete('/subjects/{subject}/lessons/{lesson}',[AdminAcademicController::class,'deleteSubjectLesson'])->name('subjects.lessons.delete');
+    Route::post('/subjects/{subject}/lessons/{lesson}/media',[AdminAcademicController::class,'addSubjectLessonMedia'])->name('subjects.lessons.media.add');
+    Route::delete('/subjects/{subject}/lessons/{lesson}/media/{media}',[AdminAcademicController::class,'deleteSubjectLessonMedia'])->name('subjects.lessons.media.delete');
     Route::delete('/subjects/{subject}',[AdminAcademicController::class,'deleteSubject'])->name('subjects.delete');
     Route::post('/groups/{group}/subjects',[AdminAcademicController::class,'attachSubject'])->name('groups.subjects.attach');
     Route::get('/journal',[AdminAcademicController::class,'journal'])->name('journal');
