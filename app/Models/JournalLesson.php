@@ -2,11 +2,13 @@
 namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 class JournalLesson extends Model {
- protected $fillable=['study_group_id','subject_id','teacher_id','lesson_date','topic','notes'];
+ protected $fillable=['study_group_id','subject_id','subject_lesson_id','teacher_id','lesson_date','topic','notes'];
  protected $casts=['lesson_date'=>'date'];
  public function group(){return $this->belongsTo(StudyGroup::class,'study_group_id');}
  public function subject(){return $this->belongsTo(Subject::class);}
+ public function planLesson(){return $this->belongsTo(SubjectLesson::class,'subject_lesson_id');}
  public function teacher(){return $this->belongsTo(User::class,'teacher_id');}
  public function entries(){return $this->hasMany(JournalEntry::class);}
  public function practicalWorks(){return $this->hasMany(PortfolioItem::class,'journal_lesson_id');}
+ public function homeworkAssignment(){return $this->hasOne(HomeworkAssignment::class,'journal_lesson_id');}
 }
