@@ -10,6 +10,7 @@
     <h1 class="display-3 fw-bold mb-1">{{ $subject->title }}</h1>
     <p class="text-white-50 mb-0">{{ $subject->studio->title ?? 'Общий предмет' }}</p>
    </div>
+   <a class="btn btn-ghost" target="_blank" href="{{ route('admin.ktp.print',$subject) }}">Печать КТП</a>
   </div>
  </div>
 </section>
