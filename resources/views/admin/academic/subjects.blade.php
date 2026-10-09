@@ -59,7 +59,7 @@
      @else
       <div class="table-responsive">
        <table class="table admin-table align-middle">
-        <thead><tr><th>Название</th><th>Студия</th><th>Описание</th><th></th></tr></thead>
+        <thead><tr><th>Название</th><th>Студия</th><th>Описание</th><th>План</th><th></th></tr></thead>
         <tbody>
          @foreach($subjects as $subject)
           <tr>
