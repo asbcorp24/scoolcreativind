@@ -74,20 +74,56 @@
     <input type="hidden" name="study_group_id" value="{{ $group->id }}">
     <input type="hidden" name="subject_id" value="{{ $subject->id }}">
     <div class="row g-3">
-     <div class="col-md-3"><label class="form-label">Дата</label><input type="date" class="form-control" name="lesson_date" value="{{ now()->toDateString() }}" required></div>
-     <div class="col-md-7"><label class="form-label">Тема урока</label><input class="form-control" name="topic" placeholder="Тема урока" required></div>
-     <div class="col-md-2 d-flex align-items-end"><button class="btn btn-ghost w-100">+ Урок</button></div>
+     <div class="col-md-3">
+      <label class="form-label">Дата проведения</label>
+      <input type="date" class="form-control" name="lesson_date" value="{{ now()->toDateString() }}" required>
+     </div>
+     <div class="col-md-7">
+      <label class="form-label">Урок из календарно-тематического плана</label>
+      <select class="form-select" name="subject_lesson_id" required>
+       <option value="">Выберите урок</option>
+       @foreach($planLessons as $planLesson)
+        <option value="{{ $planLesson->id }}">
+         Урок {{ $planLesson->lesson_number }} · {{ $planLesson->title }}
+        </option>
+       @endforeach
+      </select>
+      @if($planLessons->isEmpty())
+       <div class="form-text text-warning">
+        В предмете ещё нет опубликованных уроков.
+        <a href="{{ route('admin.subjects.lessons',$subject) }}">Открыть КТП</a>
+       </div>
+      @else
+       <div class="form-text text-white-50">Название, содержание, материалы и домашнее задание берутся из плана предмета.</div>
+      @endif
+     </div>
+     <div class="col-md-2 d-flex align-items-end">
+      <button class="btn btn-neon w-100" @disabled($planLessons->isEmpty())>Провести урок</button>
+     </div>
      <div class="col-12">
-      <label class="form-label">Практическое задание / описание урока</label>
-      <textarea class="form-control" rows="4" name="notes" placeholder="Что нужно выполнить, требования к работе, материалы, ссылки..."></textarea>
-      <div class="form-text text-white-50">Этот текст ученик увидит, когда откроет практическую работу к уроку.</div>
+      <label class="form-label">Комментарий преподавателя к проведению</label>
+      <textarea class="form-control" rows="3" name="notes" placeholder="Дополнительные пояснения именно для этого проведения урока..."></textarea>
      </div>
     </div>
    </form>
 
    @foreach($lessons as $lesson)
     <div class="glass-card p-4 mb-4">
-     <h4>{{ $lesson->lesson_date->format('d.m.Y') }} · {{ $lesson->topic }}</h4>
+     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+      <div>
+       <div class="small text-white-50">
+        {{ $lesson->lesson_date->format('d.m.Y') }}
+        @if($lesson->planLesson) · Урок {{ $lesson->planLesson->lesson_number }} @endif
+       </div>
+       <h4 class="mb-1">{{ $lesson->topic }}</h4>
+       @if($lesson->homeworkAssignment)
+        <span class="badge-soft">Домашнее задание создано</span>
+       @endif
+      </div>
+      @if($lesson->planLesson)
+       <a class="btn btn-sm btn-ghost" href="{{ route('admin.subjects.lessons',$subject) }}">Открыть КТП</a>
+      @endif
+     </div>
      <div class="table-responsive">
       <table class="table admin-table align-middle">
        <thead><tr><th>Ученик</th><th>Посещение</th><th>Оценка</th><th>Комментарий</th><th></th></tr></thead>
