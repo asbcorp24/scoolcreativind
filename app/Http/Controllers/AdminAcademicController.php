@@ -638,6 +638,127 @@ class AdminAcademicController extends Controller
         ));
     }
 
+    public function printJournalReport(Request $request)
+    {
+        $data=$request->validate([
+            'group_id'=>'required|exists:study_groups,id',
+            'subject_id'=>'required|exists:subjects,id',
+            'date_from'=>'nullable|date',
+            'date_to'=>'nullable|date',
+        ]);
+
+        $groupId=(int)$data['group_id'];
+        $subjectId=(int)$data['subject_id'];
+        $this->ensureSubjectAllowed($groupId,$subjectId);
+
+        $dateFrom=$data['date_from'] ?? now()->startOfMonth()->toDateString();
+        $dateTo=$data['date_to'] ?? now()->toDateString();
+
+        $group=StudyGroup::with(['students','studio'])->findOrFail($groupId);
+        $subject=Subject::with('studio')->findOrFail($subjectId);
+
+        $lessons=JournalLesson::with(['entries','planLesson','teacher'])
+            ->where('study_group_id',$groupId)
+            ->where('subject_id',$subjectId)
+            ->whereBetween('lesson_date',[$dateFrom,$dateTo])
+            ->orderBy('lesson_date')
+            ->orderBy('id')
+            ->get();
+
+        $students=$group->students->sortBy('name')->values();
+
+        $attendanceMatrix=[];
+        $gradeMatrix=[];
+        $studentSummary=[];
+
+        foreach($students as $student){
+            $present=0;
+            $late=0;
+            $absent=0;
+            $excused=0;
+            $grades=[];
+
+            foreach($lessons as $lesson){
+                $entry=$lesson->entries->firstWhere('student_id',$student->id);
+
+                $attendance=$entry?->attendance;
+                $attendanceMatrix[$student->id][$lesson->id]=match($attendance){
+                    'present'=>'Б',
+                    'absent'=>'Н',
+                    'late'=>'О',
+                    'excused'=>'У',
+                    default=>'—',
+                };
+
+                if($attendance==='present')$present++;
+                if($attendance==='late')$late++;
+                if($attendance==='absent')$absent++;
+                if($attendance==='excused')$excused++;
+
+                $grade=$entry?->grade ?? $entry?->grade_label;
+                $gradeMatrix[$student->id][$lesson->id]=$grade ?: '—';
+
+                if(is_numeric($entry?->grade)){
+                    $grades[]=(float)$entry->grade;
+                }
+            }
+
+            $total=$lessons->count();
+            $studentSummary[$student->id]=[
+                'present'=>$present,
+                'late'=>$late,
+                'absent'=>$absent,
+                'excused'=>$excused,
+                'attendance_rate'=>$total ? round((($present+$late)/$total)*100,1) : null,
+                'average_grade'=>count($grades) ? round(array_sum($grades)/count($grades),2) : null,
+            ];
+        }
+
+        return view('admin.academic.print-journal',compact(
+            'group','subject','lessons','students','attendanceMatrix','gradeMatrix',
+            'studentSummary','dateFrom','dateTo'
+        ));
+    }
+
+    public function printKtpReport(Request $request, Subject $subject)
+    {
+        $this->ensureSubjectPlanAllowed($subject);
+
+        $groupId=$request->integer('group_id');
+        $group=null;
+
+        if($groupId){
+            $this->ensureSubjectAllowed($groupId,$subject->id);
+            $group=StudyGroup::findOrFail($groupId);
+        }
+
+        $subject->load([
+            'studio',
+            'lessons'=>fn($q)=>$q->withCount('media')
+                ->orderBy('sort_order')
+                ->orderBy('lesson_number'),
+        ]);
+
+        $actualDates=collect();
+
+        if($group){
+            $actualDates=JournalLesson::where('study_group_id',$group->id)
+                ->where('subject_id',$subject->id)
+                ->whereNotNull('subject_lesson_id')
+                ->orderBy('lesson_date')
+                ->get()
+                ->groupBy('subject_lesson_id')
+                ->map(fn($items)=>$items->pluck('lesson_date')
+                    ->filter()
+                    ->map(fn($date)=>$date->format('d.m.Y'))
+                    ->implode(', '));
+        }
+
+        return view('admin.academic.print-ktp',compact(
+            'subject','group','actualDates'
+        ));
+    }
+
     public function homework()
     {
         $groups=StudyGroup::with('subjects')
