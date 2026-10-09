@@ -147,6 +147,7 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::post('/subjects/save/{subject?}',[AdminAcademicController::class,'saveSubject'])->name('subjects.save');
     Route::get('/subjects/{subject}/lessons',[AdminAcademicController::class,'subjectLessons'])->name('subjects.lessons');
     Route::post('/subjects/{subject}/lessons/save/{lesson?}',[AdminAcademicController::class,'saveSubjectLesson'])->name('subjects.lessons.save');
+    Route::post('/subjects/{subject}/lessons/import-json',[AdminAcademicController::class,'importSubjectLessonsJson'])->name('subjects.lessons.import-json');
     Route::delete('/subjects/{subject}/lessons/{lesson}',[AdminAcademicController::class,'deleteSubjectLesson'])->name('subjects.lessons.delete');
     Route::post('/subjects/{subject}/lessons/{lesson}/media',[AdminAcademicController::class,'addSubjectLessonMedia'])->name('subjects.lessons.media.add');
     Route::delete('/subjects/{subject}/lessons/{lesson}/media/{media}',[AdminAcademicController::class,'deleteSubjectLessonMedia'])->name('subjects.lessons.media.delete');
