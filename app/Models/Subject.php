@@ -5,4 +5,5 @@ class Subject extends Model {
  protected $fillable=['title','studio_id','description'];
  public function studio(){return $this->belongsTo(Studio::class);}
  public function groups(){return $this->belongsToMany(StudyGroup::class,'group_subjects')->withPivot('teacher_id')->withTimestamps();}
+ public function lessons(){return $this->hasMany(SubjectLesson::class)->orderBy('sort_order')->orderBy('lesson_number');}
 }
