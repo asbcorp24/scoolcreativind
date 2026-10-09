@@ -81,7 +81,6 @@
       'group_id'=>$group->id
     ]) }}">Печать КТП</a>
    </div>
-  @if($group && $subject)
    <form class="glass-card p-4 mb-4" method="post" action="{{ route('admin.journal.lessons.create') }}">
     @csrf
     <input type="hidden" name="study_group_id" value="{{ $group->id }}">
