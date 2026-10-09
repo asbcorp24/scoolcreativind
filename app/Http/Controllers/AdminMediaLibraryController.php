@@ -6,6 +6,7 @@ use App\Models\Studio;
 use App\Models\PortfolioItem;
 use App\Models\NewsPost;
 use App\Models\CustomPage;
+use App\Models\SubjectLesson;
 use Illuminate\Http\Request;
 
 class AdminMediaLibraryController extends Controller
@@ -26,6 +27,7 @@ class AdminMediaLibraryController extends Controller
                 'works'=>PortfolioItem::class,
                 'news'=>NewsPost::class,
                 'pages'=>CustomPage::class,
+                'lessons'=>SubjectLesson::class,
             ];
             if(isset($map[$request->input('section')])){
                 $query->where('attachable_type',$map[$request->input('section')]);
