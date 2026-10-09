@@ -137,7 +137,13 @@ class AcademicController extends Controller
         $user=auth()->user();
         abort_unless($this->canAccessLesson($user,$lesson),403);
 
-        $lesson->load(['subject','group','teacher']);
+        $lesson->load([
+            'subject',
+            'group',
+            'teacher',
+            'planLesson.media'=>fn($q)=>$q->where('is_visible',true)->orderBy('sort_order'),
+            'homeworkAssignment',
+        ]);
         $profile=StudentProfile::firstOrCreate(
             ['user_id'=>$user->id],
             [
