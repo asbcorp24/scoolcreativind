@@ -23,6 +23,76 @@
    </div>
   @endif
 
+  <div class="glass-card p-4 mb-4">
+   <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+    <div>
+     <div class="eyebrow">Массовое заполнение</div>
+     <h3 class="mt-2 mb-1">Импорт КТП из JSON</h3>
+     <div class="text-white-50">Можно загрузить файл или вставить JSON. Совпадение определяется по номеру урока.</div>
+    </div>
+    <span class="badge-soft">JSON</span>
+   </div>
+
+   <form method="post" enctype="multipart/form-data" action="{{ route('admin.subjects.lessons.import-json',$subject) }}">
+    @csrf
+    <div class="row g-3">
+     <div class="col-lg-5">
+      <label class="form-label">JSON-файл</label>
+      <input type="file" class="form-control" name="json_file" accept=".json,application/json,text/json">
+      <div class="form-text text-white-50">До 10 МБ. Если заполнено поле ниже, будет использован текст.</div>
+     </div>
+     <div class="col-lg-4">
+      <label class="form-label">Если урок с таким № уже существует</label>
+      <select class="form-select" name="existing_action">
+       <option value="update" @selected(old('existing_action','update')==='update')>Обновить существующий</option>
+       <option value="skip" @selected(old('existing_action')==='skip')>Пропустить</option>
+      </select>
+     </div>
+     <div class="col-lg-3 d-flex align-items-end">
+      <button class="btn btn-neon w-100">Импортировать КТП</button>
+     </div>
+
+     <div class="col-12">
+      <label class="form-label">Или вставьте JSON</label>
+      <textarea class="form-control font-monospace" rows="7" name="json_text" placeholder='{"lessons":[{"lesson_number":1,"title":"Введение в 3D","content":"..."}]}'>{{ old('json_text') }}</textarea>
+     </div>
+    </div>
+   </form>
+
+   <details class="mt-3">
+    <summary class="text-white-50" style="cursor:pointer">Формат JSON и пример</summary>
+    <pre class="mt-3 p-3 rounded-3 mb-0" style="white-space:pre-wrap;background:rgba(0,0,0,.25);font-size:.86rem"><code>{
+  "version": 1,
+  "lessons": [
+    {
+      "lesson_number": 1,
+      "title": "Введение в 3D-графику",
+      "content": "Теория и практическая работа...",
+      "homework_description": "Создать композицию из примитивов",
+      "homework_due_days": 7,
+      "homework_max_score": 5,
+      "sort_order": 1,
+      "is_published": true,
+      "media": [
+        {
+          "type": "link",
+          "title": "Дополнительный материал",
+          "url": "https://example.org/material",
+          "caption": "Открыть после занятия",
+          "sort_order": 0,
+          "is_visible": true
+        }
+      ]
+    }
+  ]
+}</code></pre>
+    <div class="small text-white-50 mt-2">
+     Поля <code>lesson_number</code> и <code>title</code> обязательны.
+     Материалы из JSON добавляются по URL; локальные файлы по-прежнему загружаются в карточке урока.
+    </div>
+   </details>
+  </div>
+
   <div class="glass-card p-4 mb-5">
    <div class="eyebrow">Новый пункт плана</div>
    <h3 class="mt-2 mb-4">Добавить урок</h3>
