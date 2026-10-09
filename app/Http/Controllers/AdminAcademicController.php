@@ -9,7 +9,10 @@ use App\Models\StudyGroup;
 use App\Models\StudentProfile;
 use App\Models\Studio;
 use App\Models\Subject;
+use App\Models\SubjectLesson;
+use App\Models\MediaLibraryItem;
 use App\Models\User;
+use App\Services\StorageQuota;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
@@ -45,6 +48,19 @@ class AdminAcademicController extends Controller
     {
         $this->ensureGroupAllowed($groupId);
         abort_unless($this->allowedSubjectIdsForGroup($groupId)->contains($subjectId),403);
+    }
+
+    private function ensureSubjectPlanAllowed(Subject $subject): void
+    {
+        if(auth()->user()->is_admin){
+            return;
+        }
+
+        $allowed=$subject->groups()
+            ->wherePivot('teacher_id',auth()->id())
+            ->exists();
+
+        abort_unless($allowed,403);
     }
 
     private function restrictGroupSubjectsForTeacher($groups)
@@ -197,6 +213,154 @@ class AdminAcademicController extends Controller
         $subject ??= new Subject();
         $subject->fill($data)->save();
         return back()->with('success','Предмет сохранён.');
+    }
+
+    public function subjectLessons(Subject $subject)
+    {
+        $this->ensureSubjectPlanAllowed($subject);
+
+        $subject->load([
+            'studio',
+            'lessons'=>fn($q)=>$q->with('media')->orderBy('sort_order')->orderBy('lesson_number'),
+        ]);
+
+        return view('admin.academic.subject-lessons',compact('subject'));
+    }
+
+    public function saveSubjectLesson(Request $request, Subject $subject, ?SubjectLesson $lesson=null)
+    {
+        $this->ensureSubjectPlanAllowed($subject);
+
+        if($lesson){
+            abort_unless((int)$lesson->subject_id===(int)$subject->id,404);
+        }
+
+        $data=$request->validate([
+            'lesson_number'=>'required|integer|min:1|max:999',
+            'title'=>'required|string|max:255',
+            'content'=>'nullable|string|max:50000',
+            'homework_description'=>'nullable|string|max:30000',
+            'homework_due_days'=>'nullable|integer|min:0|max:365',
+            'homework_max_score'=>'required|integer|min:1|max:100',
+            'sort_order'=>'nullable|integer|min:0|max:99999',
+            'is_published'=>'nullable|boolean',
+        ]);
+
+        $duplicate=SubjectLesson::where('subject_id',$subject->id)
+            ->where('lesson_number',$data['lesson_number'])
+            ->when($lesson,fn($q)=>$q->where('id','<>',$lesson->id))
+            ->exists();
+
+        if($duplicate){
+            return back()->withErrors([
+                'lesson_number'=>'У этого предмета уже есть урок с таким номером.'
+            ])->withInput();
+        }
+
+        $lesson ??= new SubjectLesson(['subject_id'=>$subject->id]);
+        $data['subject_id']=$subject->id;
+        $data['sort_order']=$data['sort_order'] ?? $data['lesson_number'];
+        $data['is_published']=$request->boolean('is_published');
+        $lesson->fill($data)->save();
+
+        return redirect()
+            ->route('admin.subjects.lessons',$subject)
+            ->with('success','Урок календарно-тематического плана сохранён.');
+    }
+
+    public function deleteSubjectLesson(Subject $subject, SubjectLesson $lesson)
+    {
+        $this->ensureSubjectPlanAllowed($subject);
+        abort_unless((int)$lesson->subject_id===(int)$subject->id,404);
+
+        if($lesson->journalLessons()->exists()){
+            return back()->withErrors([
+                'lesson'=>'Этот урок уже проводился. Его нельзя удалить; снимите публикацию, если нужно скрыть его из плана.'
+            ]);
+        }
+
+        foreach($lesson->media as $media){
+            if($media->url && !preg_match('~^(https?:)?//~i',$media->url)){
+                Storage::disk('public')->delete($media->url);
+            }
+            $media->delete();
+        }
+
+        $lesson->delete();
+        return back()->with('success','Урок удалён из плана.');
+    }
+
+    public function addSubjectLessonMedia(Request $request, Subject $subject, SubjectLesson $lesson)
+    {
+        $this->ensureSubjectPlanAllowed($subject);
+        abort_unless((int)$lesson->subject_id===(int)$subject->id,404);
+
+        $data=$request->validate([
+            'type'=>'required|in:photo,panorama,video,model,audio,file,link',
+            'title'=>'nullable|string|max:255',
+            'url'=>'nullable|string|max:2000',
+            'file'=>'nullable|file|max:102400',
+            'caption'=>'nullable|string|max:3000',
+            'sort_order'=>'nullable|integer|min:0|max:99999',
+            'is_visible'=>'nullable|boolean',
+        ]);
+
+        if(!$request->filled('url') && !$request->hasFile('file')){
+            return back()->withErrors(['file'=>'Укажите ссылку или загрузите файл.'])->withInput();
+        }
+
+        if($request->hasFile('file')){
+            $file=$request->file('file');
+            $ext=strtolower($file->getClientOriginalExtension());
+            $allowed=[
+                'photo'=>['jpg','jpeg','png','webp','gif'],
+                'panorama'=>['jpg','jpeg','png','webp'],
+                'video'=>['mp4','webm','mov'],
+                'model'=>['glb','gltf','stl'],
+                'audio'=>['mp3','wav','ogg','m4a','aac'],
+                'file'=>['pdf','doc','docx','xls','xlsx','ppt','pptx','zip','txt'],
+                'link'=>[],
+            ];
+
+            if(!in_array($ext,$allowed[$data['type']] ?? [],true)){
+                return back()->withErrors(['file'=>'Формат файла не подходит выбранному типу материала.'])->withInput();
+            }
+
+            if(!StorageQuota::canStore((int)$file->getSize())){
+                return back()->withErrors(['file'=>'Недостаточно места в хранилище.'])->withInput();
+            }
+
+            $data['url']=$file->store('subject-lessons/'.$lesson->id,'public');
+            $data['file_name']=$file->getClientOriginalName();
+            $data['mime_type']=$file->getMimeType();
+            $data['file_size']=$file->getSize();
+        }
+
+        unset($data['file']);
+        $data['sort_order']=$data['sort_order'] ?? 0;
+        $data['is_visible']=$request->boolean('is_visible');
+        $data['is_featured']=false;
+        $lesson->media()->create($data);
+
+        return back()->with('success','Материал добавлен к уроку.');
+    }
+
+    public function deleteSubjectLessonMedia(Subject $subject, SubjectLesson $lesson, MediaLibraryItem $media)
+    {
+        $this->ensureSubjectPlanAllowed($subject);
+        abort_unless((int)$lesson->subject_id===(int)$subject->id,404);
+        abort_unless(
+            $media->attachable_type===SubjectLesson::class &&
+            (int)$media->attachable_id===(int)$lesson->id,
+            404
+        );
+
+        if($media->url && !preg_match('~^(https?:)?//~i',$media->url)){
+            Storage::disk('public')->delete($media->url);
+        }
+        $media->delete();
+
+        return back()->with('success','Материал удалён.');
     }
 
     public function deleteSubject(Subject $subject)
