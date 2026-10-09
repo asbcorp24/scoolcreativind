@@ -75,7 +75,7 @@ class AcademicController extends Controller
             ]
         );
 
-        $practicalLessons=JournalLesson::with(['subject','group','teacher'])
+        $practicalLessons=JournalLesson::with(['subject','group','teacher','planLesson','homeworkAssignment'])
             ->whereIn('study_group_id',$groupIds)
             ->orderByDesc('lesson_date')
             ->orderByDesc('id')
