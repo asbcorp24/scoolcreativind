@@ -1,0 +1,6 @@
+server/storage/
+client/build/
+deploy/.env
+*.user
+*.vcxproj
+*.sln
