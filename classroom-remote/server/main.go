@@ -1,0 +1,234 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/gorilla/websocket"
+)
+
+type Client struct {
+	ID       string
+	Role     string
+	LessonID string
+	Name     string
+	Conn     *websocket.Conn
+	Send     chan []byte
+}
+
+type Hub struct {
+	mu      sync.RWMutex
+	clients map[*Client]bool
+}
+
+func NewHub() *Hub {
+	return &Hub{clients: map[*Client]bool{}}
+}
+
+func (h *Hub) add(c *Client) {
+	h.mu.Lock()
+	h.clients[c] = true
+	h.mu.Unlock()
+	h.broadcastPresence(c.LessonID)
+}
+
+func (h *Hub) remove(c *Client) {
+	h.mu.Lock()
+	delete(h.clients, c)
+	h.mu.Unlock()
+	close(c.Send)
+	h.broadcastPresence(c.LessonID)
+}
+
+func (h *Hub) sendLesson(lessonID string, payload any, filter func(*Client) bool) {
+	b, _ := json.Marshal(payload)
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	for c := range h.clients {
+		if c.LessonID == lessonID && (filter == nil || filter(c)) {
+			select {
+			case c.Send <- b:
+			default:
+			}
+		}
+	}
+}
+
+func (h *Hub) sendTo(lessonID, clientID string, payload any) {
+	h.sendLesson(lessonID, payload, func(c *Client) bool { return c.ID == clientID })
+}
+
+func (h *Hub) broadcastPresence(lessonID string) {
+	type item struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+		Role string `json:"role"`
+	}
+	var users []item
+	h.mu.RLock()
+	for c := range h.clients {
+		if c.LessonID == lessonID {
+			users = append(users, item{c.ID, c.Name, c.Role})
+		}
+	}
+	h.mu.RUnlock()
+	h.sendLesson(lessonID, map[string]any{"type": "presence", "users": users},
+		func(c *Client) bool { return c.Role == "teacher" })
+}
+
+var upgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+
+func wsHandler(h *Hub) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		lessonID := r.URL.Query().Get("lesson")
+		id := r.URL.Query().Get("id")
+		role := r.URL.Query().Get("role")
+		name := r.URL.Query().Get("name")
+		if lessonID == "" || id == "" || (role != "teacher" && role != "student") {
+			http.Error(w, "lesson, id and role are required", http.StatusBadRequest)
+			return
+		}
+
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		c := &Client{ID: id, Role: role, LessonID: lessonID, Name: name, Conn: conn, Send: make(chan []byte, 64)}
+		h.add(c)
+		defer func() { h.remove(c); conn.Close() }()
+
+		go func() {
+			for msg := range c.Send {
+				_ = conn.WriteMessage(websocket.TextMessage, msg)
+			}
+		}()
+
+		for {
+			_, b, err := conn.ReadMessage()
+			if err != nil {
+				return
+			}
+			var m map[string]any
+			if json.Unmarshal(b, &m) != nil {
+				continue
+			}
+			t, _ := m["type"].(string)
+			switch t {
+			case "hand_raise", "hand_down":
+				if c.Role == "student" {
+					m["student_id"] = c.ID
+					m["student_name"] = c.Name
+					h.sendLesson(lessonID, m, func(x *Client) bool { return x.Role == "teacher" })
+				}
+			case "signal", "remote_request", "remote_stop", "audio_request":
+				target, _ := m["target"].(string)
+				if target != "" {
+					m["from"] = c.ID
+					m["from_role"] = c.Role
+					h.sendTo(lessonID, target, m)
+				}
+			case "lecture_state":
+				if c.Role == "teacher" {
+					h.sendLesson(lessonID, m, func(x *Client) bool { return x.Role == "student" })
+				}
+			}
+		}
+	}
+}
+
+func snapshotUpload(root string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		lesson := chi.URLParam(r, "lesson")
+		student := chi.URLParam(r, "student")
+		if lesson == "" || student == "" {
+			http.Error(w, "bad path", 400)
+			return
+		}
+		maxBytes := int64(2 << 20)
+		r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+		defer r.Body.Close()
+
+		dir := filepath.Join(root, safe(lesson), safe(student))
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		ts := time.Now().UTC().UnixMilli()
+		name := fmt.Sprintf("%d.webp", ts)
+		dst, err := os.Create(filepath.Join(dir, name))
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		defer dst.Close()
+		if _, err = io.Copy(dst, r.Body); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "timestamp": ts, "file": name})
+	}
+}
+
+func latestSnapshot(root string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		dir := filepath.Join(root, safe(chi.URLParam(r, "lesson")), safe(chi.URLParam(r, "student")))
+		entries, err := os.ReadDir(dir)
+		if err != nil || len(entries) == 0 {
+			http.NotFound(w, r)
+			return
+		}
+		var newest os.DirEntry
+		var newestTS int64
+		for _, e := range entries {
+			if e.IsDir() || !strings.HasSuffix(e.Name(), ".webp") {
+				continue
+			}
+			v, _ := strconv.ParseInt(strings.TrimSuffix(e.Name(), ".webp"), 10, 64)
+			if v > newestTS {
+				newestTS, newest = v, e
+			}
+		}
+		if newest == nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "image/webp")
+		http.ServeFile(w, r, filepath.Join(dir, newest.Name()))
+	}
+}
+
+func safe(s string) string {
+	s = filepath.Base(s)
+	s = strings.ReplaceAll(s, "..", "_")
+	return s
+}
+
+func main() {
+	addr := env("ADDR", ":8080")
+	root := env("STORAGE_DIR", "./storage")
+	hub := NewHub()
+	r := chi.NewRouter()
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
+	r.Get("/ws", wsHandler(hub))
+	r.Post("/api/v1/lessons/{lesson}/students/{student}/snapshot", snapshotUpload(root))
+	r.Get("/api/v1/lessons/{lesson}/students/{student}/snapshot/latest", latestSnapshot(root))
+	log.Printf("classroom server listening on %s", addr)
+	log.Fatal(http.ListenAndServe(addr, r))
+}
+
+func env(k, d string) string {
+	if v := os.Getenv(k); v != "" {
+		return v
+	}
+	return d
+}
