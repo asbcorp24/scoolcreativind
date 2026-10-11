@@ -1,0 +1,47 @@
+services:
+  api:
+    build: ../server
+    restart: unless-stopped
+    environment:
+      ADDR: ":8080"
+      STORAGE_DIR: /data
+    volumes:
+      - snapshots:/data
+    expose:
+      - "8080"
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: classroom
+      POSTGRES_USER: classroom
+      POSTGRES_PASSWORD: change_me_now
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  coturn:
+    image: coturn/coturn:4.6.3
+    restart: unless-stopped
+    network_mode: host
+    command: ["-c", "/etc/coturn/turnserver.conf"]
+    volumes:
+      - ./turnserver.conf:/etc/coturn/turnserver.conf:ro
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  snapshots:
+  caddy_data:
