@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QByteArray>
+#include <QHash>
 #include <QJsonObject>
 #include <QStringList>
 #include <memory>
@@ -41,11 +42,20 @@ signals:
     void textReceived(const QJsonObject& object);
 
 private:
+    struct PendingFrame {
+        quint16 chunkCount{};
+        quint16 received{};
+        QVector<QByteArray> chunks;
+    };
+
     void handleSignal(const QJsonObject& object);
     void installDataChannelCallbacks(const std::shared_ptr<rtc::DataChannel>& dc);
+    void handleBinary(const rtc::binary& data);
 
     WsClient* signaling_{};
     std::shared_ptr<rtc::PeerConnection> pc_;
     std::shared_ptr<rtc::DataChannel> dc_;
     bool offerSent_{false};
+    quint32 nextFrameId_{1};
+    QHash<QString, PendingFrame> pendingFrames_;
 };
