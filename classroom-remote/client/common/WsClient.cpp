@@ -1,5 +1,6 @@
 #include "WsClient.h"
 #include <QJsonDocument>
+#include <QNetworkRequest>
 #include <QUrlQuery>
 
 WsClient::WsClient(QObject* parent) : QObject(parent) {
@@ -22,9 +23,10 @@ void WsClient::connectTo(const QUrl& baseWs, const QString& lesson, const QStrin
     q.addQueryItem("id", id);
     q.addQueryItem("role", role);
     q.addQueryItem("name", name);
-    q.addQueryItem("token", token);
     u.setQuery(q);
-    socket_.open(u);
+    QNetworkRequest request(u);
+    request.setRawHeader("Authorization", "Bearer " + token.toUtf8());
+    socket_.open(request);
 }
 
 void WsClient::send(const QJsonObject& obj) {
