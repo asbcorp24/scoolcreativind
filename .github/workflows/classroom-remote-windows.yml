@@ -46,3 +46,22 @@ jobs:
         shell: pwsh
         working-directory: classroom-remote/client
         run: cmake --build build --config Release --parallel 2
+
+      - name: Deploy Qt runtime
+        shell: pwsh
+        working-directory: classroom-remote/client
+        run: |
+          $dist = Join-Path $PWD "dist"
+          New-Item -ItemType Directory -Force -Path "$dist\teacher" | Out-Null
+          New-Item -ItemType Directory -Force -Path "$dist\student" | Out-Null
+          Copy-Item "build\Release\ClassroomTeacher.exe" "$dist\teacher\"
+          Copy-Item "build\Release\ClassroomStudent.exe" "$dist\student\"
+          & "C:\Qt\6.8.3\msvc2022_64\bin\windeployqt.exe" --release "$dist\teacher\ClassroomTeacher.exe"
+          & "C:\Qt\6.8.3\msvc2022_64\bin\windeployqt.exe" --release "$dist\student\ClassroomStudent.exe"
+
+      - name: Upload Windows clients
+        uses: actions/upload-artifact@v4
+        with:
+          name: classroom-remote-windows
+          path: classroom-remote/client/dist
+          if-no-files-found: error
