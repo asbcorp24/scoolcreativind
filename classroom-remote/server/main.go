@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -88,14 +89,61 @@ func (h *Hub) broadcastPresence(lessonID string) {
 
 var upgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
 
-func wsHandler(h *Hub, rtcRelay *RTCRelay) http.HandlerFunc {
+type authConfig struct {
+	teacherToken string
+	studentToken string
+}
+
+func (a authConfig) valid(role, token string) bool {
+	expected := ""
+	switch role {
+	case "teacher":
+		expected = a.teacherToken
+	case "student":
+		expected = a.studentToken
+	default:
+		return false
+	}
+	if expected == "" || token == "" || len(expected) != len(token) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(expected), []byte(token)) == 1
+}
+
+func bearerToken(r *http.Request) string {
+	const prefix = "Bearer "
+	v := r.Header.Get("Authorization")
+	if !strings.HasPrefix(v, prefix) {
+		return ""
+	}
+	return strings.TrimSpace(strings.TrimPrefix(v, prefix))
+}
+
+func requireBearer(expected string, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token := bearerToken(r)
+		if expected == "" || token == "" || len(expected) != len(token) ||
+			subtle.ConstantTimeCompare([]byte(expected), []byte(token)) != 1 {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next(w, r)
+	}
+}
+
+func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		lessonID := r.URL.Query().Get("lesson")
 		id := r.URL.Query().Get("id")
 		role := r.URL.Query().Get("role")
 		name := r.URL.Query().Get("name")
+		token := r.URL.Query().Get("token")
 		if lessonID == "" || id == "" || (role != "teacher" && role != "student") {
 			http.Error(w, "lesson, id and role are required", http.StatusBadRequest)
+			return
+		}
+		if !auth.valid(role, token) {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 
@@ -237,6 +285,13 @@ func safe(s string) string {
 func main() {
 	addr := env("ADDR", ":8080")
 	root := env("STORAGE_DIR", "./storage")
+	auth := authConfig{
+		teacherToken: strings.TrimSpace(os.Getenv("TEACHER_TOKEN")),
+		studentToken: strings.TrimSpace(os.Getenv("STUDENT_TOKEN")),
+	}
+	if auth.teacherToken == "" || auth.studentToken == "" {
+		log.Fatal("TEACHER_TOKEN and STUDENT_TOKEN must be configured")
+	}
 	hub := NewHub()
 	rtcRelay, rtcErr := NewRTCRelay()
 	if rtcErr != nil {
@@ -244,11 +299,15 @@ func main() {
 	}
 	r := chi.NewRouter()
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
-	r.Get("/ws", wsHandler(hub, rtcRelay))
-	r.Post("/api/v1/lessons/{lesson}/students/{student}/snapshot", snapshotUpload(root))
-	r.Get("/api/v1/lessons/{lesson}/students/{student}/snapshot/latest", latestSnapshot(root))
-	r.Get("/api/v1/lessons/{lesson}/students/{student}/recording.zip", recordingZip(root))
-	r.Get("/api/v1/lessons/{lesson}/students/{student}/recording.mp4", recordingMP4(root))
+	r.Get("/ws", wsHandler(hub, rtcRelay, auth))
+	r.Post("/api/v1/lessons/{lesson}/students/{student}/snapshot",
+		requireBearer(auth.studentToken, snapshotUpload(root)))
+	r.Get("/api/v1/lessons/{lesson}/students/{student}/snapshot/latest",
+		requireBearer(auth.teacherToken, latestSnapshot(root)))
+	r.Get("/api/v1/lessons/{lesson}/students/{student}/recording.zip",
+		requireBearer(auth.teacherToken, recordingZip(root)))
+	r.Get("/api/v1/lessons/{lesson}/students/{student}/recording.mp4",
+		requireBearer(auth.teacherToken, recordingMP4(root)))
 	log.Printf("classroom server listening on %s", addr)
 	log.Fatal(http.ListenAndServe(addr, r))
 }
