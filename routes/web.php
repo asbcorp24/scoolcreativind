@@ -32,6 +32,7 @@ use App\Http\Controllers\AdminCooperationController;
 use App\Http\Controllers\AdminMediaLibraryController;
 use App\Http\Controllers\AdminParentReportController;
 use App\Http\Controllers\AdminTeacherController;
+use App\Http\Controllers\AdminRegistrationController;
 use App\Http\Controllers\ParentReportController;
 use Illuminate\Support\Facades\Route;
 
@@ -96,6 +97,9 @@ Route::prefix('admin')->name('admin.')->group(function(){
 
     Route::middleware('admin')->group(function(){
     Route::get('/',[AdminController::class,'dashboard'])->name('dashboard');
+    Route::get('/registrations',[AdminRegistrationController::class,'index'])->name('registrations.index');
+    Route::delete('/registrations/bulk',[AdminRegistrationController::class,'destroyBulk'])->name('registrations.bulk-delete');
+    Route::delete('/registrations/{user}',[AdminRegistrationController::class,'destroy'])->name('registrations.delete');
     Route::get('/access-admins',[AdminAccessController::class,'index'])->name('access-admins');
     Route::get('/access-admins/{user}/edit',[AdminAccessController::class,'edit'])->name('access-admins.edit');
     Route::post('/access-admins/save/{user?}',[AdminAccessController::class,'save'])->name('access-admins.save');
