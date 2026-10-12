@@ -9,7 +9,7 @@ class WsClient final : public QObject {
 public:
     explicit WsClient(QObject* parent = nullptr);
     void connectTo(const QUrl& baseWs, const QString& lesson, const QString& id,
-                   const QString& role, const QString& name);
+                   const QString& role, const QString& name, const QString& token);
     void send(const QJsonObject& obj);
     bool isConnected() const;
 
