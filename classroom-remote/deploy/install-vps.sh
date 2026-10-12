@@ -18,6 +18,7 @@ ufw allow 3478/tcp
 ufw allow 3478/udp
 ufw allow 5349/tcp
 ufw allow 49160:49260/udp
+ufw allow 50000:50100/udp
 
 echo "Edit Caddyfile and turnserver.conf first, then run:"
 echo "  docker compose up -d --build"
