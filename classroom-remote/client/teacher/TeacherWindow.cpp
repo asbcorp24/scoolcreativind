@@ -51,12 +51,17 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     auto* form = new QHBoxLayout;
     server_ = new QLineEdit("wss://classroom.example.ru/ws");
     lesson_ = new QLineEdit("101");
+    token_ = new QLineEdit;
+    token_->setPlaceholderText("TEACHER_TOKEN");
+    token_->setEchoMode(QLineEdit::Password);
     teacherName_ = new QLineEdit("Преподаватель");
     auto* connectBtn = new QPushButton("Подключиться");
     form->addWidget(new QLabel("Сервер:"));
     form->addWidget(server_, 2);
     form->addWidget(new QLabel("Занятие:"));
     form->addWidget(lesson_);
+    form->addWidget(new QLabel("Токен:"));
+    form->addWidget(token_);
     form->addWidget(new QLabel("Имя:"));
     form->addWidget(teacherName_);
     form->addWidget(connectBtn);
@@ -243,7 +248,7 @@ TeacherWindow::~TeacherWindow() {
 void TeacherWindow::connectServer() {
     ws_->connectTo(QUrl(server_->text()), lesson_->text(),
                    "teacher-" + QUuid::createUuid().toString(QUuid::WithoutBraces),
-                   "teacher", teacherName_->text());
+                   "teacher", teacherName_->text(), token_->text());
 }
 
 void TeacherWindow::onMessage(const QJsonObject& obj) {
@@ -415,7 +420,9 @@ void TeacherWindow::downloadRecording() {
                     .arg(lesson_->text(), studentId));
     url.setQuery(QString());
 
-    auto* reply = network_->get(QNetworkRequest(url));
+    QNetworkRequest request(url);
+    request.setRawHeader("Authorization", "Bearer " + token_->text().toUtf8());
+    auto* reply = network_->get(request);
     status_->setText("Формируется MP4...");
 
     connect(reply, &QNetworkReply::finished, this, [this, reply, fileName] {
