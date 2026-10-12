@@ -98,7 +98,10 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::middleware('admin')->group(function(){
     Route::get('/',[AdminController::class,'dashboard'])->name('dashboard');
     Route::get('/registrations',[AdminRegistrationController::class,'index'])->name('registrations.index');
+    Route::post('/registrations/bulk-activate',[AdminRegistrationController::class,'activateBulk'])->name('registrations.bulk-activate');
     Route::delete('/registrations/bulk',[AdminRegistrationController::class,'destroyBulk'])->name('registrations.bulk-delete');
+    Route::post('/registrations/{user}/activate',[AdminRegistrationController::class,'activate'])->name('registrations.activate');
+    Route::patch('/registrations/{user}/reject',[AdminRegistrationController::class,'reject'])->name('registrations.reject');
     Route::delete('/registrations/{user}',[AdminRegistrationController::class,'destroy'])->name('registrations.delete');
     Route::get('/access-admins',[AdminAccessController::class,'index'])->name('access-admins');
     Route::get('/access-admins/{user}/edit',[AdminAccessController::class,'edit'])->name('access-admins.edit');
