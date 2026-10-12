@@ -137,10 +137,10 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay) http.HandlerFunc {
 				}
 				answer, rtcErr := rtcRelay.AcceptOffer(c, sdp)
 				if rtcErr != nil {
-					h.sendTo(lessonID, c.ID, map[string]any{"type":"rtc_error","message":rtcErr.Error()})
+					h.sendTo(lessonID, c.ID, map[string]any{"type": "rtc_error", "message": rtcErr.Error()})
 					continue
 				}
-				h.sendTo(lessonID, c.ID, map[string]any{"type":"rtc_answer","sdp":answer})
+				h.sendTo(lessonID, c.ID, map[string]any{"type": "rtc_answer", "sdp": answer})
 			case "signal", "remote_request", "remote_stop", "audio_request":
 				target, _ := m["target"].(string)
 				if target != "" {
