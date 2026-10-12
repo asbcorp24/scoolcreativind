@@ -230,7 +230,9 @@ void RtcRelayClient::installDataChannelCallbacks(const std::shared_ptr<rtc::Data
         const auto& binary = std::get<rtc::binary>(data);
         QByteArray bytes(reinterpret_cast<const char*>(binary.data()),
                          static_cast<qsizetype>(binary.size()));
-        handleBinary(bytes);
+        QMetaObject::invokeMethod(this, [this, bytes] {
+            handleBinary(bytes);
+        }, Qt::QueuedConnection);
     });
 }
 
@@ -262,6 +264,8 @@ void RtcRelayClient::handleBinary(const QByteArray& b) {
         static_cast<qsizetype>(b.size() - payloadOffset));
 
     const QString key = QString("%1:%2:%3").arg(source).arg(kind).arg(frameId);
+    if (!pendingFrames_.contains(key) && pendingFrames_.size() >= 128)
+        pendingFrames_.clear();
     auto& pending = pendingFrames_[key];
     if (pending.chunks.isEmpty()) {
         pending.chunkCount = chunkCount;
