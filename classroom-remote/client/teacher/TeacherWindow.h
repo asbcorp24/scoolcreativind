@@ -13,6 +13,7 @@ class QCamera;
 class QMediaCaptureSession;
 class QVideoSink;
 class QImage;
+class QNetworkAccessManager;
 class WsClient;
 class RtcRelayClient;
 class AudioPipe;
@@ -36,6 +37,7 @@ private:
     void sendLectureImage(const QImage& image);
     void showLocalPreview(const QImage& image);
     void onRtcFrame(quint8 kind, const QString& source, const QByteArray& payload);
+    void downloadRecording();
 
     WsClient* ws_{};
     RtcRelayClient* rtc_{};
@@ -51,6 +53,7 @@ private:
     QPushButton* micButton_{};
 
     QTimer* screenTimer_{};
+    QNetworkAccessManager* network_{};
     QCamera* camera_{};
     QMediaCaptureSession* captureSession_{};
     QVideoSink* videoSink_{};
