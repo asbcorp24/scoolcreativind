@@ -33,6 +33,7 @@ private:
     QLineEdit* wsUrl_{};
     QLineEdit* httpUrl_{};
     QLineEdit* lesson_{};
+    QLineEdit* token_{};
     QLineEdit* name_{};
     QLabel* status_{};
     QLabel* remoteBanner_{};
