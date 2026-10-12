@@ -90,4 +90,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(QuizAttempt::class);
     }
+
+    public function admissionApplications()
+    {
+        return $this->hasMany(AdmissionApplication::class);
+    }
 }
