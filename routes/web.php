@@ -159,6 +159,7 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::post('/groups/{group}/subjects',[AdminAcademicController::class,'attachSubject'])->name('groups.subjects.attach');
     Route::get('/journal',[AdminAcademicController::class,'journal'])->name('journal');
     Route::get('/attendance',[AdminAcademicController::class,'attendance'])->name('attendance');
+    Route::get('/reports',[AdminAcademicController::class,'reports'])->name('reports');
     Route::get('/attendance/print',[AdminAcademicController::class,'printJournalReport'])->name('attendance.print');
     Route::get('/attendance/ktp/{subject}/print',[AdminAcademicController::class,'printKtpReport'])->name('ktp.print');
     Route::get('/parent-reports',[AdminParentReportController::class,'index'])->name('parent-reports');
