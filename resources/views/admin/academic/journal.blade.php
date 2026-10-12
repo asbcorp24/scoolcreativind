@@ -22,7 +22,7 @@
 
   <form class="glass-card p-4 mb-4" method="get" id="journalFilterForm">
    <div class="row g-3 align-items-end">
-    <div class="col-md-5">
+    <div class="col-lg-3">
      <label class="form-label">Группа</label>
      <select class="form-select" name="group_id" id="journalGroupSelect">
       <option value="">Выберите группу</option>
@@ -32,7 +32,7 @@
      </select>
     </div>
 
-    <div class="col-md-5">
+    <div class="col-lg-3">
      <label class="form-label">Предмет</label>
      <select class="form-select" name="subject_id" id="journalSubjectSelect" {{ $group ? '' : 'disabled' }}>
       <option value="">Выберите предмет</option>
@@ -42,17 +42,47 @@
        @endforeach
       @endif
      </select>
-     <div class="form-text text-white-50" id="journalSubjectHint">
-      @if($group && $group->subjects->isEmpty())
-       У этой группы пока нет закреплённых предметов. Добавьте их в разделе «Предметы».
-      @else
-       Показываются только предметы, закреплённые за выбранной группой.
+    </div>
+
+    <div class="col-lg-2">
+     <label class="form-label">Дата с</label>
+     <input type="date" class="form-control" name="date_from" value="{{ $dateFrom }}">
+    </div>
+
+    <div class="col-lg-2">
+     <label class="form-label">Дата по</label>
+     <input type="date" class="form-control" name="date_to" value="{{ $dateTo }}">
+    </div>
+
+    <div class="col-lg-2">
+     <label class="form-label">Ученик</label>
+     <select class="form-select" name="student_id" {{ $group ? '' : 'disabled' }}>
+      <option value="">Все ученики</option>
+      @if($group)
+       @foreach($group->students->sortBy('name') as $studentOption)
+        <option value="{{ $studentOption->id }}" @selected((int)$studentId===(int)$studentOption->id)>{{ $studentOption->name }}</option>
+       @endforeach
       @endif
+     </select>
+    </div>
+
+    <div class="col-lg-8">
+     <label class="form-label">Урок</label>
+     <input class="form-control" name="lesson_q" value="{{ $lessonQuery }}" placeholder="Название урока или номер">
+     <div class="form-text text-white-50" id="journalSubjectHint">
+      Фильтр применяется к проведённым урокам. Группа и предмет определяют доступный журнал.
      </div>
     </div>
 
-    <div class="col-md-2 d-grid">
-     <button class="btn btn-neon">Открыть</button>
+    <div class="col-lg-2 d-grid">
+     <button class="btn btn-neon">Применить</button>
+    </div>
+
+    <div class="col-lg-2 d-grid">
+     <a class="btn btn-ghost" href="{{ route('admin.journal',array_filter([
+      'group_id'=>optional($group)->id,
+      'subject_id'=>optional($subject)->id,
+     ])) }}">Сбросить</a>
     </div>
    </div>
   </form>
@@ -141,6 +171,7 @@
        <thead><tr><th>Ученик</th><th>Посещение</th><th>Оценка</th><th>Комментарий</th><th></th></tr></thead>
        <tbody>
         @foreach($group->students as $student)
+         @continue($studentId && (int)$student->id !== (int)$studentId)
          @php
           $entry = $lesson->entries->firstWhere('student_id',$student->id);
          @endphp
