@@ -137,7 +137,7 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig) http.HandlerFunc {
 		id := r.URL.Query().Get("id")
 		role := r.URL.Query().Get("role")
 		name := r.URL.Query().Get("name")
-		token := r.URL.Query().Get("token")
+		token := bearerToken(r)
 		if lessonID == "" || id == "" || (role != "teacher" && role != "student") {
 			http.Error(w, "lesson, id and role are required", http.StatusBadRequest)
 			return
