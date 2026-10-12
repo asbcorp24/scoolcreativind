@@ -122,6 +122,11 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     connect(stopLectureBtn, &QPushButton::clicked, this, &TeacherWindow::stopLecture);
 
     connect(micButton_, &QPushButton::clicked, this, [this] {
+        if (!privateAudioTarget_.isEmpty()) {
+            QMessageBox::information(this, "Микрофон",
+                "Сначала завершите приватный аудиодиалог.");
+            return;
+        }
         micOn_ = !micOn_;
         if (micOn_) {
             if (!audio_->startCapture()) {
@@ -135,7 +140,10 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     });
 
     connect(audio_, &AudioPipe::captured, this, [this](const QByteArray& pcm) {
-        rtc_->sendFrame(RtcRelayClient::LectureAudio, pcm);
+        if (!privateAudioTarget_.isEmpty())
+            rtc_->sendTargetedFrame(RtcRelayClient::TeacherPrivateAudio, privateAudioTarget_, pcm);
+        else if (micOn_)
+            rtc_->sendFrame(RtcRelayClient::LectureAudio, pcm);
     });
 
     connect(screenTimer_, &QTimer::timeout, this, [this] {
@@ -172,9 +180,31 @@ TeacherWindow::TeacherWindow(QWidget* parent)
         remoteView_->setTarget({});
         remoteView_->setText("Экран выбранного ученика");
     });
-    connect(audioBtn, &QPushButton::clicked, this, [this] {
-        sendToSelected("audio_request");
+    connect(audioBtn, &QPushButton::clicked, this, [this, audioBtn] {
+        const auto id = selectedStudentId();
+        if (id.isEmpty()) {
+            QMessageBox::information(this, "Ученик", "Сначала выберите ученика.");
+            return;
+        }
+
+        if (privateAudioTarget_ == id) {
+            ws_->send(QJsonObject{{"type", "audio_stop"}, {"target", id}});
+            privateAudioTarget_.clear();
+            audio_->stopCapture();
+            if (micOn_)
+                audio_->startCapture();
+            audioBtn->setText("Аудиодиалог");
+            return;
+        }
+
+        if (!privateAudioTarget_.isEmpty())
+            ws_->send(QJsonObject{{"type", "audio_stop"}, {"target", privateAudioTarget_}});
+
+        privateAudioTarget_ = id;
+        ws_->send(QJsonObject{{"type", "audio_request"}, {"target", id}});
         audio_->startPlayback();
+        audio_->startCapture();
+        audioBtn->setText("Завершить аудиодиалог");
     });
     connect(downloadBtn, &QPushButton::clicked, this, &TeacherWindow::downloadRecording);
 
