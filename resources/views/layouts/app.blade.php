@@ -318,6 +318,7 @@ $musicPlaylist=$musicTracks->map(function($track){
     <div class="admin-side-group {{ request()->routeIs('admin.settings*','admin.access-admins*') ? 'open' : '' }}">
       <button type="button" class="admin-side-group-title" data-admin-group-toggle><span>⚙</span><strong>Система</strong><i>⌄</i></button>
       <div class="admin-side-group-body">
+        @if(auth()->user()->is_admin)<a class="{{ request()->routeIs('admin.registrations.*') ? 'active' : '' }}" href="{{ route('admin.registrations.index') }}">Регистрации</a>@endif
         @if(auth()->user()->canAdminSection('settings'))<a class="{{ request()->routeIs('admin.settings*') ? 'active' : '' }}" href="{{ route('admin.settings') }}">Главная / SEO / хранилище</a>@endif
         @if(auth()->user()->is_admin)<a class="{{ request()->routeIs('admin.access-admins*') ? 'active' : '' }}" href="{{ route('admin.access-admins') }}">Администраторы</a>@endif
       </div>
