@@ -25,8 +25,19 @@ if not exist "%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake" (
 
 if not exist build mkdir build
 
+set "CMAKE_VS_GENERATOR=Visual Studio 17 2022"
+set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+if exist "%VSWHERE%" (
+  for /f "usebackq tokens=*" %%V in (`"%VSWHERE%" -latest -property installationVersion`) do set "VS_VERSION=%%V"
+)
+if defined VS_VERSION (
+  if "%VS_VERSION:~0,2%"=="18" set "CMAKE_VS_GENERATOR=Visual Studio 18 2026"
+)
+
+echo Using CMake generator: %CMAKE_VS_GENERATOR%
+
 cmake -S . -B build ^
-  -G "Visual Studio 17 2022" -A x64 ^
+  -G "%CMAKE_VS_GENERATOR%" -A x64 ^
   -DCMAKE_PREFIX_PATH="%QT_ROOT%" ^
   -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake" ^
   -DVCPKG_TARGET_TRIPLET=x64-windows
