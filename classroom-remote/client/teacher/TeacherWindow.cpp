@@ -146,10 +146,24 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     });
 
     connect(viewBtn, &QPushButton::clicked, this, [this] {
-        sendToSelected("remote_request");
+        const auto id = selectedStudentId();
+        if (id.isEmpty()) {
+            QMessageBox::information(this, "Ученик", "Сначала выберите ученика.");
+            return;
+        }
+        activeStudent_ = id;
+        remoteView_->setTarget({});
+        ws_->send(QJsonObject{{"type", "remote_request"}, {"target", id}, {"mode", "view"}});
     });
     connect(controlBtn, &QPushButton::clicked, this, [this] {
-        sendToSelected("remote_request");
+        const auto id = selectedStudentId();
+        if (id.isEmpty()) {
+            QMessageBox::information(this, "Ученик", "Сначала выберите ученика.");
+            return;
+        }
+        activeStudent_ = id;
+        remoteView_->setTarget(id);
+        ws_->send(QJsonObject{{"type", "remote_request"}, {"target", id}, {"mode", "control"}});
         remoteView_->setFocus();
     });
     connect(stopBtn, &QPushButton::clicked, this, [this] {
