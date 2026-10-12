@@ -131,6 +131,44 @@ void RtcRelayClient::sendFrame(FrameKind kind, const QByteArray& payload) {
     }
 }
 
+void RtcRelayClient::sendTargetedFrame(FrameKind kind, const QString& target, const QByteArray& payload) {
+    if (!isOpen() || target.isEmpty() || payload.isEmpty())
+        return;
+
+    const QByteArray targetUtf8 = target.toUtf8();
+    if (targetUtf8.size() > 65535)
+        return;
+
+    const quint32 frameId = nextFrameId_++;
+    const quint16 count = static_cast<quint16>(
+        qMax<qsizetype>(1, (payload.size() + kChunkPayload - 1) / kChunkPayload));
+
+    for (quint16 index = 0; index < count; ++index) {
+        const qsizetype offset = qsizetype(index) * kChunkPayload;
+        const qsizetype size = qMin(kChunkPayload, payload.size() - offset);
+
+        // targeted client -> server:
+        // kind(1), targetLen(2), target, frameId(4), chunkIndex(2), chunkCount(2), payload
+        rtc::binary data(static_cast<size_t>(11 + targetUtf8.size() + size));
+        data[0] = static_cast<std::byte>(kind);
+        put16(data, 1, static_cast<quint16>(targetUtf8.size()));
+        std::memcpy(data.data() + 3, targetUtf8.constData(), static_cast<size_t>(targetUtf8.size()));
+
+        const size_t meta = static_cast<size_t>(3 + targetUtf8.size());
+        put32(data, meta, frameId);
+        put16(data, meta + 4, index);
+        put16(data, meta + 6, count);
+        std::memcpy(data.data() + meta + 8, payload.constData() + offset, static_cast<size_t>(size));
+
+        try {
+            dc_->send(std::move(data));
+        } catch (...) {
+            emit stateText("WebRTC: ошибка приватного аудио");
+            return;
+        }
+    }
+}
+
 void RtcRelayClient::sendText(const QJsonObject& object) {
     if (!isOpen())
         return;
