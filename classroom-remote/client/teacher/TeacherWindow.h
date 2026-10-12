@@ -60,5 +60,6 @@ private:
 
     QHash<QString, QString> names_;
     QString activeStudent_;
+    QString privateAudioTarget_;
     bool micOn_{false};
 };
