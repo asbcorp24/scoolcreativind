@@ -594,6 +594,10 @@ class AdminAcademicController extends Controller
     {
         $groupId=$request->integer('group_id');
         $subjectId=$request->integer('subject_id');
+        $dateFrom=$request->input('date_from');
+        $dateTo=$request->input('date_to');
+        $lessonQuery=trim((string)$request->input('lesson_q',''));
+        $studentId=$request->integer('student_id');
 
         $groups=StudyGroup::with(['subjects','students'])
             ->whereIn('id',$this->allowedGroupIds())
@@ -626,9 +630,36 @@ class AdminAcademicController extends Controller
 
         $lessons=collect();
         if($group && $subject){
-            $lessons=JournalLesson::with(['entries','planLesson','homeworkAssignment'])
+            if($studentId && !$group->students->contains('id',$studentId)){
+                $studentId=0;
+            }
+
+            $lessonBuilder=JournalLesson::with(['entries','planLesson','homeworkAssignment'])
                 ->where('study_group_id',$group->id)
-                ->where('subject_id',$subject->id)
+                ->where('subject_id',$subject->id);
+
+            if($dateFrom){
+                $lessonBuilder->whereDate('lesson_date','>=',$dateFrom);
+            }
+
+            if($dateTo){
+                $lessonBuilder->whereDate('lesson_date','<=',$dateTo);
+            }
+
+            if($lessonQuery!==''){
+                $lessonBuilder->where(function($q) use($lessonQuery){
+                    $q->where('topic','like','%'.$lessonQuery.'%')
+                        ->orWhereHas('planLesson',function($plan) use($lessonQuery){
+                            $plan->where('title','like','%'.$lessonQuery.'%');
+
+                            if(ctype_digit($lessonQuery)){
+                                $plan->orWhere('lesson_number',(int)$lessonQuery);
+                            }
+                        });
+                });
+            }
+
+            $lessons=$lessonBuilder
                 ->orderByDesc('lesson_date')
                 ->orderByDesc('id')
                 ->paginate(10)
@@ -648,7 +679,8 @@ class AdminAcademicController extends Controller
         });
 
         return view('admin.academic.journal',compact(
-            'groups','group','subject','lessons','subjectOptions','planLessons'
+            'groups','group','subject','lessons','subjectOptions','planLessons',
+            'dateFrom','dateTo','lessonQuery','studentId'
         ));
     }
 
