@@ -52,6 +52,10 @@ if exist "%QT_ROOT%\bin\windeployqt.exe" (
   "%QT_ROOT%\bin\windeployqt.exe" --release build\Release\ClassroomStudent.exe
 )
 
+if exist "%VCPKG_ROOT%\installed\x64-windows\bin" (
+  copy /Y "%VCPKG_ROOT%\installed\x64-windows\bin\*.dll" build\Release\ >nul 2>nul
+)
+
 echo.
 echo READY:
 echo   build\Release\ClassroomTeacher.exe
