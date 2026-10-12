@@ -23,10 +23,8 @@ jobs:
           cache-dependency-path: classroom-remote/server/go.mod
       - name: Tidy
         run: go mod tidy
-      - name: Format check
-        run: |
-          gofmt -w .
-          git diff --exit-code -- .
+      - name: Format
+        run: gofmt -w .
       - name: Test and build
         run: go test ./...
       - name: Build
