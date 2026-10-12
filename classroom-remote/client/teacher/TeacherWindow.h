@@ -45,6 +45,7 @@ private:
 
     QLineEdit* server_{};
     QLineEdit* lesson_{};
+    QLineEdit* token_{};
     QLineEdit* teacherName_{};
     QLabel* status_{};
     QLabel* lecturePreview_{};
