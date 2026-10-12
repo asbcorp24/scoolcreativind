@@ -88,7 +88,7 @@ func (h *Hub) broadcastPresence(lessonID string) {
 
 var upgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
 
-func wsHandler(h *Hub) http.HandlerFunc {
+func wsHandler(h *Hub, rtcRelay *RTCRelay) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		lessonID := r.URL.Query().Get("lesson")
 		id := r.URL.Query().Get("id")
@@ -105,7 +105,7 @@ func wsHandler(h *Hub) http.HandlerFunc {
 		}
 		c := &Client{ID: id, Role: role, LessonID: lessonID, Name: name, Conn: conn, Send: make(chan []byte, 64)}
 		h.add(c)
-		defer func() { h.remove(c); conn.Close() }()
+		defer func() { rtcRelay.CloseClient(c.ID); h.remove(c); conn.Close() }()
 
 		go func() {
 			for msg := range c.Send {
@@ -130,6 +130,17 @@ func wsHandler(h *Hub) http.HandlerFunc {
 					m["student_name"] = c.Name
 					h.sendLesson(lessonID, m, func(x *Client) bool { return x.Role == "teacher" })
 				}
+			case "rtc_offer":
+				sdp, _ := m["sdp"].(string)
+				if sdp == "" {
+					continue
+				}
+				answer, rtcErr := rtcRelay.AcceptOffer(c, sdp)
+				if rtcErr != nil {
+					h.sendTo(lessonID, c.ID, map[string]any{"type":"rtc_error","message":rtcErr.Error()})
+					continue
+				}
+				h.sendTo(lessonID, c.ID, map[string]any{"type":"rtc_answer","sdp":answer})
 			case "signal", "remote_request", "remote_stop", "audio_request":
 				target, _ := m["target"].(string)
 				if target != "" {
@@ -217,9 +228,13 @@ func main() {
 	addr := env("ADDR", ":8080")
 	root := env("STORAGE_DIR", "./storage")
 	hub := NewHub()
+	rtcRelay, rtcErr := NewRTCRelay()
+	if rtcErr != nil {
+		log.Fatal(rtcErr)
+	}
 	r := chi.NewRouter()
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
-	r.Get("/ws", wsHandler(hub))
+	r.Get("/ws", wsHandler(hub, rtcRelay))
 	r.Post("/api/v1/lessons/{lesson}/students/{student}/snapshot", snapshotUpload(root))
 	r.Get("/api/v1/lessons/{lesson}/students/{student}/snapshot/latest", latestSnapshot(root))
 	log.Printf("classroom server listening on %s", addr)
