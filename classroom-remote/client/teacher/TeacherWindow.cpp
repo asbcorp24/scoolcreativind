@@ -364,7 +364,7 @@ void TeacherWindow::downloadRecording() {
         url.setScheme("http");
     url.setPath(QString("/api/v1/lessons/%1/students/%2/recording.mp4")
                     .arg(lesson_->text(), studentId));
-    url.setQuery({});
+    url.setQuery(QString());
 
     auto* reply = network_->get(QNetworkRequest(url));
     status_->setText("Формируется MP4...");
