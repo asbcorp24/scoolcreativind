@@ -6,6 +6,8 @@ services:
       ADDR: ":8080"
       STORAGE_DIR: /data
       PUBLIC_IP: "${PUBLIC_IP}"
+      TEACHER_TOKEN: "${TEACHER_TOKEN}"
+      STUDENT_TOKEN: "${STUDENT_TOKEN}"
       RTC_MIN_PORT: "50000"
       RTC_MAX_PORT: "50100"
     ports:
