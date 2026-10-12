@@ -5,6 +5,7 @@
 #include <QHash>
 #include <QJsonObject>
 #include <QStringList>
+#include <QVector>
 #include <memory>
 
 namespace rtc {
@@ -50,7 +51,7 @@ private:
 
     void handleSignal(const QJsonObject& object);
     void installDataChannelCallbacks(const std::shared_ptr<rtc::DataChannel>& dc);
-    void handleBinary(const rtc::binary& data);
+    void handleBinary(const QByteArray& data);
 
     WsClient* signaling_{};
     std::shared_ptr<rtc::PeerConnection> pc_;
