@@ -220,12 +220,16 @@ class AdminAcademicController extends Controller
     {
         $this->ensureSubjectPlanAllowed($subject);
 
-        $subject->load([
-            'studio',
-            'lessons'=>fn($q)=>$q->with('media')->orderBy('sort_order')->orderBy('lesson_number'),
-        ]);
+        $subject->load('studio');
 
-        return view('admin.academic.subject-lessons',compact('subject'));
+        $lessons=$subject->lessons()
+            ->with('media')
+            ->orderBy('sort_order')
+            ->orderBy('lesson_number')
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('admin.academic.subject-lessons',compact('subject','lessons'));
     }
 
     public function saveSubjectLesson(Request $request, Subject $subject, ?SubjectLesson $lesson=null)
@@ -726,6 +730,21 @@ class AdminAcademicController extends Controller
             (int)$entry->lesson->subject_id
         );
         $entry->update($data);
+
+        if($request->expectsJson()){
+            return response()->json([
+                'ok'=>true,
+                'message'=>'Запись сохранена',
+                'entry'=>[
+                    'id'=>$entry->id,
+                    'attendance'=>$entry->attendance,
+                    'grade'=>$entry->grade,
+                    'grade_label'=>$entry->grade_label,
+                    'comment'=>$entry->comment,
+                ],
+            ]);
+        }
+
         return back()->with('success','Запись журнала сохранена.');
     }
 
