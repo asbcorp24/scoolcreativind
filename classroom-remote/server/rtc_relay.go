@@ -19,6 +19,7 @@ const (
 	frameLectureAudio byte = 2
 	frameStudentVideo byte = 3
 	frameStudentAudio byte = 4
+	frameTeacherPrivateAudio byte = 5
 )
 
 type rtcPeer struct {
@@ -113,8 +114,27 @@ func (r *RTCRelay) AcceptOffer(c *Client, sdp string) (string, error) {
 				return
 			}
 			kind := msg.Data[0]
-			payload := msg.Data[1:]
 
+			if c.Role == "teacher" && kind == frameTeacherPrivateAudio {
+				// kind(1), targetLen(2), target, frame/chunk metadata(8), payload
+				if len(msg.Data) < 11 {
+					return
+				}
+				targetLen := int(binary.BigEndian.Uint16(msg.Data[1:3]))
+				if targetLen == 0 || len(msg.Data) < 3+targetLen+8 {
+					return
+				}
+				target := string(msg.Data[3 : 3+targetLen])
+				payload := msg.Data[3+targetLen:]
+				if peer := r.peer(target); peer != nil &&
+					peer.client.LessonID == c.LessonID &&
+					peer.client.Role == "student" {
+					r.sendBinary(peer, makeRelayFrame(kind, c.ID, payload))
+				}
+				return
+			}
+
+			payload := msg.Data[1:]
 			switch c.Role {
 			case "teacher":
 				if kind == frameLectureVideo || kind == frameLectureAudio {
@@ -201,6 +221,13 @@ func (r *RTCRelay) broadcast(lessonID, sourceID, role string, kind byte, payload
 		}
 		_ = p.dc.Send(frame)
 	}
+}
+
+func (r *RTCRelay) sendBinary(p *rtcPeer, data []byte) {
+	if p == nil || p.dc == nil || p.dc.ReadyState() != webrtc.DataChannelStateOpen {
+		return
+	}
+	_ = p.dc.Send(data)
 }
 
 func (r *RTCRelay) sendText(p *rtcPeer, data []byte) {
