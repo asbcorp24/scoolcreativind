@@ -189,17 +189,20 @@ void RtcRelayClient::installDataChannelCallbacks(const std::shared_ptr<rtc::Data
             return;
         }
 
-        handleBinary(std::get<rtc::binary>(data));
+        const auto& binary = std::get<rtc::binary>(data);
+        QByteArray bytes(reinterpret_cast<const char*>(binary.data()),
+                         static_cast<qsizetype>(binary.size()));
+        handleBinary(bytes);
     });
 }
 
-void RtcRelayClient::handleBinary(const rtc::binary& b) {
+void RtcRelayClient::handleBinary(const QByteArray& b) {
     // server -> client:
     // kind(1), sourceLen(2), source, frameId(4), chunkIndex(2), chunkCount(2), payload
     if (b.size() < 11)
         return;
 
-    const auto* raw = reinterpret_cast<const unsigned char*>(b.data());
+    const auto* raw = reinterpret_cast<const unsigned char*>(b.constData());
     const quint8 kind = raw[0];
     const quint16 idLen = get16(raw + 1);
     const size_t metaOffset = 3 + idLen;
