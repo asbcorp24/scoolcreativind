@@ -189,7 +189,17 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig) http.HandlerFunc {
 					continue
 				}
 				h.sendTo(lessonID, c.ID, map[string]any{"type": "rtc_answer", "sdp": answer})
-			case "signal", "remote_request", "remote_stop", "audio_request", "audio_stop":
+			case "signal":
+				target, _ := m["target"].(string)
+				if target != "" {
+					m["from"] = c.ID
+					m["from_role"] = c.Role
+					h.sendTo(lessonID, target, m)
+				}
+			case "remote_request", "remote_stop", "audio_request", "audio_stop":
+				if c.Role != "teacher" {
+					continue
+				}
 				target, _ := m["target"].(string)
 				if target != "" {
 					m["from"] = c.ID
