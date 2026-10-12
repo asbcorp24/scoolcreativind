@@ -104,6 +104,10 @@ void RtcRelayClient::sendFrame(FrameKind kind, const QByteArray& payload) {
     if (!isOpen() || payload.isEmpty())
         return;
 
+    const bool isVideo = kind == LectureVideo || kind == StudentVideo;
+    if (isVideo && dc_->bufferedAmount() > 2 * 1024 * 1024)
+        return;
+
     const quint32 frameId = nextFrameId_++;
     const quint16 count = static_cast<quint16>(
         qMax<qsizetype>(1, (payload.size() + kChunkPayload - 1) / kChunkPayload));
@@ -133,6 +137,9 @@ void RtcRelayClient::sendFrame(FrameKind kind, const QByteArray& payload) {
 
 void RtcRelayClient::sendTargetedFrame(FrameKind kind, const QString& target, const QByteArray& payload) {
     if (!isOpen() || target.isEmpty() || payload.isEmpty())
+        return;
+
+    if (dc_->bufferedAmount() > 2 * 1024 * 1024 && kind != TeacherPrivateAudio)
         return;
 
     const QByteArray targetUtf8 = target.toUtf8();
