@@ -38,12 +38,16 @@ StudentWindow::StudentWindow(QWidget* parent)
     wsUrl_ = new QLineEdit("wss://classroom.example.ru/ws");
     httpUrl_ = new QLineEdit("https://classroom.example.ru");
     lesson_ = new QLineEdit("101");
+    token_ = new QLineEdit;
+    token_->setPlaceholderText("STUDENT_TOKEN");
+    token_->setEchoMode(QLineEdit::Password);
     name_ = new QLineEdit(qEnvironmentVariable("USERNAME", "Ученик"));
     auto* connectBtn = new QPushButton("Подключиться");
 
     form->addWidget(new QLabel("WS:")); form->addWidget(wsUrl_, 2);
     form->addWidget(new QLabel("HTTP:")); form->addWidget(httpUrl_, 2);
     form->addWidget(new QLabel("Занятие:")); form->addWidget(lesson_);
+    form->addWidget(new QLabel("Токен:")); form->addWidget(token_);
     form->addWidget(new QLabel("Имя:")); form->addWidget(name_);
     form->addWidget(connectBtn);
     outer->addLayout(form);
@@ -135,7 +139,7 @@ StudentWindow::~StudentWindow() {
 }
 
 void StudentWindow::connectServer() {
-    ws_->connectTo(QUrl(wsUrl_->text()), lesson_->text(), studentId_, "student", name_->text());
+    ws_->connectTo(QUrl(wsUrl_->text()), lesson_->text(), studentId_, "student", name_->text(), token_->text());
 }
 
 void StudentWindow::onMessage(const QJsonObject& obj) {
@@ -221,6 +225,7 @@ void StudentWindow::uploadSnapshot() {
         .arg(httpUrl_->text(), lesson_->text(), studentId_);
     QNetworkRequest req{QUrl(url)};
     req.setHeader(QNetworkRequest::ContentTypeHeader, "image/jpeg");
+    req.setRawHeader("Authorization", "Bearer " + token_->text().toUtf8());
     network_->post(req, body);
 }
 
