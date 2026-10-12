@@ -22,7 +22,8 @@ public:
         LectureVideo = 1,
         LectureAudio = 2,
         StudentVideo = 3,
-        StudentAudio = 4
+        StudentAudio = 4,
+        TeacherPrivateAudio = 5
     };
 
     explicit RtcRelayClient(WsClient* signaling, QObject* parent = nullptr);
@@ -33,6 +34,7 @@ public:
     bool isOpen() const;
 
     void sendFrame(FrameKind kind, const QByteArray& payload);
+    void sendTargetedFrame(FrameKind kind, const QString& target, const QByteArray& payload);
     void sendText(const QJsonObject& object);
 
 signals:
