@@ -315,7 +315,7 @@ $musicPlaylist=$musicTracks->map(function($track){
       </div>
     </div>
 
-    <div class="admin-side-group {{ request()->routeIs('admin.settings*','admin.access-admins*') ? 'open' : '' }}">
+    <div class="admin-side-group {{ request()->routeIs('admin.settings*','admin.access-admins*','admin.registrations.*') ? 'open' : '' }}">
       <button type="button" class="admin-side-group-title" data-admin-group-toggle><span>⚙</span><strong>Система</strong><i>⌄</i></button>
       <div class="admin-side-group-body">
         @if(auth()->user()->is_admin)<a class="{{ request()->routeIs('admin.registrations.*') ? 'active' : '' }}" href="{{ route('admin.registrations.index') }}">Регистрации</a>@endif
