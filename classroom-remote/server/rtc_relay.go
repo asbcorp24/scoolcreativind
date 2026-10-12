@@ -23,9 +23,22 @@ const (
 )
 
 type rtcPeer struct {
+	mu     sync.RWMutex
 	client *Client
 	pc     *webrtc.PeerConnection
 	dc     *webrtc.DataChannel
+}
+
+func (p *rtcPeer) setDataChannel(dc *webrtc.DataChannel) {
+	p.mu.Lock()
+	p.dc = dc
+	p.mu.Unlock()
+}
+
+func (p *rtcPeer) dataChannel() *webrtc.DataChannel {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.dc
 }
 
 type RTCRelay struct {
@@ -103,7 +116,7 @@ func (r *RTCRelay) AcceptOffer(c *Client, sdp string) (string, error) {
 		if dc.Label() != "classroom" {
 			return
 		}
-		p.dc = dc
+		p.setDataChannel(dc)
 
 		dc.OnMessage(func(msg webrtc.DataChannelMessage) {
 			if msg.IsString {
@@ -213,28 +226,37 @@ func (r *RTCRelay) broadcast(lessonID, sourceID, role string, kind byte, payload
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	for _, p := range r.peers {
-		if p.client.LessonID != lessonID || p.client.Role != role || p.dc == nil {
+		if p.client.LessonID != lessonID || p.client.Role != role {
 			continue
 		}
-		if p.dc.ReadyState() != webrtc.DataChannelStateOpen {
+		dc := p.dataChannel()
+		if dc == nil || dc.ReadyState() != webrtc.DataChannelStateOpen {
 			continue
 		}
-		_ = p.dc.Send(frame)
+		_ = dc.Send(frame)
 	}
 }
 
 func (r *RTCRelay) sendBinary(p *rtcPeer, data []byte) {
-	if p == nil || p.dc == nil || p.dc.ReadyState() != webrtc.DataChannelStateOpen {
+	if p == nil {
 		return
 	}
-	_ = p.dc.Send(data)
+	dc := p.dataChannel()
+	if dc == nil || dc.ReadyState() != webrtc.DataChannelStateOpen {
+		return
+	}
+	_ = dc.Send(data)
 }
 
 func (r *RTCRelay) sendText(p *rtcPeer, data []byte) {
-	if p == nil || p.dc == nil || p.dc.ReadyState() != webrtc.DataChannelStateOpen {
+	if p == nil {
 		return
 	}
-	_ = p.dc.SendText(string(data))
+	dc := p.dataChannel()
+	if dc == nil || dc.ReadyState() != webrtc.DataChannelStateOpen {
+		return
+	}
+	_ = dc.SendText(string(data))
 }
 
 func makeRelayFrame(kind byte, sourceID string, payload []byte) []byte {
