@@ -24,7 +24,9 @@ jobs:
       - name: Tidy
         run: go mod tidy
       - name: Format check
-        run: test -z "$(gofmt -l .)"
+        run: |
+          gofmt -w .
+          git diff --exit-code -- .
       - name: Test and build
         run: go test ./...
       - name: Build
