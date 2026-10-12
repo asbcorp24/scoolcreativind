@@ -822,6 +822,36 @@ class AdminAcademicController extends Controller
         ));
     }
 
+    public function reports()
+    {
+        $groups=StudyGroup::with(['subjects','studio'])
+            ->whereIn('id',$this->allowedGroupIds())
+            ->orderBy('study_year')
+            ->orderBy('name')
+            ->get();
+
+        $groups=$this->restrictGroupSubjectsForTeacher($groups);
+
+        $subjectOptions=$groups->mapWithKeys(function($group){
+            return [
+                $group->id=>$group->subjects->map(fn($subject)=>[
+                    'id'=>$subject->id,
+                    'title'=>$subject->title,
+                ])->values(),
+            ];
+        });
+
+        $ktpSubjects=$groups
+            ->flatMap(fn($group)=>$group->subjects)
+            ->unique('id')
+            ->sortBy('title')
+            ->values();
+
+        return view('admin.academic.reports',compact(
+            'groups','subjectOptions','ktpSubjects'
+        ));
+    }
+
     public function printJournalReport(Request $request)
     {
         $data=$request->validate([
