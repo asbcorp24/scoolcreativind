@@ -6,6 +6,7 @@
 
 #include <QBuffer>
 #include <QCamera>
+#include <QDateTime>
 #include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QImage>
@@ -318,6 +319,10 @@ void TeacherWindow::startCameraLecture() {
     connect(videoSink_, &QVideoSink::videoFrameChanged, this, [this](const QVideoFrame& frame) {
         if (!rtc_->isOpen())
             return;
+        const qint64 now = QDateTime::currentMSecsSinceEpoch();
+        if (now - lastCameraSendMs_ < 100)
+            return;
+        lastCameraSendMs_ = now;
         const QImage image = frame.toImage();
         if (!image.isNull())
             sendLectureImage(image);
