@@ -173,9 +173,17 @@ void StudentWindow::onMessage(const QJsonObject& obj) {
 
     if (type == "audio_request") {
         audioTalkActive_ = audio_->startCapture();
+        audio_->startPlayback();
         status_->setText(audioTalkActive_
-            ? "Аудиодиалог с преподавателем активен"
+            ? "Приватный аудиодиалог с преподавателем активен"
             : "Не удалось открыть микрофон");
+        return;
+    }
+
+    if (type == "audio_stop") {
+        audioTalkActive_ = false;
+        audio_->stopCapture();
+        status_->setText("Аудиодиалог завершён");
         return;
     }
 }
@@ -187,7 +195,8 @@ void StudentWindow::onRtcFrame(quint8 kind, const QString&, const QByteArray& pa
             lecture_->setPixmap(pix.scaled(
                 lecture_->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
         }
-    } else if (kind == RtcRelayClient::LectureAudio) {
+    } else if (kind == RtcRelayClient::LectureAudio ||
+               kind == RtcRelayClient::TeacherPrivateAudio) {
         audio_->play(payload);
     }
 }
