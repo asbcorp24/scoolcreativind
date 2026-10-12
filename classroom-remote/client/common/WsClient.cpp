@@ -15,13 +15,14 @@ WsClient::WsClient(QObject* parent) : QObject(parent) {
 }
 
 void WsClient::connectTo(const QUrl& baseWs, const QString& lesson, const QString& id,
-                         const QString& role, const QString& name) {
+                         const QString& role, const QString& name, const QString& token) {
     QUrl u = baseWs;
     QUrlQuery q;
     q.addQueryItem("lesson", lesson);
     q.addQueryItem("id", id);
     q.addQueryItem("role", role);
     q.addQueryItem("name", name);
+    q.addQueryItem("token", token);
     u.setQuery(q);
     socket_.open(u);
 }
