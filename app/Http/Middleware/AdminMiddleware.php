@@ -49,6 +49,7 @@ class AdminMiddleware
             'admin/journal/*',
             'admin/attendance',
             'admin/attendance/*',
+            'admin/reports',
             'admin/parent-reports',
             'admin/parent-reports/*',
             'admin/homework',
