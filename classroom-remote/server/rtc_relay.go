@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/pion/interceptor"
 	"github.com/pion/webrtc/v4"
 )
 
@@ -49,7 +50,7 @@ func NewRTCRelay() (*RTCRelay, error) {
 		return nil, err
 	}
 
-	ir := &webrtc.InterceptorRegistry{}
+	ir := &interceptor.Registry{}
 	if err := webrtc.RegisterDefaultInterceptors(me, ir); err != nil {
 		return nil, err
 	}
