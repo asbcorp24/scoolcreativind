@@ -629,9 +629,10 @@ class AdminAcademicController extends Controller
             $lessons=JournalLesson::with(['entries','planLesson','homeworkAssignment'])
                 ->where('study_group_id',$group->id)
                 ->where('subject_id',$subject->id)
-                ->orderBy('lesson_date')
-                ->orderBy('id')
-                ->get();
+                ->orderByDesc('lesson_date')
+                ->orderByDesc('id')
+                ->paginate(10)
+                ->withQueryString();
         }
 
         $subjectOptions=$groups->mapWithKeys(function($item){
