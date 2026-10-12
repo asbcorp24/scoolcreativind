@@ -26,6 +26,12 @@ bool WinRemoteInput::apply(const QJsonObject& e) {
             in.mi.dwFlags = type == "mouse_down" ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_LEFTUP;
         return SendInput(1, &in, sizeof(INPUT)) == 1;
     }
+    if (type == "mouse_wheel") {
+        in.type = INPUT_MOUSE;
+        in.mi.mouseData = DWORD(e.value("delta").toInt());
+        in.mi.dwFlags = MOUSEEVENTF_WHEEL;
+        return SendInput(1, &in, sizeof(INPUT)) == 1;
+    }
     if (type == "key_down" || type == "key_up") {
         in.type = INPUT_KEYBOARD;
         in.ki.wVk = WORD(e.value("vk").toInt());
