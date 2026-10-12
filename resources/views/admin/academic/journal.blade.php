@@ -146,7 +146,7 @@
          @endphp
          @if($entry)
           <tr>
-           <form method="post" action="{{ route('admin.journal.entries.update',$entry) }}">
+           <form method="post" action="{{ route('admin.journal.entries.update',$entry) }}" class="journal-entry-form">
             @csrf
             @method('PATCH')
             <td>{{ $student->name }}</td>
@@ -159,7 +159,10 @@
             </td>
             <td><input class="form-control form-control-sm" name="grade" type="number" min="1" max="100" step="0.01" value="{{ $entry->grade }}"></td>
             <td><input class="form-control form-control-sm" name="comment" value="{{ $entry->comment }}"><input type="hidden" name="grade_label" value="{{ $entry->grade_label }}"></td>
-            <td><button class="btn btn-sm btn-ghost">Сохранить</button></td>
+            <td class="text-nowrap">
+              <button class="btn btn-sm btn-ghost journal-save-btn" type="submit">Сохранить</button>
+              <span class="small ms-2 journal-save-status text-white-50"></span>
+             </td>
            </form>
           </tr>
          @endif
@@ -219,6 +222,85 @@ document.addEventListener('DOMContentLoaded',()=>{
  });
 
  renderSubjects();
+
+ document.querySelectorAll('.journal-entry-form').forEach(form=>{
+  const status=form.querySelector('.journal-save-status');
+  const button=form.querySelector('.journal-save-btn');
+  let saveTimer=null;
+
+  const save=async()=>{
+   if(form.dataset.saving==='1'){
+    form.dataset.pending='1';
+    return;
+   }
+
+   form.dataset.saving='1';
+   if(status){
+    status.textContent='Сохранение...';
+    status.className='small ms-2 journal-save-status text-warning';
+   }
+   if(button)button.disabled=true;
+
+   try{
+    const response=await fetch(form.action,{
+     method:'POST',
+     headers:{
+      'Accept':'application/json',
+      'X-Requested-With':'XMLHttpRequest'
+     },
+     body:new FormData(form)
+    });
+
+    const payload=await response.json().catch(()=>({}));
+
+    if(!response.ok){
+     const errors=payload.errors
+      ? Object.values(payload.errors).flat().join(' ')
+      : (payload.message || 'Не удалось сохранить запись.');
+     throw new Error(errors);
+    }
+
+    if(status){
+     status.textContent='Сохранено';
+     status.className='small ms-2 journal-save-status text-success';
+     window.setTimeout(()=>{
+      if(status.textContent==='Сохранено')status.textContent='';
+     },1800);
+    }
+   }catch(error){
+    if(status){
+     status.textContent=error.message || 'Ошибка';
+     status.className='small ms-2 journal-save-status text-danger';
+    }
+   }finally{
+    form.dataset.saving='0';
+    if(button)button.disabled=false;
+
+    if(form.dataset.pending==='1'){
+     form.dataset.pending='0';
+     save();
+    }
+   }
+  };
+
+  form.addEventListener('submit',event=>{
+   event.preventDefault();
+   save();
+  });
+
+  form.querySelector('[name="attendance"]')?.addEventListener('change',save);
+
+  form.querySelectorAll('[name="grade"], [name="comment"]').forEach(field=>{
+   field.addEventListener('input',()=>{
+    window.clearTimeout(saveTimer);
+    saveTimer=window.setTimeout(save,700);
+   });
+   field.addEventListener('change',()=>{
+    window.clearTimeout(saveTimer);
+    save();
+   });
+  });
+ });
 });
 </script>
 @endsection
