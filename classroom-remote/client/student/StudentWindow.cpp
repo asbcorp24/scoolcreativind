@@ -116,7 +116,7 @@ StudentWindow::StudentWindow(QWidget* parent)
     connect(rtc_, &RtcRelayClient::frameReceived, this, &StudentWindow::onRtcFrame);
 
     connect(rtc_, &RtcRelayClient::textReceived, this, [this](const QJsonObject& obj) {
-        if (!remoteActive_)
+        if (!remoteActive_ || !controlAllowed_)
             return;
         if (obj.value("type").toString() == "remote_input")
             WinRemoteInput::apply(obj);
@@ -148,9 +148,16 @@ void StudentWindow::onMessage(const QJsonObject& obj) {
     }
 
     if (type == "remote_request") {
+        const QString mode = obj.value("mode").toString("view");
+        controlAllowed_ = (mode == "control");
         setRemoteActive(true);
         remoteScreenTimer_->start();
-        status_->setText("Преподаватель просматривает ваш экран");
+        remoteBanner_->setText(controlAllowed_
+            ? "Преподаватель подключён к управлению вашим компьютером"
+            : "Преподаватель просматривает ваш экран");
+        status_->setText(controlAllowed_
+            ? "Удалённое управление активно"
+            : "Преподаватель просматривает ваш экран");
         return;
     }
 
@@ -158,6 +165,7 @@ void StudentWindow::onMessage(const QJsonObject& obj) {
         remoteScreenTimer_->stop();
         audioTalkActive_ = false;
         audio_->stopCapture();
+        controlAllowed_ = false;
         setRemoteActive(false);
         status_->setText("Удалённая сессия завершена");
         return;
@@ -229,5 +237,7 @@ void StudentWindow::sendRealtimeScreen() {
 
 void StudentWindow::setRemoteActive(bool active) {
     remoteActive_ = active;
+    if (!active)
+        controlAllowed_ = false;
     remoteBanner_->setVisible(active);
 }
