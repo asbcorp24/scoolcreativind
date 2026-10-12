@@ -172,6 +172,12 @@
      </div>
     </div>
    @endforeach
+
+   @if(method_exists($lessons,'hasPages') && $lessons->hasPages())
+    <div class="mt-4 d-flex justify-content-center">
+     {{ $lessons->links() }}
+    </div>
+   @endif
   @endif
  </div>
 </section>
