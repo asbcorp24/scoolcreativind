@@ -6,6 +6,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o /out/classroom-server .
 
 FROM alpine:3.21
+RUN apk add --no-cache ffmpeg
 RUN adduser -D -H app
 USER app
 WORKDIR /app
