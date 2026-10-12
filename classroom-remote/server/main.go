@@ -175,7 +175,12 @@ func snapshotUpload(root string) http.HandlerFunc {
 			return
 		}
 		ts := time.Now().UTC().UnixMilli()
-		name := fmt.Sprintf("%d.webp", ts)
+		ext := ".jpg"
+		contentType := strings.ToLower(r.Header.Get("Content-Type"))
+		if strings.Contains(contentType, "webp") {
+			ext = ".webp"
+		}
+		name := fmt.Sprintf("%d%s", ts, ext)
 		dst, err := os.Create(filepath.Join(dir, name))
 		if err != nil {
 			http.Error(w, err.Error(), 500)
@@ -201,10 +206,11 @@ func latestSnapshot(root string) http.HandlerFunc {
 		var newest os.DirEntry
 		var newestTS int64
 		for _, e := range entries {
-			if e.IsDir() || !strings.HasSuffix(e.Name(), ".webp") {
+			if e.IsDir() || (!strings.HasSuffix(e.Name(), ".webp") && !strings.HasSuffix(e.Name(), ".jpg") && !strings.HasSuffix(e.Name(), ".jpeg")) {
 				continue
 			}
-			v, _ := strconv.ParseInt(strings.TrimSuffix(e.Name(), ".webp"), 10, 64)
+			base := strings.TrimSuffix(strings.TrimSuffix(strings.TrimSuffix(e.Name(), ".webp"), ".jpg"), ".jpeg")
+			v, _ := strconv.ParseInt(base, 10, 64)
 			if v > newestTS {
 				newestTS, newest = v, e
 			}
@@ -213,7 +219,11 @@ func latestSnapshot(root string) http.HandlerFunc {
 			http.NotFound(w, r)
 			return
 		}
-		w.Header().Set("Content-Type", "image/webp")
+		if strings.HasSuffix(newest.Name(), ".webp") {
+			w.Header().Set("Content-Type", "image/webp")
+		} else {
+			w.Header().Set("Content-Type", "image/jpeg")
+		}
 		http.ServeFile(w, r, filepath.Join(dir, newest.Name()))
 	}
 }
