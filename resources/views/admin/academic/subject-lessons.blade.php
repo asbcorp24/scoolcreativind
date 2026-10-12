@@ -101,7 +101,7 @@
     <div class="row g-3">
      <div class="col-md-2">
       <label class="form-label">№ урока</label>
-      <input type="number" min="1" class="form-control" name="lesson_number" value="{{ old('lesson_number',$subject->lessons->count()+1) }}" required>
+      <input type="number" min="1" class="form-control" name="lesson_number" value="{{ old('lesson_number',$lessons->total()+1) }}" required>
      </div>
      <div class="col-md-8">
       <label class="form-label">Название урока</label>
@@ -109,7 +109,7 @@
      </div>
      <div class="col-md-2">
       <label class="form-label">Порядок</label>
-      <input type="number" min="0" class="form-control" name="sort_order" value="{{ old('sort_order',$subject->lessons->count()+1) }}">
+      <input type="number" min="0" class="form-control" name="sort_order" value="{{ old('sort_order',$lessons->total()+1) }}">
      </div>
 
      <div class="col-12">
@@ -143,11 +143,11 @@
 
   <div class="section-head">
    <div><div class="eyebrow">Lesson plan</div><h2>Уроки предмета</h2></div>
-   <span class="badge-soft">{{ $subject->lessons->count() }}</span>
+   <span class="badge-soft">{{ $lessons->total() }}</span>
   </div>
 
   <div class="d-grid gap-4">
-   @forelse($subject->lessons as $lesson)
+   @forelse($lessons as $lesson)
     <article class="glass-card p-4">
      <form method="post" action="{{ route('admin.subjects.lessons.save',[$subject,$lesson]) }}">
       @csrf
@@ -255,6 +255,12 @@
     <div class="glass-card p-4 text-white-50">План пока пуст. Добавьте первый урок выше.</div>
    @endforelse
   </div>
+
+  @if($lessons->hasPages())
+   <div class="mt-4 d-flex justify-content-center">
+    {{ $lessons->links() }}
+   </div>
+  @endif
  </div>
 </section>
 @endsection
