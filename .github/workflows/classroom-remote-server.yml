@@ -1,0 +1,31 @@
+name: Classroom Remote Server
+
+on:
+  push:
+    paths:
+      - "classroom-remote/server/**"
+      - ".github/workflows/classroom-remote-server.yml"
+  pull_request:
+    paths:
+      - "classroom-remote/server/**"
+
+jobs:
+  go-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: classroom-remote/server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.x"
+          cache-dependency-path: classroom-remote/server/go.mod
+      - name: Tidy
+        run: go mod tidy
+      - name: Format check
+        run: test -z "$(gofmt -l .)"
+      - name: Test and build
+        run: go test ./...
+      - name: Build
+        run: go build -o classroom-server .
