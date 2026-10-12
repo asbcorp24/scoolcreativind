@@ -247,6 +247,8 @@ func main() {
 	r.Get("/ws", wsHandler(hub, rtcRelay))
 	r.Post("/api/v1/lessons/{lesson}/students/{student}/snapshot", snapshotUpload(root))
 	r.Get("/api/v1/lessons/{lesson}/students/{student}/snapshot/latest", latestSnapshot(root))
+	r.Get("/api/v1/lessons/{lesson}/students/{student}/recording.zip", recordingZip(root))
+	r.Get("/api/v1/lessons/{lesson}/students/{student}/recording.mp4", recordingMP4(root))
 	log.Printf("classroom server listening on %s", addr)
 	log.Fatal(http.ListenAndServe(addr, r))
 }
