@@ -17,6 +17,12 @@
 #include <QListWidgetItem>
 #include <QMediaCaptureSession>
 #include <QMediaDevices>
+#include <QFile>
+#include <QFileDialog>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#include <QUrl>
 #include <QMessageBox>
 #include <QPixmap>
 #include <QPushButton>
@@ -35,7 +41,8 @@ TeacherWindow::TeacherWindow(QWidget* parent)
       ws_(new WsClient(this)),
       rtc_(new RtcRelayClient(ws_, this)),
       audio_(new AudioPipe(this)),
-      screenTimer_(new QTimer(this)) {
+      screenTimer_(new QTimer(this)),
+      network_(new QNetworkAccessManager(this)) {
 
     auto* root = new QWidget;
     auto* outer = new QVBoxLayout(root);
@@ -91,9 +98,11 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     auto* controlBtn = new QPushButton("Управлять");
     auto* stopBtn = new QPushButton("Отключиться от ученика");
     auto* audioBtn = new QPushButton("Аудиодиалог");
+    auto* downloadBtn = new QPushButton("Скачать запись MP4");
     rv->addWidget(viewBtn);
     rv->addWidget(controlBtn);
     rv->addWidget(audioBtn);
+    rv->addWidget(downloadBtn);
     rv->addWidget(stopBtn);
 
     split->addWidget(tabs);
@@ -153,6 +162,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
         sendToSelected("audio_request");
         audio_->startPlayback();
     });
+    connect(downloadBtn, &QPushButton::clicked, this, &TeacherWindow::downloadRecording);
 
     connect(remoteView_, &RemoteView::remoteEvent, this, [this](const QJsonObject& e) {
         rtc_->sendText(e);
@@ -329,4 +339,54 @@ void TeacherWindow::onRtcFrame(quint8 kind, const QString& source, const QByteAr
         if (activeStudent_.isEmpty() || source == activeStudent_)
             audio_->play(payload);
     }
+}
+
+
+void TeacherWindow::downloadRecording() {
+    const QString studentId = selectedStudentId();
+    if (studentId.isEmpty()) {
+        QMessageBox::information(this, "Запись", "Сначала выберите ученика.");
+        return;
+    }
+
+    const QString fileName = QFileDialog::getSaveFileName(
+        this,
+        "Сохранить запись",
+        QString("lesson-%1-%2.mp4").arg(lesson_->text(), names_.value(studentId, studentId)),
+        "MP4 (*.mp4)");
+    if (fileName.isEmpty())
+        return;
+
+    QUrl url(server_->text());
+    if (url.scheme() == "wss")
+        url.setScheme("https");
+    else if (url.scheme() == "ws")
+        url.setScheme("http");
+    url.setPath(QString("/api/v1/lessons/%1/students/%2/recording.mp4")
+                    .arg(lesson_->text(), studentId));
+    url.setQuery({});
+
+    auto* reply = network_->get(QNetworkRequest(url));
+    status_->setText("Формируется MP4...");
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply, fileName] {
+        const auto data = reply->readAll();
+        if (reply->error() != QNetworkReply::NoError) {
+            QMessageBox::warning(this, "Запись", "Ошибка скачивания: " + reply->errorString());
+            status_->setText("Ошибка экспорта записи");
+            reply->deleteLater();
+            return;
+        }
+
+        QFile file(fileName);
+        if (!file.open(QIODevice::WriteOnly) || file.write(data) != data.size()) {
+            QMessageBox::warning(this, "Запись", "Не удалось сохранить файл.");
+            status_->setText("Ошибка сохранения записи");
+            reply->deleteLater();
+            return;
+        }
+        file.close();
+        status_->setText("Запись сохранена: " + fileName);
+        reply->deleteLater();
+    });
 }
