@@ -18,6 +18,23 @@ class AuthController extends Controller
         if (!Auth::attempt($credentials, $request->boolean('remember'))) {
             return back()->withErrors(['email'=>'Неверный email или пароль.'])->onlyInput('email');
         }
+
+        $user=Auth::user();
+
+        if(!$user->isActivated()){
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            $message=match($user->registration_status){
+                'rejected'=>'Регистрация отклонена администратором. Обратитесь в школу для уточнения.',
+                'blocked'=>'Учётная запись заблокирована. Обратитесь к администратору.',
+                default=>'Учётная запись ещё не активирована. Дождитесь подтверждения администратора и назначения в группу.',
+            };
+
+            return back()->withErrors(['email'=>$message])->onlyInput('email');
+        }
+
         $request->session()->regenerate();
         return redirect()->intended('/cabinet');
     }
@@ -31,6 +48,10 @@ class AuthController extends Controller
             'password'=>'required|string|min:8|confirmed'
         ]);
         $data['password']=Hash::make($data['password']);
+        $data['registration_status']='pending';
+        $data['activated_at']=null;
+        $data['activated_by']=null;
+
         $user=User::create($data);
 
         AdmissionApplication::firstOrCreate(
@@ -44,8 +65,10 @@ class AuthController extends Controller
             ]
         );
 
-        Auth::login($user);
-        return redirect('/cabinet')->with('success','Регистрация завершена. Ваша запись передана администратору.');
+        return redirect()->route('login')->with(
+            'success',
+            'Регистрация завершена. Аккаунт ожидает активации администратором и назначения в учебную группу.'
+        );
     }
 
     public function logout(Request $request)

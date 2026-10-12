@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 use App\Models\AdmissionApplication;
 use App\Models\JournalEntry;
 use App\Models\StudentProfile;
+use App\Models\StudyGroup;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class AdminRegistrationController extends Controller
 {
@@ -23,6 +25,7 @@ class AdminRegistrationController extends Controller
             ->with([
                 'admissionApplications'=>fn($q)=>$q->where('message','Регистрация на сайте')->latest(),
                 'studyGroups',
+                'activatedBy',
             ])
             ->withCount([
                 'studyGroups',
@@ -41,21 +44,128 @@ class AdminRegistrationController extends Controller
             });
         }
 
+        if($request->filled('status') && in_array($request->input('status'),['pending','active','rejected','blocked'],true)){
+            $query->where('registration_status',$request->input('status'));
+        }
+
         return view('admin.registrations',[
             'users'=>$query->paginate(50)->withQueryString(),
+            'groups'=>StudyGroup::where('is_active',true)->orderBy('study_year')->orderBy('name')->get(),
+            'pendingCount'=>User::where('registration_status','pending')
+                ->whereHas('admissionApplications',fn($q)=>$q->where('message','Регистрация на сайте'))
+                ->count(),
         ]);
+    }
+
+    public function activate(Request $request, User $user)
+    {
+        abort_unless(auth()->user()->is_admin,403);
+        $data=$request->validate([
+            'group_id'=>'required|exists:study_groups,id',
+            'role'=>'required|in:student,teacher',
+        ]);
+
+        $group=StudyGroup::where('is_active',true)->findOrFail($data['group_id']);
+        $this->activateUser($user,$group,$data['role']);
+
+        return back()->with('success','Пользователь «'.$user->name.'» активирован и добавлен в группу «'.$group->name.'».');
+    }
+
+    public function activateBulk(Request $request)
+    {
+        abort_unless(auth()->user()->is_admin,403);
+        $data=$request->validate([
+            'user_ids'=>'required|array|min:1|max:200',
+            'user_ids.*'=>'integer|exists:users,id',
+            'group_id'=>'required|exists:study_groups,id',
+            'role'=>'required|in:student,teacher',
+        ]);
+
+        $group=StudyGroup::where('is_active',true)->findOrFail($data['group_id']);
+        $activated=0;
+        $skipped=0;
+
+        foreach(User::whereIn('id',$data['user_ids'])->get() as $user){
+            if($user->is_admin || $user->isSectionAdmin() || !$this->isSelfRegistration($user)){
+                $skipped++;
+                continue;
+            }
+            $this->activateUser($user,$group,$data['role']);
+            $activated++;
+        }
+
+        return back()->with(
+            'success',
+            'Активировано пользователей: '.$activated.'.'.($skipped ? ' Пропущено: '.$skipped.'.' : '')
+        );
+    }
+
+    public function reject(User $user)
+    {
+        abort_unless(auth()->user()->is_admin,403);
+        abort_if($user->is_admin || $user->isSectionAdmin(),403);
+        abort_unless($this->isSelfRegistration($user),404);
+
+        DB::transaction(function() use($user){
+            $user->update([
+                'registration_status'=>'rejected',
+                'activated_at'=>null,
+                'activated_by'=>null,
+            ]);
+            $user->admissionApplications()
+                ->where('message','Регистрация на сайте')
+                ->update(['status'=>'rejected']);
+        });
+
+        return back()->with('success','Регистрация «'.$user->name.'» отклонена.');
+    }
+
+    private function activateUser(User $user, StudyGroup $group, string $role): void
+    {
+        abort_if($user->is_admin || $user->isSectionAdmin(),403);
+        abort_unless($this->isSelfRegistration($user),404);
+
+        DB::transaction(function() use($user,$group,$role){
+            $group->users()->syncWithoutDetaching([
+                $user->id=>['role'=>$role],
+            ]);
+
+            if($role==='student'){
+                StudentProfile::firstOrCreate(
+                    ['user_id'=>$user->id],
+                    [
+                        'studio_id'=>$group->studio_id,
+                        'class_name'=>$group->name,
+                        'portfolio_slug'=>Str::slug($user->name).'-'.$user->id,
+                        'is_public'=>false,
+                    ]
+                );
+            }
+
+            $user->update([
+                'registration_status'=>'active',
+                'activated_at'=>now(),
+                'activated_by'=>auth()->id(),
+            ]);
+
+            $user->admissionApplications()
+                ->where('message','Регистрация на сайте')
+                ->update(['status'=>'accepted']);
+        });
+    }
+
+    private function isSelfRegistration(User $user): bool
+    {
+        return $user->admissionApplications()
+            ->where('message','Регистрация на сайте')
+            ->exists();
     }
 
     public function destroy(User $user)
     {
         abort_unless(auth()->user()->is_admin,403);
         abort_if($user->is_admin || $user->isSectionAdmin(),403,'Нельзя удалить администратора.');
-
-        $isSelfRegistration=$user->admissionApplications()
-            ->where('message','Регистрация на сайте')
-            ->exists();
-
-        abort_unless($isSelfRegistration,404);
+        abort_unless($this->isSelfRegistration($user),404);
 
         $profile=StudentProfile::where('user_id',$user->id)
             ->withCount(['portfolio','achievements','parentReportLinks'])
@@ -108,12 +218,7 @@ class AdminRegistrationController extends Controller
         $skipped=0;
 
         foreach(User::whereIn('id',$data['user_ids'])->get() as $user){
-            if($user->is_admin || $user->isSectionAdmin()){
-                $skipped++;
-                continue;
-            }
-
-            if(!$user->admissionApplications()->where('message','Регистрация на сайте')->exists()){
+            if($user->is_admin || $user->isSectionAdmin() || !$this->isSelfRegistration($user)){
                 $skipped++;
                 continue;
             }

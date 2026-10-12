@@ -9,9 +9,32 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
-    protected $fillable=['name','email','phone','password','is_admin','admin_sections'];
+    protected $fillable=[
+        'name','email','phone','password','is_admin','admin_sections',
+        'registration_status','activated_at','activated_by'
+    ];
     protected $hidden=['password','remember_token'];
-    protected $casts=['email_verified_at'=>'datetime','is_admin'=>'boolean','admin_sections'=>'array'];
+    protected $casts=[
+        'email_verified_at'=>'datetime',
+        'is_admin'=>'boolean',
+        'admin_sections'=>'array',
+        'activated_at'=>'datetime',
+    ];
+
+    public function isActivated(): bool
+    {
+        return $this->is_admin || $this->isSectionAdmin() || $this->registration_status === 'active';
+    }
+
+    public function isPendingActivation(): bool
+    {
+        return !$this->isActivated() && $this->registration_status === 'pending';
+    }
+
+    public function activatedBy()
+    {
+        return $this->belongsTo(self::class,'activated_by');
+    }
 
     public function isSectionAdmin(): bool
     {
