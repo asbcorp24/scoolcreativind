@@ -46,5 +46,6 @@ private:
     QString studentId_;
     bool handRaised_{false};
     bool remoteActive_{false};
+    bool controlAllowed_{false};
     bool audioTalkActive_{false};
 };
