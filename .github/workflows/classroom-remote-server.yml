@@ -29,3 +29,5 @@ jobs:
         run: go test ./...
       - name: Build
         run: go build -o classroom-server .
+      - name: Docker image
+        run: docker build -t classroom-remote-server:test .
