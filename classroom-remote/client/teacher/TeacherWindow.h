@@ -62,4 +62,5 @@ private:
     QString activeStudent_;
     QString privateAudioTarget_;
     bool micOn_{false};
+    qint64 lastCameraSendMs_{0};
 };
