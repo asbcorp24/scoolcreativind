@@ -12,6 +12,7 @@ class QTimer;
 class QCamera;
 class QMediaCaptureSession;
 class QVideoSink;
+class QImage;
 class WsClient;
 class RtcRelayClient;
 class AudioPipe;
