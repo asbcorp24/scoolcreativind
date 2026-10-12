@@ -5,6 +5,11 @@ services:
     environment:
       ADDR: ":8080"
       STORAGE_DIR: /data
+      PUBLIC_IP: "${PUBLIC_IP}"
+      RTC_MIN_PORT: "50000"
+      RTC_MAX_PORT: "50100"
+    ports:
+      - "50000-50100:50000-50100/udp"
     volumes:
       - snapshots:/data
     expose:
