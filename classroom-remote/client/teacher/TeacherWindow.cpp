@@ -294,6 +294,8 @@ void TeacherWindow::onMessage(const QJsonObject& obj) {
             if (item->data(Qt::UserRole).toString() == id)
                 item->setText("● " + names_.value(id, id));
         }
+    } else if (type == "keyframe_request") {
+        codec_->requestKeyframe();
     }
 }
 
