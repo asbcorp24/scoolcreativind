@@ -429,9 +429,8 @@ func main() {
 	r.Handle("/*", webHandler())
 	r.Handle("/", webHandler())
 
-	log.Printf("Classroom Remote server: http://0.0.0.0%s", cfg.HTTPAddr)
 	log.Printf("SQLite: %s", cfg.DBPath)
-	log.Fatal(http.ListenAndServe(cfg.HTTPAddr, r))
+	log.Fatal(serveApplication(cfg, r))
 }
 
 func env(k, d string) string {
