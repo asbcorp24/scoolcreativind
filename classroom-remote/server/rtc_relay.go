@@ -166,6 +166,11 @@ func (r *RTCRelay) AcceptOffer(c *Client, sdp string) (string, error) {
 		pc:       pc,
 		outbound: map[string]*webrtc.TrackLocalStaticRTP{},
 	}
+	if err := r.prepareMediaTransceivers(p); err != nil {
+		_ = pc.Close()
+		return "", err
+	}
+
 	r.mu.Lock()
 	r.peers[c.ID] = p
 	r.mu.Unlock()
@@ -225,11 +230,6 @@ func (r *RTCRelay) AcceptOffer(c *Client, sdp string) (string, error) {
 		return "", err
 	}
 
-	if err := r.attachOutboundTracks(p); err != nil {
-		_ = pc.Close()
-		return "", err
-	}
-
 	answer, err := pc.CreateAnswer(nil)
 	if err != nil {
 		_ = pc.Close()
@@ -251,41 +251,67 @@ func (r *RTCRelay) AcceptOffer(c *Client, sdp string) (string, error) {
 	return local.SDP, nil
 }
 
-func (r *RTCRelay) attachOutboundTracks(p *rtcPeer) error {
-	for _, transceiver := range p.pc.GetTransceivers() {
-		mid := transceiver.Mid()
-		if !r.serverSendsTrack(p.client.Role, mid) {
-			continue
-		}
-
-		capability, ok := codecForTrack(mid)
-		if !ok {
-			continue
-		}
-
-		local, err := webrtc.NewTrackLocalStaticRTP(
-			capability,
-			mid,
-			"classroom",
-		)
-		if err != nil {
-			return fmt.Errorf("create outbound track %s: %w", mid, err)
-		}
-
-		if err := transceiver.Sender().ReplaceTrack(local); err != nil {
-			return fmt.Errorf("attach outbound track %s: %w", mid, err)
-		}
-		p.setOutbound(mid, local)
-
-		go func(sender *webrtc.RTPSender) {
-			buf := make([]byte, 1500)
-			for {
-				if _, _, readErr := sender.Read(buf); readErr != nil {
-					return
-				}
-			}
-		}(transceiver.Sender())
+func (r *RTCRelay) prepareMediaTransceivers(p *rtcPeer) error {
+	type mediaSpec struct {
+		id   string
+		kind webrtc.RTPCodecType
 	}
+	specs := []mediaSpec{
+		{trackLectureVideo, webrtc.RTPCodecTypeVideo},
+		{trackLectureAudio, webrtc.RTPCodecTypeAudio},
+		{trackPrivateAudio, webrtc.RTPCodecTypeAudio},
+		{trackRemoteVideo, webrtc.RTPCodecTypeVideo},
+		{trackRemoteAudio, webrtc.RTPCodecTypeAudio},
+	}
+
+	for _, spec := range specs {
+		if r.serverSendsTrack(p.client.Role, spec.id) {
+			capability, ok := codecForTrack(spec.id)
+			if !ok {
+				return fmt.Errorf("missing codec for track %s", spec.id)
+			}
+
+			local, err := webrtc.NewTrackLocalStaticRTP(
+				capability,
+				spec.id,
+				"classroom",
+			)
+			if err != nil {
+				return fmt.Errorf("create outbound track %s: %w", spec.id, err)
+			}
+
+			transceiver, err := p.pc.AddTransceiverFromTrack(
+				local,
+				webrtc.RTPTransceiverInit{
+					Direction: webrtc.RTPTransceiverDirectionSendonly,
+				},
+			)
+			if err != nil {
+				return fmt.Errorf("add outbound transceiver %s: %w", spec.id, err)
+			}
+
+			p.setOutbound(spec.id, local)
+			go func(sender *webrtc.RTPSender) {
+				buf := make([]byte, 1500)
+				for {
+					if _, _, readErr := sender.Read(buf); readErr != nil {
+						return
+					}
+				}
+			}(transceiver.Sender())
+			continue
+		}
+
+		if _, err := p.pc.AddTransceiverFromKind(
+			spec.kind,
+			webrtc.RTPTransceiverInit{
+				Direction: webrtc.RTPTransceiverDirectionRecvonly,
+			},
+		); err != nil {
+			return fmt.Errorf("add inbound transceiver %s: %w", spec.id, err)
+		}
+	}
+
 	return nil
 }
 
