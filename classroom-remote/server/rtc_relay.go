@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,22 +10,24 @@ import (
 	"sync"
 
 	"github.com/pion/interceptor"
+	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v4"
 )
 
 const (
-	frameLectureVideo byte = 1
-	frameLectureAudio byte = 2
-	frameStudentVideo byte = 3
-	frameStudentAudio byte = 4
-	frameTeacherPrivateAudio byte = 5
+	trackLectureVideo = "lecture-video"
+	trackLectureAudio = "lecture-audio"
+	trackPrivateAudio = "private-audio"
+	trackRemoteVideo  = "remote-video"
+	trackRemoteAudio  = "remote-audio"
 )
 
 type rtcPeer struct {
-	mu     sync.RWMutex
-	client *Client
-	pc     *webrtc.PeerConnection
-	dc     *webrtc.DataChannel
+	mu       sync.RWMutex
+	client   *Client
+	pc       *webrtc.PeerConnection
+	dc       *webrtc.DataChannel
+	outbound map[string]*webrtc.TrackLocalStaticRTP
 }
 
 func (p *rtcPeer) setDataChannel(dc *webrtc.DataChannel) {
@@ -41,10 +42,29 @@ func (p *rtcPeer) dataChannel() *webrtc.DataChannel {
 	return p.dc
 }
 
+func (p *rtcPeer) setOutbound(id string, track *webrtc.TrackLocalStaticRTP) {
+	p.mu.Lock()
+	if p.outbound == nil {
+		p.outbound = map[string]*webrtc.TrackLocalStaticRTP{}
+	}
+	p.outbound[id] = track
+	p.mu.Unlock()
+}
+
+func (p *rtcPeer) outboundTrack(id string) *webrtc.TrackLocalStaticRTP {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.outbound[id]
+}
+
 type RTCRelay struct {
 	mu    sync.RWMutex
 	peers map[string]*rtcPeer
 	api   *webrtc.API
+
+	targetMu      sync.RWMutex
+	remoteTargets map[string]string
+	audioTargets  map[string]string
 }
 
 func NewRTCRelay() (*RTCRelay, error) {
@@ -76,8 +96,10 @@ func NewRTCRelay() (*RTCRelay, error) {
 	)
 
 	return &RTCRelay{
-		peers: map[string]*rtcPeer{},
-		api:   api,
+		peers:         map[string]*rtcPeer{},
+		api:           api,
+		remoteTargets: map[string]string{},
+		audioTargets:  map[string]string{},
 	}, nil
 }
 
@@ -86,9 +108,49 @@ func (r *RTCRelay) CloseClient(id string) {
 	p := r.peers[id]
 	delete(r.peers, id)
 	r.mu.Unlock()
+
+	r.targetMu.Lock()
+	delete(r.remoteTargets, id)
+	delete(r.audioTargets, id)
+	for teacher, student := range r.remoteTargets {
+		if student == id {
+			delete(r.remoteTargets, teacher)
+		}
+	}
+	for teacher, student := range r.audioTargets {
+		if student == id {
+			delete(r.audioTargets, teacher)
+		}
+	}
+	r.targetMu.Unlock()
+
 	if p != nil && p.pc != nil {
 		_ = p.pc.Close()
 	}
+}
+
+func (r *RTCRelay) SetRemoteTarget(teacherID, studentID string) {
+	r.targetMu.Lock()
+	r.remoteTargets[teacherID] = studentID
+	r.targetMu.Unlock()
+}
+
+func (r *RTCRelay) ClearRemoteTarget(teacherID string) {
+	r.targetMu.Lock()
+	delete(r.remoteTargets, teacherID)
+	r.targetMu.Unlock()
+}
+
+func (r *RTCRelay) SetAudioTarget(teacherID, studentID string) {
+	r.targetMu.Lock()
+	r.audioTargets[teacherID] = studentID
+	r.targetMu.Unlock()
+}
+
+func (r *RTCRelay) ClearAudioTarget(teacherID string) {
+	r.targetMu.Lock()
+	delete(r.audioTargets, teacherID)
+	r.targetMu.Unlock()
 }
 
 func (r *RTCRelay) AcceptOffer(c *Client, sdp string) (string, error) {
@@ -99,7 +161,11 @@ func (r *RTCRelay) AcceptOffer(c *Client, sdp string) (string, error) {
 		return "", err
 	}
 
-	p := &rtcPeer{client: c, pc: pc}
+	p := &rtcPeer{
+		client:   c,
+		pc:       pc,
+		outbound: map[string]*webrtc.TrackLocalStaticRTP{},
+	}
 	r.mu.Lock()
 	r.peers[c.ID] = p
 	r.mu.Unlock()
@@ -117,54 +183,49 @@ func (r *RTCRelay) AcceptOffer(c *Client, sdp string) (string, error) {
 			return
 		}
 		p.setDataChannel(dc)
-
 		dc.OnMessage(func(msg webrtc.DataChannelMessage) {
 			if msg.IsString {
 				r.routeText(c, msg.Data)
-				return
-			}
-			if len(msg.Data) < 1 {
-				return
-			}
-			kind := msg.Data[0]
-
-			if c.Role == "teacher" && kind == frameTeacherPrivateAudio {
-				// kind(1), targetLen(2), target, frame/chunk metadata(8), payload
-				if len(msg.Data) < 11 {
-					return
-				}
-				targetLen := int(binary.BigEndian.Uint16(msg.Data[1:3]))
-				if targetLen == 0 || len(msg.Data) < 3+targetLen+8 {
-					return
-				}
-				target := string(msg.Data[3 : 3+targetLen])
-				payload := msg.Data[3+targetLen:]
-				if peer := r.peer(target); peer != nil &&
-					peer.client.LessonID == c.LessonID &&
-					peer.client.Role == "student" {
-					r.sendBinary(peer, makeRelayFrame(kind, c.ID, payload))
-				}
-				return
-			}
-
-			payload := msg.Data[1:]
-			switch c.Role {
-			case "teacher":
-				if kind == frameLectureVideo || kind == frameLectureAudio {
-					r.broadcast(c.LessonID, c.ID, "student", kind, payload)
-				}
-			case "student":
-				if kind == frameStudentVideo || kind == frameStudentAudio {
-					r.broadcast(c.LessonID, c.ID, "teacher", kind, payload)
-				}
 			}
 		})
+	})
+
+	pc.OnTrack(func(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
+		trackID := track.ID()
+		if trackID == "" {
+			return
+		}
+
+		go func() {
+			for {
+				packet, _, readErr := track.ReadRTP()
+				if readErr != nil {
+					return
+				}
+				r.routeRTP(c, trackID, packet)
+			}
+		}()
+
+		// Drain RTCP generated for the remote sender.
+		go func() {
+			buf := make([]byte, 1500)
+			for {
+				if _, _, readErr := receiver.Read(buf); readErr != nil {
+					return
+				}
+			}
+		}()
 	})
 
 	if err := pc.SetRemoteDescription(webrtc.SessionDescription{
 		Type: webrtc.SDPTypeOffer,
 		SDP:  sdp,
 	}); err != nil {
+		_ = pc.Close()
+		return "", err
+	}
+
+	if err := r.attachOutboundTracks(p); err != nil {
 		_ = pc.Close()
 		return "", err
 	}
@@ -190,6 +251,165 @@ func (r *RTCRelay) AcceptOffer(c *Client, sdp string) (string, error) {
 	return local.SDP, nil
 }
 
+func (r *RTCRelay) attachOutboundTracks(p *rtcPeer) error {
+	for _, transceiver := range p.pc.GetTransceivers() {
+		mid := transceiver.Mid()
+		if !r.serverSendsTrack(p.client.Role, mid) {
+			continue
+		}
+
+		capability, ok := codecForTrack(mid)
+		if !ok {
+			continue
+		}
+
+		local, err := webrtc.NewTrackLocalStaticRTP(
+			capability,
+			mid,
+			"classroom",
+		)
+		if err != nil {
+			return fmt.Errorf("create outbound track %s: %w", mid, err)
+		}
+
+		if err := transceiver.Sender().ReplaceTrack(local); err != nil {
+			return fmt.Errorf("attach outbound track %s: %w", mid, err)
+		}
+		p.setOutbound(mid, local)
+
+		go func(sender *webrtc.RTPSender) {
+			buf := make([]byte, 1500)
+			for {
+				if _, _, readErr := sender.Read(buf); readErr != nil {
+					return
+				}
+			}
+		}(transceiver.Sender())
+	}
+	return nil
+}
+
+func (r *RTCRelay) serverSendsTrack(role, mid string) bool {
+	if role == "student" {
+		return mid == trackLectureVideo ||
+			mid == trackLectureAudio ||
+			mid == trackPrivateAudio
+	}
+	if role == "teacher" {
+		return mid == trackRemoteVideo ||
+			mid == trackRemoteAudio
+	}
+	return false
+}
+
+func codecForTrack(mid string) (webrtc.RTPCodecCapability, bool) {
+	switch mid {
+	case trackLectureVideo, trackRemoteVideo:
+		return webrtc.RTPCodecCapability{
+			MimeType:    webrtc.MimeTypeH264,
+			ClockRate:   90000,
+			SDPFmtpLine: "profile-level-id=42e01f;packetization-mode=1;level-asymmetry-allowed=1",
+		}, true
+	case trackLectureAudio, trackPrivateAudio, trackRemoteAudio:
+		return webrtc.RTPCodecCapability{
+			MimeType:  webrtc.MimeTypeOpus,
+			ClockRate: 48000,
+			Channels:  2,
+		}, true
+	default:
+		return webrtc.RTPCodecCapability{}, false
+	}
+}
+
+func (r *RTCRelay) routeRTP(from *Client, trackID string, packet *rtp.Packet) {
+	if packet == nil {
+		return
+	}
+
+	switch from.Role {
+	case "teacher":
+		switch trackID {
+		case trackLectureVideo, trackLectureAudio:
+			r.writeToRole(from.LessonID, "student", trackID, packet)
+		case trackPrivateAudio:
+			target := r.audioTarget(from.ID)
+			if target != "" {
+				r.writeToPeer(from.LessonID, target, trackPrivateAudio, packet)
+			}
+		}
+
+	case "student":
+		switch trackID {
+		case trackRemoteVideo:
+			for _, teacher := range r.teachersTargeting(from.LessonID, from.ID, false) {
+				r.writeToPeer(from.LessonID, teacher, trackRemoteVideo, packet)
+			}
+		case trackRemoteAudio:
+			for _, teacher := range r.teachersTargeting(from.LessonID, from.ID, true) {
+				r.writeToPeer(from.LessonID, teacher, trackRemoteAudio, packet)
+			}
+		}
+	}
+}
+
+func (r *RTCRelay) writeToRole(lessonID, role, trackID string, packet *rtp.Packet) {
+	r.mu.RLock()
+	targets := make([]*webrtc.TrackLocalStaticRTP, 0)
+	for _, p := range r.peers {
+		if p.client.LessonID == lessonID && p.client.Role == role {
+			if track := p.outboundTrack(trackID); track != nil {
+				targets = append(targets, track)
+			}
+		}
+	}
+	r.mu.RUnlock()
+
+	for _, track := range targets {
+		_ = track.WriteRTP(packet)
+	}
+}
+
+func (r *RTCRelay) writeToPeer(lessonID, clientID, trackID string, packet *rtp.Packet) {
+	p := r.peer(clientID)
+	if p == nil || p.client.LessonID != lessonID {
+		return
+	}
+	if track := p.outboundTrack(trackID); track != nil {
+		_ = track.WriteRTP(packet)
+	}
+}
+
+func (r *RTCRelay) teachersTargeting(lessonID, studentID string, audio bool) []string {
+	r.targetMu.RLock()
+	defer r.targetMu.RUnlock()
+
+	var source map[string]string
+	if audio {
+		source = r.audioTargets
+	} else {
+		source = r.remoteTargets
+	}
+
+	out := make([]string, 0)
+	for teacher, student := range source {
+		if student != studentID {
+			continue
+		}
+		if p := r.peer(teacher); p != nil &&
+			p.client.LessonID == lessonID &&
+			p.client.Role == "teacher" {
+			out = append(out, teacher)
+		}
+	}
+	return out
+}
+
+func (r *RTCRelay) audioTarget(teacherID string) string {
+	r.targetMu.RLock()
+	defer r.targetMu.RUnlock()
+	return r.audioTargets[teacherID]
+}
+
 func (r *RTCRelay) routeText(from *Client, data []byte) {
 	var msg map[string]any
 	if json.Unmarshal(data, &msg) != nil {
@@ -201,14 +421,18 @@ func (r *RTCRelay) routeText(from *Client, data []byte) {
 	}
 
 	if from.Role == "teacher" {
-		if t := r.peer(target); t != nil && t.client.LessonID == from.LessonID && t.client.Role == "student" {
+		if t := r.peer(target); t != nil &&
+			t.client.LessonID == from.LessonID &&
+			t.client.Role == "student" {
 			r.sendText(t, data)
 		}
 		return
 	}
 
 	if from.Role == "student" {
-		if t := r.peer(target); t != nil && t.client.LessonID == from.LessonID && t.client.Role == "teacher" {
+		if t := r.peer(target); t != nil &&
+			t.client.LessonID == from.LessonID &&
+			t.client.Role == "teacher" {
 			r.sendText(t, data)
 		}
 	}
@@ -220,34 +444,6 @@ func (r *RTCRelay) peer(id string) *rtcPeer {
 	return r.peers[id]
 }
 
-func (r *RTCRelay) broadcast(lessonID, sourceID, role string, kind byte, payload []byte) {
-	frame := makeRelayFrame(kind, sourceID, payload)
-
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	for _, p := range r.peers {
-		if p.client.LessonID != lessonID || p.client.Role != role {
-			continue
-		}
-		dc := p.dataChannel()
-		if dc == nil || dc.ReadyState() != webrtc.DataChannelStateOpen {
-			continue
-		}
-		_ = dc.Send(frame)
-	}
-}
-
-func (r *RTCRelay) sendBinary(p *rtcPeer, data []byte) {
-	if p == nil {
-		return
-	}
-	dc := p.dataChannel()
-	if dc == nil || dc.ReadyState() != webrtc.DataChannelStateOpen {
-		return
-	}
-	_ = dc.Send(data)
-}
-
 func (r *RTCRelay) sendText(p *rtcPeer, data []byte) {
 	if p == nil {
 		return
@@ -257,19 +453,6 @@ func (r *RTCRelay) sendText(p *rtcPeer, data []byte) {
 		return
 	}
 	_ = dc.SendText(string(data))
-}
-
-func makeRelayFrame(kind byte, sourceID string, payload []byte) []byte {
-	id := []byte(sourceID)
-	if len(id) > 65535 {
-		id = id[:65535]
-	}
-	out := make([]byte, 3+len(id)+len(payload))
-	out[0] = kind
-	binary.BigEndian.PutUint16(out[1:3], uint16(len(id)))
-	copy(out[3:3+len(id)], id)
-	copy(out[3+len(id):], payload)
-	return out
 }
 
 func envInt(name string, fallback int) int {
