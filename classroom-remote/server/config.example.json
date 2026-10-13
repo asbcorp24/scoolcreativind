@@ -1,0 +1,21 @@
+{
+  "http_addr": ":8080",
+  "https_addr": ":443",
+  "domain": "",
+  "acme_email": "",
+  "public_ip": "",
+  "storage_dir": "./data/storage",
+  "db_path": "./data/classroom.db",
+  "teacher_token": "",
+  "student_token": "",
+  "rtc_min_port": 50000,
+  "rtc_max_port": 50100,
+  "turn_enabled": true,
+  "turn_listen": ":3478",
+  "turn_realm": "classroom",
+  "turn_username": "classroom",
+  "turn_password": "",
+  "turn_min_port": 49160,
+  "turn_max_port": 49260,
+  "ffmpeg_path": ""
+}
