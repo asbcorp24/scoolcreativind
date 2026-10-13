@@ -11,6 +11,7 @@ class QNetworkAccessManager;
 class WsClient;
 class RtcRelayClient;
 class AudioPipe;
+class MediaCodec;
 
 class StudentWindow final : public QMainWindow {
     Q_OBJECT
@@ -24,11 +25,13 @@ private:
     void uploadSnapshot();
     void sendRealtimeScreen();
     void setRemoteActive(bool active);
-    void onRtcFrame(quint8 kind, const QString& source, const QByteArray& payload);
+    void onRtcVideo(const QString& trackId, const QByteArray& h264);
+    void onRtcAudio(const QString& trackId, const QByteArray& opus);
 
     WsClient* ws_{};
     RtcRelayClient* rtc_{};
     AudioPipe* audio_{};
+    MediaCodec* codec_{};
 
     QLineEdit* wsUrl_{};
     QLineEdit* httpUrl_{};
