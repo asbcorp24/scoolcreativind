@@ -107,10 +107,12 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     auto* stopBtn = new QPushButton("Отключиться от ученика");
     auto* audioBtn = new QPushButton("Аудиодиалог");
     auto* downloadBtn = new QPushButton("Скачать запись MP4");
+    auto* downloadZipBtn = new QPushButton("Скачать кадры ZIP");
     rv->addWidget(viewBtn);
     rv->addWidget(controlBtn);
     rv->addWidget(audioBtn);
     rv->addWidget(downloadBtn);
+    rv->addWidget(downloadZipBtn);
     rv->addWidget(stopBtn);
 
     split->addWidget(tabs);
@@ -224,6 +226,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
         audioBtn->setText("Завершить аудиодиалог");
     });
     connect(downloadBtn, &QPushButton::clicked, this, &TeacherWindow::downloadRecording);
+    connect(downloadZipBtn, &QPushButton::clicked, this, &TeacherWindow::downloadFramesZip);
 
     connect(remoteView_, &RemoteView::remoteEvent, this, [this](const QJsonObject& e) {
         rtc_->sendText(e);
@@ -465,6 +468,58 @@ void TeacherWindow::downloadRecording() {
         }
         file.close();
         status_->setText("Запись сохранена: " + fileName);
+        reply->deleteLater();
+    });
+}
+
+
+void TeacherWindow::downloadFramesZip() {
+    const QString studentId = selectedStudentId();
+    if (studentId.isEmpty()) {
+        QMessageBox::information(this, "Запись", "Сначала выберите ученика.");
+        return;
+    }
+
+    const QString fileName = QFileDialog::getSaveFileName(
+        this,
+        "Сохранить архив кадров",
+        QString("lesson-%1-%2.zip").arg(lesson_->text(), names_.value(studentId, studentId)),
+        "ZIP (*.zip)");
+    if (fileName.isEmpty())
+        return;
+
+    QUrl url(server_->text());
+    if (url.scheme() == "wss")
+        url.setScheme("https");
+    else if (url.scheme() == "ws")
+        url.setScheme("http");
+    url.setPath(QString("/api/v1/lessons/%1/students/%2/recording.zip")
+                    .arg(lesson_->text(), studentId));
+    url.setQuery(QString());
+
+    QNetworkRequest request(url);
+    request.setRawHeader("Authorization", "Bearer " + token_->text().toUtf8());
+    auto* reply = network_->get(request);
+    status_->setText("Скачиваю архив кадров...");
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply, fileName] {
+        const auto data = reply->readAll();
+        if (reply->error() != QNetworkReply::NoError) {
+            QMessageBox::warning(this, "Запись", "Ошибка скачивания: " + reply->errorString());
+            status_->setText("Ошибка скачивания архива");
+            reply->deleteLater();
+            return;
+        }
+
+        QFile file(fileName);
+        if (!file.open(QIODevice::WriteOnly) || file.write(data) != data.size()) {
+            QMessageBox::warning(this, "Запись", "Не удалось сохранить ZIP.");
+            status_->setText("Ошибка сохранения архива");
+            reply->deleteLater();
+            return;
+        }
+        file.close();
+        status_->setText("Архив сохранён: " + fileName);
         reply->deleteLater();
     });
 }
