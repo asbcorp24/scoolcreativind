@@ -5,6 +5,8 @@
 #include <cmath>
 #include <cstring>
 #include <vector>
+#include <unordered_map>
+#include <string>
 
 #include <wels/codec_api.h>
 #include <opus/opus.h>
@@ -116,10 +118,15 @@ QImage i420ToRgb(const unsigned char* yPlane,
 } // namespace
 
 struct MediaCodec::Impl {
+    struct AudioEncoderState {
+        OpusEncoder* encoder{};
+        QByteArray buffer;
+    };
+
     ISVCEncoder* videoEncoder{};
     ISVCDecoder* videoDecoder{};
-    OpusEncoder* audioEncoder{};
-    OpusDecoder* audioDecoder{};
+    std::unordered_map<std::string, AudioEncoderState> audioEncoders;
+    std::unordered_map<std::string, OpusDecoder*> audioDecoders;
 
     int width{1280};
     int height{720};
@@ -130,7 +137,6 @@ struct MediaCodec::Impl {
     bool forceKeyframe{true};
 
     std::vector<unsigned char> yuv;
-    QByteArray audioBuffer;
 };
 
 MediaCodec::MediaCodec() : d_(std::make_unique<Impl>()) {}
@@ -205,26 +211,8 @@ bool MediaCodec::initialize(int width, int height, int fps,
         return false;
     }
 
-    int opusError = OPUS_OK;
-    d_->audioEncoder = opus_encoder_create(48000, 1, OPUS_APPLICATION_VOIP, &opusError);
-    if (opusError != OPUS_OK || !d_->audioEncoder) {
-        shutdown();
-        return false;
-    }
-    opus_encoder_ctl(d_->audioEncoder, OPUS_SET_BITRATE(audioBitrate));
-    opus_encoder_ctl(d_->audioEncoder, OPUS_SET_COMPLEXITY(5));
-    opus_encoder_ctl(d_->audioEncoder, OPUS_SET_INBAND_FEC(1));
-    opus_encoder_ctl(d_->audioEncoder, OPUS_SET_PACKET_LOSS_PERC(5));
-
-    d_->audioDecoder = opus_decoder_create(48000, 1, &opusError);
-    if (opusError != OPUS_OK || !d_->audioDecoder) {
-        shutdown();
-        return false;
-    }
-
     d_->frameCounter = 0;
     d_->forceKeyframe = true;
-    d_->audioBuffer.clear();
     return true;
 }
 
@@ -239,15 +227,17 @@ void MediaCodec::shutdown() {
         WelsDestroyDecoder(d_->videoDecoder);
         d_->videoDecoder = nullptr;
     }
-    if (d_->audioEncoder) {
-        opus_encoder_destroy(d_->audioEncoder);
-        d_->audioEncoder = nullptr;
+    for (auto& [_, state] : d_->audioEncoders) {
+        if (state.encoder)
+            opus_encoder_destroy(state.encoder);
     }
-    if (d_->audioDecoder) {
-        opus_decoder_destroy(d_->audioDecoder);
-        d_->audioDecoder = nullptr;
+    d_->audioEncoders.clear();
+
+    for (auto& [_, decoder] : d_->audioDecoders) {
+        if (decoder)
+            opus_decoder_destroy(decoder);
     }
-    d_->audioBuffer.clear();
+    d_->audioDecoders.clear();
     d_->yuv.clear();
 }
 
@@ -328,41 +318,74 @@ QImage MediaCodec::decodeVideo(const QByteArray& h264) {
         width, height);
 }
 
-QList<QByteArray> MediaCodec::encodeAudio(const QByteArray& pcm) {
+QList<QByteArray> MediaCodec::encodeAudio(const QByteArray& pcm,
+                                               const QString& streamId) {
     QList<QByteArray> packets;
-    if (!d_->audioEncoder || pcm.isEmpty())
+    if (pcm.isEmpty())
         return packets;
 
-    d_->audioBuffer.append(pcm);
+    const std::string key = streamId.toStdString();
+    auto& state = d_->audioEncoders[key];
+    if (!state.encoder) {
+        int opusError = OPUS_OK;
+        state.encoder = opus_encoder_create(
+            48000, 1, OPUS_APPLICATION_VOIP, &opusError);
+        if (opusError != OPUS_OK || !state.encoder) {
+            state.encoder = nullptr;
+            return packets;
+        }
+        opus_encoder_ctl(state.encoder, OPUS_SET_BITRATE(d_->audioBitrate));
+        opus_encoder_ctl(state.encoder, OPUS_SET_COMPLEXITY(5));
+        opus_encoder_ctl(state.encoder, OPUS_SET_INBAND_FEC(1));
+        opus_encoder_ctl(state.encoder, OPUS_SET_PACKET_LOSS_PERC(5));
+    }
+
+    state.buffer.append(pcm);
 
     constexpr int samplesPerFrame = 960; // 20 ms at 48 kHz
     constexpr int bytesPerFrame = samplesPerFrame * int(sizeof(opus_int16));
 
-    while (d_->audioBuffer.size() >= bytesPerFrame) {
-        const auto* samples = reinterpret_cast<const opus_int16*>(d_->audioBuffer.constData());
+    while (state.buffer.size() >= bytesPerFrame) {
+        const auto* samples =
+            reinterpret_cast<const opus_int16*>(state.buffer.constData());
 
         unsigned char encoded[4000];
-        const int bytes = opus_encode(d_->audioEncoder,
-                                      samples,
-                                      samplesPerFrame,
-                                      encoded,
-                                      int(sizeof(encoded)));
-        if (bytes > 0)
-            packets.append(QByteArray(reinterpret_cast<const char*>(encoded), bytes));
+        const int bytes = opus_encode(
+            state.encoder,
+            samples,
+            samplesPerFrame,
+            encoded,
+            int(sizeof(encoded)));
 
-        d_->audioBuffer.remove(0, bytesPerFrame);
+        if (bytes > 0)
+            packets.append(QByteArray(
+                reinterpret_cast<const char*>(encoded), bytes));
+
+        state.buffer.remove(0, bytesPerFrame);
     }
 
     return packets;
 }
 
-QByteArray MediaCodec::decodeAudio(const QByteArray& packet) {
-    if (!d_->audioDecoder || packet.isEmpty())
+QByteArray MediaCodec::decodeAudio(const QByteArray& packet,
+                                   const QString& streamId) {
+    if (packet.isEmpty())
         return {};
+
+    const std::string key = streamId.toStdString();
+    OpusDecoder*& decoder = d_->audioDecoders[key];
+    if (!decoder) {
+        int opusError = OPUS_OK;
+        decoder = opus_decoder_create(48000, 1, &opusError);
+        if (opusError != OPUS_OK || !decoder) {
+            decoder = nullptr;
+            return {};
+        }
+    }
 
     opus_int16 pcm[5760];
     const int samples = opus_decode(
-        d_->audioDecoder,
+        decoder,
         reinterpret_cast<const unsigned char*>(packet.constData()),
         packet.size(),
         pcm,
@@ -372,8 +395,9 @@ QByteArray MediaCodec::decodeAudio(const QByteArray& packet) {
     if (samples <= 0)
         return {};
 
-    return QByteArray(reinterpret_cast<const char*>(pcm),
-                      samples * int(sizeof(opus_int16)));
+    return QByteArray(
+        reinterpret_cast<const char*>(pcm),
+        samples * int(sizeof(opus_int16)));
 }
 
 void MediaCodec::requestKeyframe() {
