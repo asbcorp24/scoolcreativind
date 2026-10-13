@@ -3,6 +3,8 @@
   "name": "classroom-remote-client",
   "version-string": "0.1.0",
   "dependencies": [
-    "openssl"
+    "openssl",
+    "openh264",
+    "opus"
   ]
 }
