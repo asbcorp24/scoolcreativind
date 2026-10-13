@@ -54,7 +54,11 @@ jobs:
       - name: Run codec tests
         shell: pwsh
         working-directory: classroom-remote/client/build
-        run: ctest -C Release --output-on-failure
+        run: |
+          $qtBin = "C:\Qt\6.8.3\msvc2022_64\bin"
+          $vcpkgBin = "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin"
+          $env:PATH = "$qtBin;$vcpkgBin;$env:PATH"
+          ctest -C Release --output-on-failure
 
       - name: Deploy Qt runtime
         shell: pwsh
