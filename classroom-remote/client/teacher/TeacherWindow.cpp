@@ -230,8 +230,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     });
 
     connect(ws_, &WsClient::connected, this, [this] {
-        status_->setText("● Сигналинг подключён, устанавливаю WebRTC...");
-        rtc_->start("teacher");
+        status_->setText("● Сигналинг подключён, получаю ICE/TURN конфигурацию...");
     });
     connect(ws_, &WsClient::disconnected, this, [this] {
         status_->setText("○ Отключено");
@@ -266,6 +265,14 @@ void TeacherWindow::connectServer() {
 
 void TeacherWindow::onMessage(const QJsonObject& obj) {
     const auto type = obj.value("type").toString();
+    if (type == "server_config") {
+        QStringList iceServers;
+        for (const auto& v : obj.value("ice_servers").toArray())
+            iceServers << v.toString();
+        status_->setText("● ICE/TURN получен, устанавливаю WebRTC...");
+        rtc_->start("teacher", iceServers);
+        return;
+    }
     if (type == "presence") {
         students_->clear();
         names_.clear();
