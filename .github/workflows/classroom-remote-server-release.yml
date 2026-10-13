@@ -40,8 +40,14 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: go build -trimpath -ldflags="-s -w" -o dist/${{ matrix.output }} .
-      - name: Include sample config
-        run: cp config.example.json dist/config.example.json
+      - name: Include runtime helpers
+        run: |
+          cp config.example.json dist/config.example.json
+          cp ../README.md dist/README.md
+          if [ "${GOOS}" = "windows" ]; then
+            cp start-server.bat dist/start-server.bat
+            cp windows-firewall.bat dist/windows-firewall.bat
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
