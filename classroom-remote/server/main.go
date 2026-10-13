@@ -189,6 +189,11 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig) http.HandlerFunc {
 					continue
 				}
 				h.sendTo(lessonID, c.ID, map[string]any{"type": "rtc_answer", "sdp": answer})
+				if c.Role == "student" {
+					h.sendLesson(lessonID,
+						map[string]any{"type": "keyframe_request", "track": trackLectureVideo},
+						func(x *Client) bool { return x.Role == "teacher" })
+				}
 			case "signal":
 				target, _ := m["target"].(string)
 				if target != "" {
