@@ -49,15 +49,33 @@
 
 ## Текущий realtime transport
 
-Первая рабочая версия использует WebRTC SCTP/DataChannel:
+Realtime-медиа теперь передаётся обычными WebRTC RTP/SRTP media tracks:
 
-- JPEG 1280x720, около 10 FPS для realtime-видео;
-- PCM S16 mono 16 kHz для аудио;
-- JSON для mouse/keyboard remote control.
+- **H.264 Constrained/Baseline, packetization-mode=1**, 1280×720, около 10 FPS, целевой bitrate ~1.8 Мбит/с;
+- **Opus 48 kHz mono**, 20 ms frame, целевой bitrate ~64 кбит/с;
+- RTP packetization/depacketization выполняет `libdatachannel`;
+- сервер на Pion пересылает RTP без декодирования и повторного кодирования;
+- DataChannel используется только для JSON-команд удалённого управления и служебных сообщений.
 
-То есть сеть уже идёт через настоящий WebRTC/ICE/DTLS/SCTP (libdatachannel <-> Pion), но JPEG/PCM пока передаются как DataChannel payload, а не H.264/Opus RTP media tracks.
+Треки имеют фиксированный порядок и MID:
 
-Это сделано намеренно: такой вариант проще запустить и диагностировать на VPS. Следующий media-уровень можно заменить на H.264/Opus RTP без изменения UI, комнат, signaling, записи и remote-control протокола.
+```
+lecture-video   H.264  Teacher -> Server -> Students
+lecture-audio   Opus   Teacher -> Server -> Students
+private-audio   Opus   Teacher -> Server -> selected Student
+remote-video    H.264  selected Student -> Server -> Teacher
+remote-audio    Opus   selected Student -> Server -> Teacher
+data            SCTP   mouse/keyboard/control signaling
+```
+
+При подключении нового ученика сервер отправляет преподавателю запрос на немедленный IDR, поэтому новый просмотр не должен ждать очередной GOP. libdatachannel добавляет RTP packetization, RTCP Sender Reports и NACK handling.
+
+JPEG больше не используется для realtime-видео, PCM больше не передаётся по сети. JPEG оставлен только для **архивного snapshot раз в секунду**, из которого сервер формирует запись MP4.
+
+Кодеки Windows-клиента:
+- Cisco OpenH264 — encode/decode H.264;
+- libopus — encode/decode Opus;
+- OpenSSL/libSRTP через libdatachannel — DTLS/SRTP.
 
 ## Структура
 
@@ -237,3 +255,13 @@ GitHub Actions `Classroom Remote Server` проверяет форматиров
 - **Управление** — ученик явно переводится в control-сессию, после чего разрешается WinAPI `SendInput`.
 
 Аудиодиалог преподавателя с поднявшим руку учеником адресный: приватный голос преподавателя получает только выбранный ученик.
+
+
+## Проверка media-кодеков
+
+Windows CI запускает `MediaCodecSmoke` после сборки. Тест выполняет реальный round-trip:
+
+1. RGB test frame -> I420 -> OpenH264 -> H.264 -> OpenH264 decoder -> QImage;
+2. PCM S16 48 kHz -> Opus -> Opus decoder -> PCM.
+
+Серверный Go CI отдельно проверяет SDP negotiation для Teacher и Student с пятью H.264/Opus media m-line, затем собирает Docker image.
