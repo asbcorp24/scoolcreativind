@@ -86,6 +86,19 @@ void rgbToI420(const QImage& rgb, std::vector<unsigned char>& yuv,
     }
 }
 
+void appendOpenH264Bitstream(const SFrameBSInfo& info, QByteArray& out) {
+    for (int layer = 0; layer < info.iLayerNum; ++layer) {
+        const SLayerBSInfo& l = info.sLayerInfo[layer];
+        int layerBytes = 0;
+        for (int n = 0; n < l.iNalCount; ++n)
+            layerBytes += l.pNalLengthInByte[n];
+
+        if (layerBytes > 0 && l.pBsBuf) {
+            out.append(reinterpret_cast<const char*>(l.pBsBuf), layerBytes);
+        }
+    }
+}
+
 QImage i420ToRgb(const unsigned char* yPlane,
                  const unsigned char* uPlane,
                  const unsigned char* vPlane,
@@ -251,8 +264,18 @@ QByteArray MediaCodec::encodeVideo(const QImage& source) {
 
     rgbToI420(rgb, d_->yuv, d_->width, d_->height);
 
-    if (d_->forceKeyframe || (d_->frameCounter % std::max(1, d_->fps * 2)) == 0) {
+    const bool keyframe =
+        d_->forceKeyframe ||
+        (d_->frameCounter % std::max(1, d_->fps * 2)) == 0;
+
+    QByteArray encoded;
+    if (keyframe) {
         d_->videoEncoder->ForceIntraFrame(true);
+
+        SFrameBSInfo parameterInfo{};
+        if (d_->videoEncoder->EncodeParameterSets(&parameterInfo) == cmResultSuccess)
+            appendOpenH264Bitstream(parameterInfo, encoded);
+
         d_->forceKeyframe = false;
     }
 
@@ -278,15 +301,7 @@ QByteArray MediaCodec::encodeVideo(const QImage& source) {
     if (rc != cmResultSuccess || info.eFrameType == videoFrameTypeSkip)
         return {};
 
-    QByteArray encoded;
-    for (int layer = 0; layer < info.iLayerNum; ++layer) {
-        const SLayerBSInfo& l = info.sLayerInfo[layer];
-        int layerBytes = 0;
-        for (int n = 0; n < l.iNalCount; ++n)
-            layerBytes += l.pNalLengthInByte[n];
-        if (layerBytes > 0 && l.pBsBuf)
-            encoded.append(reinterpret_cast<const char*>(l.pBsBuf), layerBytes);
-    }
+    appendOpenH264Bitstream(info, encoded);
     return encoded;
 }
 
