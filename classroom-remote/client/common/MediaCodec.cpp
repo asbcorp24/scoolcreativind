@@ -312,8 +312,8 @@ QImage MediaCodec::decodeVideo(const QByteArray& h264) {
         planes,
         &info);
 
-    if (state != dsErrorFree || info.iBufferStatus != 1 ||
-        !planes[0] || !planes[1] || !planes[2])
+    Q_UNUSED(state);
+    if (info.iBufferStatus != 1 || !planes[0] || !planes[1] || !planes[2])
         return {};
 
     const auto& sys = info.UsrData.sSystemBuffer;
