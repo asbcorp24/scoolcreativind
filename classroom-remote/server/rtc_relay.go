@@ -381,8 +381,6 @@ func (r *RTCRelay) writeToPeer(lessonID, clientID, trackID string, packet *rtp.P
 
 func (r *RTCRelay) teachersTargeting(lessonID, studentID string, audio bool) []string {
 	r.targetMu.RLock()
-	defer r.targetMu.RUnlock()
-
 	var source map[string]string
 	if audio {
 		source = r.audioTargets
@@ -390,11 +388,16 @@ func (r *RTCRelay) teachersTargeting(lessonID, studentID string, audio bool) []s
 		source = r.remoteTargets
 	}
 
-	out := make([]string, 0)
+	candidates := make([]string, 0)
 	for teacher, student := range source {
-		if student != studentID {
-			continue
+		if student == studentID {
+			candidates = append(candidates, teacher)
 		}
+	}
+	r.targetMu.RUnlock()
+
+	out := make([]string, 0, len(candidates))
+	for _, teacher := range candidates {
 		if p := r.peer(teacher); p != nil &&
 			p.client.LessonID == lessonID &&
 			p.client.Role == "teacher" {
