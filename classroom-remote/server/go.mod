@@ -9,5 +9,6 @@ require (
 	github.com/pion/rtp v1.10.5
 	github.com/pion/turn/v5 v5.1.2
 	github.com/pion/webrtc/v4 v4.2.23
+	golang.org/x/crypto v0.48.0
 	modernc.org/sqlite v1.39.1
 )
