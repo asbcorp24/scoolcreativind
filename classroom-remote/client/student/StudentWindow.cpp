@@ -9,6 +9,7 @@
 #include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QImage>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QLabel>
 #include <QLineEdit>
