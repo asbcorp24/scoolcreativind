@@ -40,6 +40,7 @@ private:
     void onRtcVideo(const QString& trackId, const QByteArray& h264);
     void onRtcAudio(const QString& trackId, const QByteArray& opus);
     void downloadRecording();
+    void downloadFramesZip();
 
     WsClient* ws_{};
     RtcRelayClient* rtc_{};
