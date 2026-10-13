@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Classroom Remote Server</title>
+<style>
+body{font-family:system-ui;background:#0b1120;color:#e5e7eb;margin:0;padding:32px}
+main{max-width:960px;margin:auto}.card{background:#111827;border:1px solid #334155;border-radius:16px;padding:20px;margin:14px 0}
+input,button{padding:10px 12px;border-radius:10px;border:1px solid #475569;background:#020617;color:white}
+button{cursor:pointer}table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px solid #243244;text-align:left}
+.ok{color:#34d399}.muted{color:#94a3b8}
+</style>
+</head>
+<body><main>
+<h1>Classroom Remote Server</h1>
+<div class="card"><b class="ok">● Сервер запущен</b><p class="muted">Go + Pion WebRTC + встроенный TURN/STUN + SQLite</p></div>
+<div class="card">
+<input id="token" type="password" placeholder="TEACHER_TOKEN">
+<button onclick="load()">Обновить</button>
+<div id="summary"></div>
+</div>
+<div class="card"><h3>Подключённые клиенты</h3><table><thead><tr><th>Имя</th><th>Роль</th><th>Занятие</th><th>ID</th></tr></thead><tbody id="users"></tbody></table></div>
+<script>
+async function load(){
+ const token=document.getElementById('token').value;
+ const r=await fetch('/api/admin/status',{headers:{Authorization:'Bearer '+token}});
+ if(!r.ok){document.getElementById('summary').textContent='Ошибка авторизации';return}
+ const d=await r.json();
+ document.getElementById('summary').innerHTML='<p>Онлайн: <b>'+d.online+'</b> · TURN: <b>'+(d.turn_enabled?'включён':'выключен')+'</b> · Public IP: <b>'+(d.public_ip||'LAN')+'</b></p>';
+ document.getElementById('users').innerHTML=d.users.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.role)+'</td><td>'+esc(x.lesson_id)+'</td><td>'+esc(x.id)+'</td></tr>').join('');
+}
+function esc(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+</script>
+</main></body></html>
