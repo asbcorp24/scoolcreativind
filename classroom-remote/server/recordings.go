@@ -69,7 +69,7 @@ func recordingZip(root string) http.HandlerFunc {
 	}
 }
 
-func recordingMP4(root string) http.HandlerFunc {
+func recordingMP4(root, ffmpegPath string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		lesson := chi.URLParam(r, "lesson")
 		student := chi.URLParam(r, "student")
@@ -108,7 +108,18 @@ func recordingMP4(root string) http.HandlerFunc {
 		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Minute)
 		defer cancel()
 
-		cmd := exec.CommandContext(ctx, "ffmpeg",
+		bin := ffmpegPath
+		if bin == "" {
+			bin, err = exec.LookPath("ffmpeg")
+			if err != nil {
+				http.Error(w,
+					"MP4 export is optional: install ffmpeg or set ffmpeg_path in config.json; ZIP export works without it",
+					http.StatusNotImplemented)
+				return
+			}
+		}
+
+		cmd := exec.CommandContext(ctx, bin,
 			"-hide_banner", "-loglevel", "error", "-y",
 			"-f", "concat", "-safe", "0", "-i", listPath,
 			"-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p",
