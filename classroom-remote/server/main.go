@@ -196,10 +196,44 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig) http.HandlerFunc {
 					m["from_role"] = c.Role
 					h.sendTo(lessonID, target, m)
 				}
-			case "remote_request", "remote_stop", "audio_request", "audio_stop":
+			case "remote_request":
 				if c.Role != "teacher" {
 					continue
 				}
+				target, _ := m["target"].(string)
+				if target != "" {
+					rtcRelay.SetRemoteTarget(c.ID, target)
+					m["from"] = c.ID
+					m["from_role"] = c.Role
+					h.sendTo(lessonID, target, m)
+				}
+			case "remote_stop":
+				if c.Role != "teacher" {
+					continue
+				}
+				rtcRelay.ClearRemoteTarget(c.ID)
+				target, _ := m["target"].(string)
+				if target != "" {
+					m["from"] = c.ID
+					m["from_role"] = c.Role
+					h.sendTo(lessonID, target, m)
+				}
+			case "audio_request":
+				if c.Role != "teacher" {
+					continue
+				}
+				target, _ := m["target"].(string)
+				if target != "" {
+					rtcRelay.SetAudioTarget(c.ID, target)
+					m["from"] = c.ID
+					m["from_role"] = c.Role
+					h.sendTo(lessonID, target, m)
+				}
+			case "audio_stop":
+				if c.Role != "teacher" {
+					continue
+				}
+				rtcRelay.ClearAudioTarget(c.ID)
 				target, _ := m["target"].(string)
 				if target != "" {
 					m["from"] = c.ID
