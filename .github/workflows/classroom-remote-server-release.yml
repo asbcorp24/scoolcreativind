@@ -1,0 +1,49 @@
+name: Classroom Remote Standalone Server
+
+on:
+  push:
+    paths:
+      - "classroom-remote/server/**"
+      - ".github/workflows/classroom-remote-server-release.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            output: classroom-server
+            artifact: classroom-server-linux-amd64
+          - os: ubuntu-latest
+            goos: windows
+            goarch: amd64
+            output: classroom-server.exe
+            artifact: classroom-server-windows-amd64
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: classroom-remote/server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.x"
+          cache-dependency-path: classroom-remote/server/go.mod
+      - name: Download modules
+        run: go mod download
+      - name: Build pure Go binary
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: go build -trimpath -ldflags="-s -w" -o dist/${{ matrix.output }} .
+      - name: Include sample config
+        run: cp config.example.json dist/config.example.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: classroom-remote/server/dist/*
+          if-no-files-found: error
