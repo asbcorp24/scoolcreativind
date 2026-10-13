@@ -11,9 +11,13 @@ include(FetchContent)
 
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Widgets Network WebSockets Multimedia)
 
-# Native WebRTC transport. We only need DataChannels here; video/audio frames are
-# encoded by Qt and relayed through the WebRTC SCTP channel.
-set(NO_MEDIA ON CACHE BOOL "" FORCE)
+find_path(OPENH264_INCLUDE_DIR NAMES wels/codec_api.h REQUIRED)
+find_library(OPENH264_LIBRARY NAMES openh264 REQUIRED)
+find_path(OPUS_INCLUDE_DIR NAMES opus/opus.h REQUIRED)
+find_library(OPUS_LIBRARY NAMES opus REQUIRED)
+
+# Native WebRTC transport with RTP media tracks.
+set(NO_MEDIA OFF CACHE BOOL "" FORCE)
 set(NO_EXAMPLES ON CACHE BOOL "" FORCE)
 set(NO_TESTS ON CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
@@ -36,6 +40,8 @@ add_library(classroom_common
     common/RtcRelayClient.h
     common/AudioPipe.cpp
     common/AudioPipe.h
+    common/MediaCodec.cpp
+    common/MediaCodec.h
 )
 target_link_libraries(classroom_common
     PUBLIC
@@ -44,8 +50,14 @@ target_link_libraries(classroom_common
         Qt6::WebSockets
         Qt6::Multimedia
         LibDataChannel::LibDataChannelStatic
+        ${OPENH264_LIBRARY}
+        ${OPUS_LIBRARY}
 )
-target_include_directories(classroom_common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(classroom_common PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${OPENH264_INCLUDE_DIR}
+    ${OPUS_INCLUDE_DIR}
+)
 
 add_executable(ClassroomTeacher
     teacher/main.cpp
