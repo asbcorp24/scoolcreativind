@@ -135,7 +135,8 @@ StudentWindow::StudentWindow(QWidget* parent)
     connect(audio_, &AudioPipe::captured, this, [this](const QByteArray& pcm) {
         if (!audioTalkActive_)
             return;
-        const auto packets = codec_->encodeAudio(pcm);
+        const auto packets = codec_->encodeAudio(
+            pcm, RtcRelayClient::RemoteAudioTrack);
         for (const auto& packet : packets)
             rtc_->sendAudio(RtcRelayClient::RemoteAudioTrack, packet, 20);
     });
@@ -219,7 +220,7 @@ void StudentWindow::onRtcAudio(const QString& trackId, const QByteArray& opus) {
         trackId != RtcRelayClient::PrivateAudioTrack)
         return;
 
-    const QByteArray pcm = codec_->decodeAudio(opus);
+    const QByteArray pcm = codec_->decodeAudio(opus, trackId);
     if (!pcm.isEmpty())
         audio_->play(pcm);
 }
