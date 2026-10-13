@@ -52,7 +52,7 @@ func defaultConfig() Config {
 
 func loadConfig(path string) (Config, bool, error) {
 	cfg := defaultConfig()
-	created := false
+	changed := false
 
 	if b, err := os.ReadFile(path); err == nil {
 		if err := json.Unmarshal(b, &cfg); err != nil {
@@ -61,30 +61,36 @@ func loadConfig(path string) (Config, bool, error) {
 	} else if !os.IsNotExist(err) {
 		return Config{}, false, err
 	} else {
-		created = true
+		changed = true
 	}
 
 	if cfg.TeacherToken == "" {
 		cfg.TeacherToken = randomSecret(32)
+		changed = true
 	}
 	if cfg.StudentToken == "" {
 		cfg.StudentToken = randomSecret(32)
+		changed = true
 	}
 	if cfg.TURNPassword == "" {
 		cfg.TURNPassword = randomSecret(24)
+		changed = true
 	}
-	applyEnvOverrides(&cfg)
 
 	if err := normalizeConfig(&cfg); err != nil {
 		return Config{}, false, err
 	}
-
-	if created {
+	if changed {
 		if err := writeConfig(path, cfg); err != nil {
 			return Config{}, false, err
 		}
 	}
-	return cfg, created, nil
+
+	applyEnvOverrides(&cfg)
+	if err := normalizeConfig(&cfg); err != nil {
+		return Config{}, false, err
+	}
+	return cfg, changed, nil
 }
 
 func normalizeConfig(cfg *Config) error {
