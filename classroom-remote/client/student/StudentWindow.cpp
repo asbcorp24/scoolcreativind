@@ -91,9 +91,8 @@ StudentWindow::StudentWindow(QWidget* parent)
     });
 
     connect(ws_, &WsClient::connected, this, [this] {
-        status_->setText("● Сигналинг подключён, устанавливаю WebRTC...");
+        status_->setText("● Сигналинг подключён, получаю ICE/TURN конфигурацию...");
         snapshotTimer_->start();
-        rtc_->start("student");
     });
 
     connect(ws_, &WsClient::disconnected, this, [this] {
@@ -155,6 +154,15 @@ void StudentWindow::connectServer() {
 
 void StudentWindow::onMessage(const QJsonObject& obj) {
     const auto type = obj.value("type").toString();
+
+    if (type == "server_config") {
+        QStringList iceServers;
+        for (const auto& v : obj.value("ice_servers").toArray())
+            iceServers << v.toString();
+        status_->setText("● ICE/TURN получен, устанавливаю WebRTC...");
+        rtc_->start("student", iceServers);
+        return;
+    }
 
     if (type == "lecture_state") {
         if (!obj.value("active").toBool())
