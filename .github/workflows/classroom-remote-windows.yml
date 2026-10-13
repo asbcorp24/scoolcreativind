@@ -47,6 +47,11 @@ jobs:
         working-directory: classroom-remote/client
         run: cmake --build build --config Release --parallel 2
 
+      - name: Run codec tests
+        shell: pwsh
+        working-directory: classroom-remote/client/build
+        run: ctest -C Release --output-on-failure
+
       - name: Deploy Qt runtime
         shell: pwsh
         working-directory: classroom-remote/client
