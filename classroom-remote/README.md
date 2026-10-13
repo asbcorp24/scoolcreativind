@@ -2,176 +2,335 @@
 
 Отдельный модуль системы удалённого занятия для ШКИ.
 
-## Реализовано
+## Архитектура
 
-### Teacher.exe — C++20 / Qt 6
+Клиенты остаются нативными C++/Qt, а сервер теперь полностью автономный на Go.
 
-- подключение к занятию через WSS;
+```
+ClassroomTeacher.exe ─┐
+                     ├── HTTPS/WSS + WebRTC ── classroom-server
+ClassroomStudent.exe ─┘                         ├─ Pion WebRTC RTP relay
+                                               ├─ встроенный TURN/STUN
+                                               ├─ встроенный HTTPS/ACME
+                                               ├─ встроенная web-панель
+                                               ├─ SQLite
+                                               └─ storage/
+```
+
+Для работы сервера больше не обязательны PostgreSQL, coturn, Caddy, Redis или Docker.
+
+## Teacher.exe — C++20 / Qt 6
+
+- подключение к занятию через WSS/WS;
 - список подключённых учеников;
-- отображение поднятой руки;
-- трансляция рабочего стола преподавателя;
-- трансляция камеры преподавателя;
-- микрофон преподавателя;
+- поднятая рука;
+- трансляция экрана или камеры преподавателя;
+- общий микрофон;
 - просмотр realtime-экрана выбранного ученика;
-- управление мышью, клавиатурой и колесом мыши выбранного ученика;
-- приватный аудиоканал ученик -> преподаватель;
-- скачивание записи экрана ученика в MP4.
+- отдельный режим удалённого управления мышью и клавиатурой;
+- приватный двусторонний аудиодиалог;
+- скачивание секундных кадров ученика в ZIP;
+- MP4 экспорт доступен дополнительно, если рядом с сервером установлен FFmpeg.
 
-### Student.exe — C++20 / Qt 6
+## Student.exe — C++20 / Qt 6
 
-- ученик не видит список других участников;
-- принимает только лекцию преподавателя;
+- видит только лекцию преподавателя;
+- не видит список других учеников;
 - кнопка «Поднять руку»;
-- принимает видео рабочего стола или камеры преподавателя;
-- принимает звук преподавателя;
-- раз в секунду сохраняет snapshot рабочего стола на сервер;
-- по запросу преподавателя включает realtime-передачу экрана;
-- показывает постоянный индикатор активного удалённого подключения;
-- принимает remote-input через WebRTC и выполняет его через WinAPI SendInput;
-- по запросу включает микрофон для аудиодиалога.
+- принимает H.264 и Opus;
+- раз в секунду отправляет архивный snapshot;
+- realtime-экран включается только по запросу преподавателя;
+- управление включается отдельно от простого просмотра;
+- при удалённом подключении показывается постоянный индикатор;
+- вход выполняется только в рамках активной серверной сессии.
 
-### Go server
+## Realtime transport
 
-- WebSocket signaling;
-- presence;
-- raised hand;
-- маршрутизация remote/audio команд;
-- Pion WebRTC v4 relay;
-- отдельный WebRTC DataChannel на каждого клиента;
-- один входящий поток лекции от Teacher -> сервер -> все Students;
-- realtime Student -> сервер -> Teacher;
+Realtime-медиа передаётся обычными WebRTC RTP/SRTP media tracks:
+
+- H.264 Baseline/Constrained Baseline, packetization-mode=1;
+- 1280×720, около 10 FPS;
+- целевой video bitrate ~1.8 Мбит/с;
+- Opus 48 kHz mono;
+- Opus frame 20 ms;
+- целевой audio bitrate ~64 кбит/с.
+
+Треки:
+
+```
+lecture-video   H.264  Teacher -> Go -> Students
+lecture-audio   Opus   Teacher -> Go -> Students
+private-audio   Opus   Teacher -> Go -> selected Student
+remote-video    H.264  selected Student -> Go -> Teacher
+remote-audio    Opus   selected Student -> Go -> Teacher
+data            SCTP   mouse/keyboard/control JSON
+```
+
+Go/Pion пересылает RTP без декодирования и повторного кодирования. DataChannel больше не используется для JPEG/PCM realtime.
+
+JPEG остаётся только для архивного snapshot раз в секунду.
+
+## Автономный Go-сервер
+
+Основной результат сборки:
+
+```
+Windows:
+classroom-server.exe
+
+Linux:
+classroom-server
+```
+
+Один и тот же исходный код работает на Windows и Linux.
+
+Внутри бинарника:
+
+- HTTP/HTTPS;
+- WebSocket/WSS;
+- Pion WebRTC;
+- H.264/Opus RTP relay;
+- DataChannel relay;
+- Pion TURN/STUN;
+- SQLite;
+- web-панель;
+- авторизация Teacher/Student;
 - snapshot storage;
 - ZIP export;
-- MP4 export через FFmpeg;
-- Docker deployment;
-- PostgreSQL контейнер подготовлен под следующий слой учётных записей/занятий;
-- coturn и Caddy.
+- audit log;
+- автоматический Let's Encrypt ACME при наличии домена.
 
-## Текущий realtime transport
+SQLite реализован pure-Go драйвером, поэтому сервер собирается с `CGO_ENABLED=0`.
 
-Realtime-медиа теперь передаётся обычными WebRTC RTP/SRTP media tracks:
+## Первый запуск на Windows
 
-- **H.264 Constrained/Baseline, packetization-mode=1**, 1280×720, около 10 FPS, целевой bitrate ~1.8 Мбит/с;
-- **Opus 48 kHz mono**, 20 ms frame, целевой bitrate ~64 кбит/с;
-- RTP packetization/depacketization выполняет `libdatachannel`;
-- сервер на Pion пересылает RTP без декодирования и повторного кодирования;
-- DataChannel используется только для JSON-команд удалённого управления и служебных сообщений.
+Скачайте `classroom-server.exe` и запустите:
 
-Треки имеют фиксированный порядок и MID:
-
-```
-lecture-video   H.264  Teacher -> Server -> Students
-lecture-audio   Opus   Teacher -> Server -> Students
-private-audio   Opus   Teacher -> Server -> selected Student
-remote-video    H.264  selected Student -> Server -> Teacher
-remote-audio    Opus   selected Student -> Server -> Teacher
-data            SCTP   mouse/keyboard/control signaling
+```bat
+classroom-server.exe
 ```
 
-При подключении нового ученика сервер отправляет преподавателю запрос на немедленный IDR, поэтому новый просмотр не должен ждать очередной GOP. libdatachannel добавляет RTP packetization, RTCP Sender Reports и NACK handling.
-
-JPEG больше не используется для realtime-видео, PCM больше не передаётся по сети. JPEG оставлен только для **архивного snapshot раз в секунду**, из которого сервер формирует запись MP4.
-
-Кодеки Windows-клиента:
-- Cisco OpenH264 — encode/decode H.264;
-- libopus — encode/decode Opus;
-- OpenSSL/libSRTP через libdatachannel — DTLS/SRTP.
-
-## Структура
+При первом запуске автоматически создаются:
 
 ```
-classroom-remote/
-├── client/
-│   ├── common/
-│   │   ├── WsClient.*
-│   │   ├── RtcRelayClient.*
-│   │   └── AudioPipe.*
-│   ├── teacher/
-│   ├── student/
-│   ├── CMakeLists.txt
-│   └── build-windows.bat
-├── server/
-│   ├── main.go
-│   ├── rtc_relay.go
-│   ├── recordings.go
-│   ├── go.mod
-│   └── Dockerfile
-└── deploy/
-    ├── docker-compose.yml
-    ├── Caddyfile
-    ├── turnserver.conf
-    ├── .env.example
-    └── install-vps.sh
+config.json
+data/
+├── classroom.db
+├── storage/
+└── acme-cache/
 ```
 
-## VPS
+Сервер сам генерирует и сохраняет:
 
-Требуется VPS/VDS с публичным IPv4.
+- `teacher_token`;
+- `student_token`;
+- TURN password.
+
+По умолчанию локальный сервер:
+
+```
+http://IP_КОМПЬЮТЕРА:8080
+ws://IP_КОМПЬЮТЕРА:8080/ws
+```
+
+Для открытия портов Windows есть:
+
+```
+server/windows-firewall.bat
+```
+
+Запускать его нужно от администратора.
+
+## config.json
+
+Пример:
+
+```json
+{
+  "http_addr": ":8080",
+  "https_addr": ":443",
+  "domain": "",
+  "acme_email": "",
+  "public_ip": "",
+  "storage_dir": "./data/storage",
+  "db_path": "./data/classroom.db",
+  "teacher_token": "...",
+  "student_token": "...",
+  "rtc_min_port": 50000,
+  "rtc_max_port": 50100,
+  "turn_enabled": true,
+  "turn_listen": ":3478",
+  "turn_realm": "classroom",
+  "turn_username": "classroom",
+  "turn_password": "...",
+  "turn_min_port": 49160,
+  "turn_max_port": 49260,
+  "ffmpeg_path": ""
+}
+```
+
+### Локальная сеть
+
+Для одного кабинета можно оставить:
+
+```json
+"domain": "",
+"public_ip": ""
+```
+
+В этом случае сервер работает по HTTP/WS и WebRTC использует локальные ICE candidates.
+
+### Публичный VPS
+
+Задать:
+
+```json
+"domain": "classroom.example.ru",
+"acme_email": "admin@example.ru",
+"public_ip": "1.2.3.4"
+```
+
+Тогда один Go-процесс:
+
+- слушает 80 для ACME;
+- сам получает сертификат Let's Encrypt;
+- слушает 443 для HTTPS/WSS;
+- поднимает TURN/STUN на 3478;
+- выдаёт Teacher/Student готовые TURN credentials при входе.
+
+Caddy и coturn для этого больше не нужны.
+
+## Порты публичного сервера
+
+```
+TCP 80             ACME
+TCP 443            HTTPS / WSS
+TCP/UDP 3478       встроенный TURN/STUN
+UDP 49160-49260    TURN relay
+UDP 50000-50100    Pion WebRTC ICE
+```
+
+## Автоматическая ICE/TURN конфигурация
+
+После WebSocket-входа сервер отправляет:
+
+```json
+{
+  "type": "server_config",
+  "ice_servers": [
+    "turn://classroom:PASSWORD@classroom.example.ru:3478?transport=udp",
+    "turn://classroom:PASSWORD@classroom.example.ru:3478?transport=tcp",
+    "stun://classroom.example.ru:3478"
+  ]
+}
+```
+
+Teacher и Student автоматически передают этот список в libdatachannel. Ручная настройка TURN на клиентских компьютерах не требуется.
+
+## SQLite
+
+Файл:
+
+```
+data/classroom.db
+```
+
+Сейчас в нём хранятся:
+
+- индекс snapshot;
+- audit log подключений;
+- start/stop просмотра;
+- start/stop управления;
+- start/stop аудиодиалога.
+
+База работает в WAL режиме.
+
+## Web-панель сервера
+
+Открыть:
+
+```
+http://SERVER:8080/
+```
+
+или в публичном режиме:
+
+```
+https://classroom.example.ru/
+```
+
+Для просмотра списка подключённых пользователей вводится `teacher_token`.
+
+## Записи
+
+Snapshot ученика сохраняется примерно раз в секунду:
+
+```
+data/storage/{lesson}/{student}/{timestamp}.jpg
+```
+
+Встроенный pure-Go экспорт:
+
+```
+GET /api/v1/lessons/{lesson}/students/{student}/recording.zip
+```
+
+Эта функция не требует никаких внешних программ.
+
+MP4:
+
+```
+GET /api/v1/lessons/{lesson}/students/{student}/recording.mp4
+```
+
+MP4 оставлен дополнительной функцией. Если в `config.json` заполнен `ffmpeg_path` или FFmpeg найден в PATH, сервер соберёт MP4. Без FFmpeg основной сервер, WebRTC, TURN, SQLite, ZIP-запись и управление работают полностью.
+
+## Сборка сервера
+
+Windows:
+
+```bat
+cd classroom-remote\server
+build-windows.bat
+```
+
+Результат:
+
+```
+server\dist\classroom-server.exe
+```
+
+Linux:
 
 ```bash
-cd classroom-remote/deploy
-cp .env.example .env
+cd classroom-remote/server
+sh build-linux.sh
 ```
 
-В `.env`:
+Результат:
 
 ```
-PUBLIC_IP=ВАШ_PUBLIC_IPV4
-TEACHER_TOKEN=ДЛИННЫЙ_СЛУЧАЙНЫЙ_ТОКЕН_ПРЕПОДАВАТЕЛЯ
-STUDENT_TOKEN=ДРУГОЙ_ДЛИННЫЙ_СЛУЧАЙНЫЙ_ТОКЕН_УЧЕНИКОВ
+server/dist/classroom-server
 ```
 
-Токены можно сгенерировать командами `openssl rand -hex 32`. Они должны быть разными. Teacher-клиент принимает только `TEACHER_TOKEN`, Student-клиент — только `STUDENT_TOKEN`.
+GitHub Actions автоматически собирает оба варианта как отдельные artifacts.
 
-В `Caddyfile` заменить:
+## Сборка C++ клиентов
 
-```
-classroom.example.ru
-```
+Нужно:
 
-на реальный домен.
-
-В `turnserver.conf` заменить домен, пароль и `external-ip`.
-
-Запуск:
-
-```bash
-sudo bash install-vps.sh
-docker compose up -d --build
-```
-
-Проверка:
-
-```bash
-curl https://ВАШ_ДОМЕН/health
-```
-
-Ожидается:
-
-```
-ok
-```
-
-### Порты
-
-- TCP 80, 443
-- UDP 443
-- TCP/UDP 3478
-- TCP 5349
-- UDP 49160-49260 — coturn relay
-- UDP 50000-50100 — Pion WebRTC
-
-## Windows build
-
-Нужно установить:
-
-- Visual Studio 2022 или Visual Studio 2026 с Desktop development with C++;
+- Visual Studio 2022/2026;
+- Qt 6.5+ MSVC x64;
 - CMake;
-- Qt 6.5+ MSVC 2022 x64 с модулями Multimedia, WebSockets;
 - Git;
 - vcpkg.
 
-`libdatachannel v0.24.6` подтягивается CMake автоматически через FetchContent. OpenSSL ставится через `client/vcpkg.json`; MbedTLS не используется, потому что стандартная Windows-сборка MbedTLS из vcpkg может быть без DTLS-SRTP API, необходимого libdatachannel.
+Зависимости клиента:
+
+- libdatachannel;
+- OpenSSL;
+- OpenH264;
+- Opus.
 
 Пример:
 
@@ -182,86 +341,36 @@ cd classroom-remote\client
 build-windows.bat
 ```
 
-После сборки:
+## Безопасность
 
-```
-client\build\Release\ClassroomTeacher.exe
-client\build\Release\ClassroomStudent.exe
-```
+Сервер использует два независимых токена:
 
-## Snapshot / recording API
+- `teacher_token`;
+- `student_token`.
 
-Snapshot раз в секунду:
+Только Teacher может инициировать:
 
-```
-POST /api/v1/lessons/{lesson}/students/{student}/snapshot
-Content-Type: image/jpeg
-```
+- просмотр экрана;
+- управление;
+- аудиодиалог;
+- скачивание записей.
 
-Последний кадр:
+Student не может отправлять remote-control команды.
 
-```
-GET /api/v1/lessons/{lesson}/students/{student}/snapshot/latest
-```
+На компьютере ученика просмотр и управление визуально обозначаются.
 
-Архив исходных кадров:
+Для следующего production-уровня можно заменить общие teacher/student токены на короткоживущие JWT основной системы ШКИ с привязкой к пользователю, группе и конкретному занятию.
 
-```
-GET /api/v1/lessons/{lesson}/students/{student}/recording.zip
-```
+## CI
 
-Готовый MP4:
+Проверяются:
 
-```
-GET /api/v1/lessons/{lesson}/students/{student}/recording.mp4
-```
-
-MP4 строится из секундных снимков серверным FFmpeg.
-
-## События signaling
-
-```json
-{"type":"hand_raise"}
-{"type":"hand_down"}
-{"type":"remote_request","target":"student-id"}
-{"type":"remote_stop","target":"student-id"}
-{"type":"audio_request","target":"student-id"}
-{"type":"lecture_state","mode":"screen","active":true}
-{"type":"rtc_offer","sdp":"..."}
-{"type":"rtc_answer","sdp":"..."}
-```
-
-## Доступ и production
-
-Публичный сервер теперь требует два независимых токена:
-- `TEACHER_TOKEN` для WebSocket преподавателя и скачивания записей;
-- `STUDENT_TOKEN` для WebSocket ученика и загрузки секундных snapshot.
-
-Сервер не позволяет student-роли отправлять команды remote-control или audio-call.
-
-Это уже защищает тестовый публичный VPS от анонимного подключения, но для полноценного production следующий уровень — выдавать короткоживущие JWT из основной системы ШКИ с привязкой к пользователю и конкретному занятию. Также нужны временные TURN credentials, rate limit, аудит start/stop удалённого управления и retention policy для записей.
-
-GitHub Actions `Classroom Remote Server` проверяет форматирование и сборку Go-сервера после изменений.
-
-
-## Надёжность realtime
-
-Видео режется на WebRTC DataChannel-сообщения примерно по 48 КБ и собирается на принимающей стороне. Это позволяет передавать JPEG-кадры, которые превышают безопасный размер одного SCTP сообщения.
-
-Если отправляющая очередь WebRTC превышает 2 МБ, старый видеокадр отбрасывается вместо накопления задержки. Для удалённого управления и звука это позволяет сохранить отзывчивость даже при ухудшении канала.
-
-Режимы просмотра разделены:
-- **Просмотр** — преподаватель получает realtime-экран, но ввод не исполняется.
-- **Управление** — ученик явно переводится в control-сессию, после чего разрешается WinAPI `SendInput`.
-
-Аудиодиалог преподавателя с поднявшим руку учеником адресный: приватный голос преподавателя получает только выбранный ученик.
-
-
-## Проверка media-кодеков
-
-Windows CI запускает `MediaCodecSmoke` после сборки. Тест выполняет реальный round-trip:
-
-1. RGB test frame -> I420 -> OpenH264 -> H.264 -> OpenH264 decoder -> QImage;
-2. PCM S16 48 kHz -> Opus -> Opus decoder -> PCM.
-
-Серверный Go CI отдельно проверяет SDP negotiation для Teacher и Student с пятью H.264/Opus media m-line, затем собирает Docker image.
+- Go unit tests;
+- SDP negotiation H.264/Opus;
+- Linux Go server;
+- Windows Go server cross-build;
+- Docker-образ одного Go сервера;
+- OpenH264 encode/decode;
+- Opus encode/decode;
+- сборка Teacher.exe;
+- сборка Student.exe.
