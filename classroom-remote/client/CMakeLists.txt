@@ -79,3 +79,9 @@ target_link_libraries(ClassroomStudent PRIVATE classroom_common Qt6::Gui Qt6::Wi
 if(WIN32)
     target_link_libraries(ClassroomStudent PRIVATE user32)
 endif()
+
+
+enable_testing()
+add_executable(MediaCodecSmoke tests/MediaCodecSmoke.cpp)
+target_link_libraries(MediaCodecSmoke PRIVATE classroom_common Qt6::Gui)
+add_test(NAME MediaCodecSmoke COMMAND MediaCodecSmoke)
