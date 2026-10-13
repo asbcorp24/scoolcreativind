@@ -17,6 +17,7 @@ class QNetworkAccessManager;
 class WsClient;
 class RtcRelayClient;
 class AudioPipe;
+class MediaCodec;
 class RemoteView;
 
 class TeacherWindow final : public QMainWindow {
@@ -36,12 +37,14 @@ private:
     void stopLecture();
     void sendLectureImage(const QImage& image);
     void showLocalPreview(const QImage& image);
-    void onRtcFrame(quint8 kind, const QString& source, const QByteArray& payload);
+    void onRtcVideo(const QString& trackId, const QByteArray& h264);
+    void onRtcAudio(const QString& trackId, const QByteArray& opus);
     void downloadRecording();
 
     WsClient* ws_{};
     RtcRelayClient* rtc_{};
     AudioPipe* audio_{};
+    MediaCodec* codec_{};
 
     QLineEdit* server_{};
     QLineEdit* lesson_{};
