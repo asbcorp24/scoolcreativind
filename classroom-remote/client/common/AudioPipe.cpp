@@ -8,7 +8,7 @@
 
 static QAudioFormat classroomAudioFormat() {
     QAudioFormat f;
-    f.setSampleRate(16000);
+    f.setSampleRate(48000);
     f.setChannelCount(1);
     f.setSampleFormat(QAudioFormat::Int16);
     return f;
