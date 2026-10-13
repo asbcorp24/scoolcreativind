@@ -3,6 +3,7 @@
 #include <QByteArray>
 #include <QImage>
 #include <QList>
+#include <QString>
 #include <memory>
 
 class MediaCodec final {
@@ -20,8 +21,10 @@ public:
     QByteArray encodeVideo(const QImage& image);
     QImage decodeVideo(const QByteArray& h264);
 
-    QList<QByteArray> encodeAudio(const QByteArray& pcmS16Mono48k);
-    QByteArray decodeAudio(const QByteArray& opusPacket);
+    QList<QByteArray> encodeAudio(const QByteArray& pcmS16Mono48k,
+                                  const QString& streamId = "default");
+    QByteArray decodeAudio(const QByteArray& opusPacket,
+                           const QString& streamId = "default");
 
     void requestKeyframe();
 
