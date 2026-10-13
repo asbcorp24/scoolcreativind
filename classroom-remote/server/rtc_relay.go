@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -67,15 +65,15 @@ type RTCRelay struct {
 	audioTargets  map[string]string
 }
 
-func NewRTCRelay() (*RTCRelay, error) {
+func NewRTCRelay(cfg Config) (*RTCRelay, error) {
 	se := webrtc.SettingEngine{}
-	minPort := uint16(envInt("RTC_MIN_PORT", 50000))
-	maxPort := uint16(envInt("RTC_MAX_PORT", 50100))
+	minPort := uint16(cfg.RTCMinPort)
+	maxPort := uint16(cfg.RTCMaxPort)
 	if err := se.SetEphemeralUDPPortRange(minPort, maxPort); err != nil {
 		return nil, err
 	}
 
-	if publicIP := strings.TrimSpace(os.Getenv("PUBLIC_IP")); publicIP != "" {
+	if publicIP := strings.TrimSpace(cfg.PublicIP); publicIP != "" {
 		se.SetNAT1To1IPs([]string{publicIP}, webrtc.ICECandidateTypeHost)
 	}
 
@@ -484,15 +482,3 @@ func (r *RTCRelay) sendText(p *rtcPeer, data []byte) {
 	_ = dc.SendText(string(data))
 }
 
-func envInt(name string, fallback int) int {
-	v := strings.TrimSpace(os.Getenv(name))
-	if v == "" {
-		return fallback
-	}
-	n, err := strconv.Atoi(v)
-	if err != nil {
-		fmt.Printf("invalid %s=%q, using %d\n", name, v, fallback)
-		return fallback
-	}
-	return n
-}
