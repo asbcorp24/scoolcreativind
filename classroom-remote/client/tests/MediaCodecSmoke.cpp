@@ -5,6 +5,28 @@
 #include <QDebug>
 #include <cmath>
 
+static bool containsNalType(const QByteArray& data, int wantedType) {
+    const auto* p = reinterpret_cast<const unsigned char*>(data.constData());
+    const int n = data.size();
+
+    for (int i = 0; i + 4 < n; ++i) {
+        int nalOffset = -1;
+        if (i + 4 < n &&
+            p[i] == 0 && p[i + 1] == 0 && p[i + 2] == 0 && p[i + 3] == 1) {
+            nalOffset = i + 4;
+        } else if (i + 3 < n &&
+                   p[i] == 0 && p[i + 1] == 0 && p[i + 2] == 1) {
+            nalOffset = i + 3;
+        }
+
+        if (nalOffset >= 0 && nalOffset < n &&
+            (p[nalOffset] & 0x1f) == wantedType) {
+            return true;
+        }
+    }
+    return false;
+}
+
 int main() {
     MediaCodec codec;
     if (!codec.initialize(640, 360, 10, 600000, 48000)) {
@@ -26,6 +48,12 @@ int main() {
     if (h264.isEmpty()) {
         qCritical() << "H264 encoder returned empty frame";
         return 2;
+    }
+    if (!containsNalType(h264, 7) ||
+        !containsNalType(h264, 8) ||
+        !containsNalType(h264, 5)) {
+        qCritical() << "H264 keyframe is missing SPS/PPS/IDR";
+        return 6;
     }
 
     const QImage decoded = codec.decodeVideo(h264);
