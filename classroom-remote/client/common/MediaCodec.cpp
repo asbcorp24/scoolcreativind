@@ -157,15 +157,35 @@ bool MediaCodec::initialize(int width, int height, int fps,
     if (WelsCreateSVCEncoder(&d_->videoEncoder) != 0 || !d_->videoEncoder)
         return false;
 
-    SEncParamBase enc{};
+    SEncParamExt enc{};
+    if (d_->videoEncoder->GetDefaultParams(&enc) != cmResultSuccess) {
+        shutdown();
+        return false;
+    }
+
     enc.iUsageType = CAMERA_VIDEO_REAL_TIME;
     enc.iPicWidth = width;
     enc.iPicHeight = height;
     enc.iTargetBitrate = videoBitrate;
+    enc.iMaxBitrate = videoBitrate;
     enc.iRCMode = RC_BITRATE_MODE;
     enc.fMaxFrameRate = static_cast<float>(fps);
+    enc.iTemporalLayerNum = 1;
+    enc.iSpatialLayerNum = 1;
+    enc.uiIntraPeriod = static_cast<unsigned int>(std::max(1, fps * 2));
+    enc.iComplexityMode = LOW_COMPLEXITY;
+    enc.bEnableFrameSkip = true;
+    enc.eSpsPpsIdStrategy = CONSTANT_ID;
 
-    if (d_->videoEncoder->Initialize(&enc) != cmResultSuccess) {
+    enc.sSpatialLayers[0].iVideoWidth = width;
+    enc.sSpatialLayers[0].iVideoHeight = height;
+    enc.sSpatialLayers[0].fFrameRate = static_cast<float>(fps);
+    enc.sSpatialLayers[0].iSpatialBitrate = videoBitrate;
+    enc.sSpatialLayers[0].iMaxSpatialBitrate = videoBitrate;
+    enc.sSpatialLayers[0].uiProfileIdc = PRO_BASELINE;
+    enc.sSpatialLayers[0].uiLevelIdc = LEVEL_3_1;
+
+    if (d_->videoEncoder->InitializeExt(&enc) != cmResultSuccess) {
         shutdown();
         return false;
     }
