@@ -1,5 +1,9 @@
 name: Classroom Remote Windows Clients
 
+concurrency:
+  group: classroom-remote-windows-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     paths:
