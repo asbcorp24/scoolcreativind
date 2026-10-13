@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/subtle"
+	"flag"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -30,6 +31,23 @@ type Client struct {
 type Hub struct {
 	mu      sync.RWMutex
 	clients map[*Client]bool
+}
+
+type onlineClient struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Role     string `json:"role"`
+	LessonID string `json:"lesson_id"`
+}
+
+func (h *Hub) snapshot() []onlineClient {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	out := make([]onlineClient, 0, len(h.clients))
+	for c := range h.clients {
+		out = append(out, onlineClient{ID: c.ID, Name: c.Name, Role: c.Role, LessonID: c.LessonID})
+	}
+	return out
 }
 
 func NewHub() *Hub {
@@ -131,7 +149,7 @@ func requireBearer(expected string, next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig) http.HandlerFunc {
+func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, store *Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		lessonID := r.URL.Query().Get("lesson")
 		id := r.URL.Query().Get("id")
@@ -153,7 +171,17 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig) http.HandlerFunc {
 		}
 		c := &Client{ID: id, Role: role, LessonID: lessonID, Name: name, Conn: conn, Send: make(chan []byte, 64)}
 		h.add(c)
-		defer func() { rtcRelay.CloseClient(c.ID); h.remove(c); conn.Close() }()
+		h.sendTo(lessonID, c.ID, map[string]any{
+			"type": "server_config",
+			"ice_servers": iceURLs,
+		})
+		store.Audit(lessonID, c.ID, "", "connect")
+		defer func() {
+			store.Audit(lessonID, c.ID, "", "disconnect")
+			rtcRelay.CloseClient(c.ID)
+			h.remove(c)
+			_ = conn.Close()
+		}()
 
 		go func() {
 			for msg := range c.Send {
@@ -207,6 +235,7 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig) http.HandlerFunc {
 				}
 				target, _ := m["target"].(string)
 				if target != "" {
+					store.Audit(lessonID, c.ID, target, "remote_request")
 					rtcRelay.SetRemoteTarget(c.ID, target)
 					m["from"] = c.ID
 					m["from_role"] = c.Role
@@ -218,6 +247,7 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig) http.HandlerFunc {
 				}
 				rtcRelay.ClearRemoteTarget(c.ID)
 				target, _ := m["target"].(string)
+				store.Audit(lessonID, c.ID, target, "remote_stop")
 				if target != "" {
 					m["from"] = c.ID
 					m["from_role"] = c.Role
@@ -229,6 +259,7 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig) http.HandlerFunc {
 				}
 				target, _ := m["target"].(string)
 				if target != "" {
+					store.Audit(lessonID, c.ID, target, "audio_request")
 					rtcRelay.SetAudioTarget(c.ID, target)
 					m["from"] = c.ID
 					m["from_role"] = c.Role
@@ -240,6 +271,7 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig) http.HandlerFunc {
 				}
 				rtcRelay.ClearAudioTarget(c.ID)
 				target, _ := m["target"].(string)
+				store.Audit(lessonID, c.ID, target, "audio_stop")
 				if target != "" {
 					m["from"] = c.ID
 					m["from_role"] = c.Role
@@ -254,7 +286,7 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig) http.HandlerFunc {
 	}
 }
 
-func snapshotUpload(root string) http.HandlerFunc {
+func snapshotUpload(root string, store *Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		lesson := chi.URLParam(r, "lesson")
 		student := chi.URLParam(r, "student")
@@ -288,6 +320,7 @@ func snapshotUpload(root string) http.HandlerFunc {
 			http.Error(w, err.Error(), 500)
 			return
 		}
+		store.AddSnapshot(lesson, student, name, ts)
 		_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "timestamp": ts, "file": name})
 	}
 }
@@ -332,33 +365,73 @@ func safe(s string) string {
 }
 
 func main() {
-	addr := env("ADDR", ":8080")
-	root := env("STORAGE_DIR", "./storage")
+	configPath := flag.String("config", "config.json", "path to server config")
+	flag.Parse()
+
+	cfg, created, err := loadConfig(*configPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if created {
+		log.Printf("created %s", *configPath)
+		log.Printf("TEACHER_TOKEN=%s", cfg.TeacherToken)
+		log.Printf("STUDENT_TOKEN=%s", cfg.StudentToken)
+		log.Printf("edit public_ip/domain in config before Internet deployment")
+	}
+
+	store, err := OpenStore(cfg.DBPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer store.Close()
+
 	auth := authConfig{
-		teacherToken: strings.TrimSpace(os.Getenv("TEACHER_TOKEN")),
-		studentToken: strings.TrimSpace(os.Getenv("STUDENT_TOKEN")),
+		teacherToken: cfg.TeacherToken,
+		studentToken: cfg.StudentToken,
 	}
-	if auth.teacherToken == "" || auth.studentToken == "" {
-		log.Fatal("TEACHER_TOKEN and STUDENT_TOKEN must be configured")
+
+	turnServer, err := StartEmbeddedTURN(cfg)
+	if err != nil {
+		log.Fatal(err)
 	}
+	if turnServer != nil {
+		defer turnServer.Close()
+		log.Printf("embedded TURN/STUN listening on %s, relay ports %d-%d",
+			cfg.TURNListen, cfg.TURNMinPort, cfg.TURNMaxPort)
+	}
+
+	iceURLs := []string{}
+	if turnServer != nil {
+		iceURLs = append(iceURLs, turnServer.urls...)
+	} else {
+		iceURLs = append(iceURLs, "stun://stun.l.google.com:19302")
+	}
+
 	hub := NewHub()
-	rtcRelay, rtcErr := NewRTCRelay()
-	if rtcErr != nil {
-		log.Fatal(rtcErr)
+	rtcRelay, err := NewRTCRelay(cfg)
+	if err != nil {
+		log.Fatal(err)
 	}
+
 	r := chi.NewRouter()
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
-	r.Get("/ws", wsHandler(hub, rtcRelay, auth))
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("ok")) })
+	r.Get("/ws", wsHandler(hub, rtcRelay, auth, iceURLs, store))
 	r.Post("/api/v1/lessons/{lesson}/students/{student}/snapshot",
-		requireBearer(auth.studentToken, snapshotUpload(root)))
+		requireBearer(auth.studentToken, snapshotUpload(cfg.StorageDir, store)))
 	r.Get("/api/v1/lessons/{lesson}/students/{student}/snapshot/latest",
-		requireBearer(auth.teacherToken, latestSnapshot(root)))
+		requireBearer(auth.teacherToken, latestSnapshot(cfg.StorageDir)))
 	r.Get("/api/v1/lessons/{lesson}/students/{student}/recording.zip",
-		requireBearer(auth.teacherToken, recordingZip(root)))
+		requireBearer(auth.teacherToken, recordingZip(cfg.StorageDir)))
 	r.Get("/api/v1/lessons/{lesson}/students/{student}/recording.mp4",
-		requireBearer(auth.teacherToken, recordingMP4(root)))
-	log.Printf("classroom server listening on %s", addr)
-	log.Fatal(http.ListenAndServe(addr, r))
+		requireBearer(auth.teacherToken, recordingMP4(cfg.StorageDir, cfg.FFmpegPath)))
+	r.Get("/api/admin/status",
+		requireBearer(auth.teacherToken, adminStatus(hub, cfg, turnServer)))
+	r.Handle("/*", webHandler())
+	r.Handle("/", webHandler())
+
+	log.Printf("Classroom Remote server: http://0.0.0.0%s", cfg.HTTPAddr)
+	log.Printf("SQLite: %s", cfg.DBPath)
+	log.Fatal(http.ListenAndServe(cfg.HTTPAddr, r))
 }
 
 func env(k, d string) string {
