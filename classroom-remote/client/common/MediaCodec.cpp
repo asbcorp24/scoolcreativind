@@ -179,7 +179,7 @@ bool MediaCodec::initialize(int width, int height, int fps,
     }
 
     SDecodingParam dec{};
-    dec.sVideoProperty.eVideoBsType = VIDEO_BITSTREAM_DEFAULT;
+    dec.sVideoProperty.eVideoBsType = VIDEO_BITSTREAM_AVC;
     if (d_->videoDecoder->Initialize(&dec) != 0) {
         shutdown();
         return false;
