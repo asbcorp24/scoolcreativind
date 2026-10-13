@@ -97,7 +97,7 @@ func TestAcceptStudentMediaOffer(t *testing.T) {
 	t.Setenv("RTC_MIN_PORT", "52000")
 	t.Setenv("RTC_MAX_PORT", "52100")
 
-	relay, err := NewRTCRelay()
+	relay, err := NewRTCRelay(Config{RTCMinPort: 52000, RTCMaxPort: 52100})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestAcceptTeacherMediaOffer(t *testing.T) {
 	t.Setenv("RTC_MIN_PORT", "52200")
 	t.Setenv("RTC_MAX_PORT", "52300")
 
-	relay, err := NewRTCRelay()
+	relay, err := NewRTCRelay(Config{RTCMinPort: 52200, RTCMaxPort: 52300})
 	if err != nil {
 		t.Fatal(err)
 	}
