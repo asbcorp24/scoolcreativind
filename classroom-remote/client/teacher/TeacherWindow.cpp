@@ -3,6 +3,7 @@
 #include "../common/WsClient.h"
 #include "../common/RtcRelayClient.h"
 #include "../common/AudioPipe.h"
+#include "../common/MediaCodec.h"
 
 #include <QBuffer>
 #include <QCamera>
@@ -42,6 +43,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
       ws_(new WsClient(this)),
       rtc_(new RtcRelayClient(ws_, this)),
       audio_(new AudioPipe(this)),
+      codec_(new MediaCodec),
       screenTimer_(new QTimer(this)),
       network_(new QNetworkAccessManager(this)) {
 
@@ -120,6 +122,9 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     setCentralWidget(root);
     setWindowTitle("Classroom Teacher");
 
+    if (!codec_->initialize())
+        status_->setText("Ошибка инициализации OpenH264/Opus");
+
     screenTimer_->setInterval(100);
 
     connect(connectBtn, &QPushButton::clicked, this, &TeacherWindow::connectServer);
@@ -146,10 +151,16 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     });
 
     connect(audio_, &AudioPipe::captured, this, [this](const QByteArray& pcm) {
-        if (!privateAudioTarget_.isEmpty())
-            rtc_->sendTargetedFrame(RtcRelayClient::TeacherPrivateAudio, privateAudioTarget_, pcm);
-        else if (micOn_)
-            rtc_->sendFrame(RtcRelayClient::LectureAudio, pcm);
+        const auto packets = codec_->encodeAudio(pcm);
+        const QString track = !privateAudioTarget_.isEmpty()
+            ? RtcRelayClient::PrivateAudioTrack
+            : RtcRelayClient::LectureAudioTrack;
+
+        if (privateAudioTarget_.isEmpty() && !micOn_)
+            return;
+
+        for (const auto& packet : packets)
+            rtc_->sendAudio(track, packet, 20);
     });
 
     connect(screenTimer_, &QTimer::timeout, this, [this] {
@@ -220,7 +231,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
 
     connect(ws_, &WsClient::connected, this, [this] {
         status_->setText("● Сигналинг подключён, устанавливаю WebRTC...");
-        rtc_->start();
+        rtc_->start("teacher");
     });
     connect(ws_, &WsClient::disconnected, this, [this] {
         status_->setText("○ Отключено");
@@ -238,11 +249,13 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     connect(rtc_, &RtcRelayClient::stateText, this, [this](const QString& s) {
         status_->setText(s);
     });
-    connect(rtc_, &RtcRelayClient::frameReceived, this, &TeacherWindow::onRtcFrame);
+    connect(rtc_, &RtcRelayClient::videoFrameReceived, this, &TeacherWindow::onRtcVideo);
+    connect(rtc_, &RtcRelayClient::audioFrameReceived, this, &TeacherWindow::onRtcAudio);
 }
 
 TeacherWindow::~TeacherWindow() {
     stopLecture();
+    delete codec_;
 }
 
 void TeacherWindow::connectServer() {
@@ -365,13 +378,9 @@ void TeacherWindow::sendLectureImage(const QImage& source) {
     const QImage image = source.scaled(1280, 720, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     showLocalPreview(image);
 
-    QByteArray body;
-    QBuffer buffer(&body);
-    buffer.open(QIODevice::WriteOnly);
-    if (!image.save(&buffer, "JPG", 65))
-        return;
-
-    rtc_->sendFrame(RtcRelayClient::LectureVideo, body);
+    const QByteArray h264 = codec_->encodeVideo(image);
+    if (!h264.isEmpty())
+        rtc_->sendVideo(RtcRelayClient::LectureVideoTrack, h264, 100);
 }
 
 void TeacherWindow::showLocalPreview(const QImage& image) {
@@ -379,20 +388,24 @@ void TeacherWindow::showLocalPreview(const QImage& image) {
         lecturePreview_->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
 }
 
-void TeacherWindow::onRtcFrame(quint8 kind, const QString& source, const QByteArray& payload) {
-    if (kind == RtcRelayClient::StudentVideo) {
-        if (!activeStudent_.isEmpty() && source != activeStudent_)
-            return;
+void TeacherWindow::onRtcVideo(const QString& trackId, const QByteArray& h264) {
+    if (trackId != RtcRelayClient::RemoteVideoTrack)
+        return;
 
-        QPixmap pix;
-        if (pix.loadFromData(payload)) {
-            remoteView_->setPixmap(pix.scaled(
-                remoteView_->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        }
-    } else if (kind == RtcRelayClient::StudentAudio) {
-        if (activeStudent_.isEmpty() || source == activeStudent_)
-            audio_->play(payload);
+    const QImage image = codec_->decodeVideo(h264);
+    if (!image.isNull()) {
+        remoteView_->setPixmap(QPixmap::fromImage(image).scaled(
+            remoteView_->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
     }
+}
+
+void TeacherWindow::onRtcAudio(const QString& trackId, const QByteArray& opus) {
+    if (trackId != RtcRelayClient::RemoteAudioTrack)
+        return;
+
+    const QByteArray pcm = codec_->decodeAudio(opus);
+    if (!pcm.isEmpty())
+        audio_->play(pcm);
 }
 
 
