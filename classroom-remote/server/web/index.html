@@ -43,7 +43,10 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 <div class="card"><h3>Подключённые клиенты</h3><table><thead><tr><th>Имя</th><th>Роль</th><th>Занятие</th><th>ID</th></tr></thead><tbody id="users"></tbody></table></div>
 
 <script>
-function adminToken(){ return document.getElementById('token').value; }
+const tokenInput=document.getElementById('token');
+tokenInput.value=localStorage.getItem('classroom_admin_token')||'';
+tokenInput.addEventListener('change',()=>localStorage.setItem('classroom_admin_token',tokenInput.value));
+function adminToken(){ return tokenInput.value; }
 async function load(){
  const token=adminToken();
  const r=await fetch('/api/admin/status',{headers:{Authorization:'Bearer '+token}});
