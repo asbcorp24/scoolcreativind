@@ -3,6 +3,7 @@
 
 #include <QDateTime>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QHBoxLayout>
 #include <QJsonObject>
 #include <QLabel>
@@ -193,6 +194,19 @@ void StudentLessonsWidget::submit() {
         QMessageBox::information(this, "Домашняя работа", "Добавьте хотя бы один файл.");
         return;
     }
+
+    qint64 totalBytes = 0;
+    for (const QString& path : files_)
+        totalBytes += QFileInfo(path).size();
+    const qint64 maxBytes = qint64(maxUploadMB_) * 1024 * 1024;
+    if (totalBytes > maxBytes) {
+        QMessageBox::warning(this, "Домашняя работа",
+            QString("Суммарный размер файлов %1 МБ превышает лимит %2 МБ.")
+                .arg(totalBytes / 1024.0 / 1024.0, 0, 'f', 1)
+                .arg(maxUploadMB_));
+        return;
+    }
+
     api_->submitHomework(currentLessonId_, studentId_, studentName_, note_->toPlainText(), files_);
 }
 
