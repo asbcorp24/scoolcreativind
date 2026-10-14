@@ -8,6 +8,7 @@ class QLineEdit;
 class QPushButton;
 class QTimer;
 class QNetworkAccessManager;
+class QUrl;
 class WsClient;
 class RtcRelayClient;
 class AudioPipe;
@@ -18,6 +19,7 @@ class StudentWindow final : public QMainWindow {
 public:
     explicit StudentWindow(QWidget* parent = nullptr);
     ~StudentWindow() override;
+    void openInviteUrl(const QUrl& url);
 
 private:
     void connectServer();
@@ -33,6 +35,7 @@ private:
     AudioPipe* audio_{};
     MediaCodec* codec_{};
 
+    QLineEdit* invite_{};
     QLineEdit* wsUrl_{};
     QLineEdit* httpUrl_{};
     QLineEdit* lesson_{};
