@@ -199,6 +199,9 @@ func uploadLessonMaterial(store *Store, cfg Config) http.HandlerFunc {
 		}
 
 		file, header, err := readSingleUpload(w, r, cfg.MaxUploadMB, "file")
+		if r.MultipartForm != nil {
+			defer r.MultipartForm.RemoveAll()
+		}
 		if err != nil {
 			http.Error(w, err.Error(), uploadStatus(err))
 			return
@@ -277,6 +280,9 @@ func submitHomework(store *Store, cfg Config) http.HandlerFunc {
 		if err := r.ParseMultipartForm(maxBytes + (1 << 20)); err != nil {
 			http.Error(w, fmt.Sprintf("upload exceeds %d MB or form is invalid", cfg.MaxUploadMB), http.StatusRequestEntityTooLarge)
 			return
+		}
+		if r.MultipartForm != nil {
+			defer r.MultipartForm.RemoveAll()
 		}
 		studentID := strings.TrimSpace(r.FormValue("student_id"))
 		studentName := strings.TrimSpace(r.FormValue("student_name"))
