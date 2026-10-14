@@ -8,6 +8,7 @@
 #include <QJsonDocument>
 #include <QNetworkRequest>
 #include <QUrl>
+#include <QStringList>
 
 class QNetworkAccessManager;
 class QHttpMultiPart;
