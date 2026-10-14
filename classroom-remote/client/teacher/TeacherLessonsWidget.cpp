@@ -64,6 +64,9 @@ TeacherLessonsWidget::TeacherLessonsWidget(QWidget* parent)
     rv->addWidget(saveBtn);
 
     rv->addWidget(new QLabel("<b>Материалы урока</b>"));
+    uploadLimit_ = new QLabel("Лимит файла: 50 МБ");
+    uploadLimit_->setStyleSheet("color:#94a3b8;");
+    rv->addWidget(uploadLimit_);
     materials_ = new QListWidget;
     rv->addWidget(materials_);
     auto* materialButtons = new QHBoxLayout;
@@ -158,6 +161,12 @@ TeacherLessonsWidget::TeacherLessonsWidget(QWidget* parent)
     connect(api_, &LearningApi::operationFailed, this, [this](const QString& s) {
         status_->setText("Ошибка: " + s);
     });
+}
+
+void TeacherLessonsWidget::setMaxUploadMB(int mb) {
+    maxUploadMB_ = mb > 0 ? mb : 50;
+    if (uploadLimit_)
+        uploadLimit_->setText(QString("Лимит файла: %1 МБ").arg(maxUploadMB_));
 }
 
 void TeacherLessonsWidget::setSession(const QUrl& httpBase, const QString& classroomId, const QString& token) {
