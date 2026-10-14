@@ -3,6 +3,7 @@
 #include <QWidget>
 #include <QJsonArray>
 #include <QUrl>
+#include <QStringList>
 
 class LearningApi;
 class QListWidget;
