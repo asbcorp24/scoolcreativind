@@ -476,9 +476,12 @@ SELECT id,original_name,mime_type,size_bytes FROM submission_files WHERE submiss
 	return out, rows.Err()
 }
 
-func lessonBelongsToClassroom(store *Store, lessonID int64, includeDraft bool) bool {
+func lessonBelongsToClassroom(store *Store, lessonID int64, classroomID string, includeDraft bool) bool {
 	var published int
-	err := store.db.QueryRow(`SELECT published FROM lessons WHERE id=?`, lessonID).Scan(&published)
+	err := store.db.QueryRow(
+		`SELECT published FROM lessons WHERE id=? AND classroom_id=?`,
+		lessonID, classroomID,
+	).Scan(&published)
 	if err != nil {
 		return false
 	}
