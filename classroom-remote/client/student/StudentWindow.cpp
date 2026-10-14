@@ -1,4 +1,5 @@
 #include "StudentWindow.h"
+#include "StudentLessonsWidget.h"
 #include "../common/WsClient.h"
 #include "../common/RtcRelayClient.h"
 #include "../common/AudioPipe.h"
@@ -22,6 +23,8 @@
 #include <QPixmap>
 #include <QPushButton>
 #include <QScreen>
+#include <QSettings>
+#include <QTabWidget>
 #include <QTimer>
 #include <QUuid>
 #include <QVBoxLayout>
@@ -35,8 +38,14 @@ StudentWindow::StudentWindow(QWidget* parent)
       codec_(new MediaCodec),
       snapshotTimer_(new QTimer(this)),
       remoteScreenTimer_(new QTimer(this)),
-      network_(new QNetworkAccessManager(this)),
-      studentId_("student-" + QUuid::createUuid().toString(QUuid::WithoutBraces)) {
+      network_(new QNetworkAccessManager(this)) {
+
+    QSettings settings("SHKI", "ClassroomRemote");
+    studentId_ = settings.value("student/id").toString();
+    if (studentId_.isEmpty()) {
+        studentId_ = "student-" + QUuid::createUuid().toString(QUuid::WithoutBraces);
+        settings.setValue("student/id", studentId_);
+    }
 
     auto* root = new QWidget;
     auto* outer = new QVBoxLayout(root);
@@ -93,15 +102,24 @@ StudentWindow::StudentWindow(QWidget* parent)
     remoteBanner_->hide();
     outer->addWidget(remoteBanner_);
 
+    auto* tabs = new QTabWidget;
+    auto* livePage = new QWidget;
+    auto* liveLayout = new QVBoxLayout(livePage);
+
     lecture_ = new QLabel("Ожидание трансляции преподавателя");
     lecture_->setAlignment(Qt::AlignCenter);
     lecture_->setMinimumSize(640, 360);
     lecture_->setStyleSheet("background:#020617;color:white;font-size:24px;border-radius:10px;");
-    outer->addWidget(lecture_, 1);
+    liveLayout->addWidget(lecture_, 1);
 
     hand_ = new QPushButton("✋ Поднять руку");
     hand_->setMinimumHeight(48);
-    outer->addWidget(hand_);
+    liveLayout->addWidget(hand_);
+
+    tabs->addTab(livePage, "Урок сейчас");
+    lessonsWidget_ = new StudentLessonsWidget;
+    tabs->addTab(lessonsWidget_, "Уроки и домашние работы");
+    outer->addWidget(tabs, 1);
 
     setCentralWidget(root);
     setWindowTitle("Classroom Student");
@@ -226,7 +244,10 @@ void StudentWindow::openInviteUrl(const QUrl& rawUrl) {
 }
 
 void StudentWindow::connectServer() {
-    ws_->connectTo(QUrl(wsUrl_->text()), lesson_->text(), studentId_, "student", name_->text(), token_->text());
+    lessonsWidget_->setSession(QUrl(httpUrl_->text()), lesson_->text(), token_->text(),
+                               studentId_, name_->text());
+    ws_->connectTo(QUrl(wsUrl_->text()), lesson_->text(), studentId_,
+                   "student", name_->text(), token_->text());
 }
 
 void StudentWindow::onMessage(const QJsonObject& obj) {
