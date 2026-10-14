@@ -190,7 +190,7 @@ func requestAccessRole(r *http.Request) string {
 	return ""
 }
 
-func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, store *Store) http.HandlerFunc {
+func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, store *Store, maxUploadMB int) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		lessonID := r.URL.Query().Get("lesson")
 		id := r.URL.Query().Get("id")
@@ -213,8 +213,9 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, st
 		c := &Client{ID: id, Role: role, LessonID: lessonID, Name: name, Conn: conn, Send: make(chan []byte, 64)}
 		h.add(c)
 		h.sendTo(lessonID, c.ID, map[string]any{
-			"type": "server_config",
-			"ice_servers": iceURLs,
+			"type":          "server_config",
+			"ice_servers":   iceURLs,
+			"max_upload_mb": maxUploadMB,
 		})
 		store.Audit(lessonID, c.ID, "", "connect")
 		defer func() {
@@ -456,7 +457,7 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("ok")) })
-	r.Get("/ws", wsHandler(hub, rtcRelay, auth, iceURLs, store))
+	r.Get("/ws", wsHandler(hub, rtcRelay, auth, iceURLs, store, cfg.MaxUploadMB))
 
 	r.Get("/api/admin/session", adminSession(cfg))
 	r.Post("/api/admin/login", adminLogin(cfg))
