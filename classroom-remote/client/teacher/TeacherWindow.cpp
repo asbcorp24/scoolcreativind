@@ -370,7 +370,7 @@ void TeacherWindow::connectServer() {
     if (httpUrl.scheme() == "wss") httpUrl.setScheme("https");
     else if (httpUrl.scheme() == "ws") httpUrl.setScheme("http");
     httpUrl.setPath("");
-    httpUrl.setQuery({});
+    httpUrl.setQuery(QString());
     lessonsWidget_->setSession(httpUrl, lesson_->text(), token_->text());
 
     ws_->connectTo(wsUrl, lesson_->text(),
@@ -475,8 +475,241 @@ void TeacherWindow::startCameraLecture() {
     ws_->send(QJsonObject{{"type", "lecture_state"}, {"mode", "camera"}, {"active", true}});
 }
 
+void TeacherWindow::startFileLecture() {
+    if (!privateAudioTarget_.isEmpty()) {
+        QMessageBox::information(this, "Видео-файл",
+            "Сначала завершите приватный аудиодиалог.");
+        return;
+    }
+
+    const QString path = QFileDialog::getOpenFileName(
+        this,
+        "Выберите видео для трансляции",
+        QString(),
+        "Видео (*.mp4 *.mkv *.avi *.mov *.webm);;Все файлы (*.*)");
+    if (path.isEmpty())
+        return;
+
+    stopLecture();
+
+    if (micOn_) {
+        micOn_ = false;
+        audio_->stopCapture();
+        micButton_->setText("🎤 Микрофон");
+    }
+
+    filePlayer_ = new QMediaPlayer(this);
+    fileVideoSink_ = new QVideoSink(this);
+
+    QAudioFormat audioFormat;
+    audioFormat.setSampleRate(48000);
+    audioFormat.setChannelCount(1);
+    audioFormat.setSampleFormat(QAudioFormat::Int16);
+    fileAudioBuffer_ = new QAudioBufferOutput(audioFormat, this);
+
+    filePlayer_->setVideoOutput(fileVideoSink_);
+    filePlayer_->setAudioBufferOutput(fileAudioBuffer_);
+
+    lastFileVideoSendMs_ = 0;
+    codec_->requestKeyframe();
+
+    connect(fileVideoSink_, &QVideoSink::videoFrameChanged, this,
+            [this](const QVideoFrame& frame) {
+        if (!rtc_->isOpen())
+            return;
+
+        const qint64 now = QDateTime::currentMSecsSinceEpoch();
+        if (now - lastFileVideoSendMs_ < 90)
+            return;
+        lastFileVideoSendMs_ = now;
+
+        const QImage image = frame.toImage();
+        if (!image.isNull())
+            sendLectureImage(image);
+    });
+
+    connect(fileAudioBuffer_, &QAudioBufferOutput::audioBufferReceived, this,
+            [this](const QAudioBuffer& buffer) {
+        if (!rtc_->isOpen() || !buffer.isValid() || buffer.byteCount() <= 0)
+            return;
+
+        const QByteArray pcm(
+            reinterpret_cast<const char*>(buffer.constData<char>()),
+            buffer.byteCount());
+        const auto packets = codec_->encodeAudio(pcm, "lecture-file");
+        for (const auto& packet : packets)
+            rtc_->sendAudio(RtcRelayClient::LectureAudioTrack, packet, 20);
+    });
+
+    connect(filePlayer_, &QMediaPlayer::mediaStatusChanged, this,
+            [this](QMediaPlayer::MediaStatus status) {
+        if (status == QMediaPlayer::EndOfMedia) {
+            status_->setText("Видео завершено");
+            stopLecture();
+        } else if (status == QMediaPlayer::InvalidMedia) {
+            QMessageBox::warning(this, "Видео-файл",
+                "Не удалось открыть видео: " + filePlayer_->errorString());
+            stopLecture();
+        }
+    });
+
+    filePlayer_->setSource(QUrl::fromLocalFile(path));
+    filePlayer_->play();
+
+    status_->setText("▶ Трансляция видео: " + QFileInfo(path).fileName());
+    ws_->send(QJsonObject{
+        {"type", "lecture_state"},
+        {"mode", "file"},
+        {"name", QFileInfo(path).fileName()},
+        {"active", true}
+    });
+}
+
+void TeacherWindow::startCameraRecording() {
+    startRecording(false);
+}
+
+void TeacherWindow::startScreenRecording() {
+    startRecording(true);
+}
+
+void TeacherWindow::startRecording(bool screen) {
+    if (mediaRecorder_ &&
+        mediaRecorder_->recorderState() == QMediaRecorder::RecordingState) {
+        QMessageBox::information(this, "Запись",
+            "Сначала остановите текущую запись.");
+        return;
+    }
+
+    const QString suggested = QString("lesson-%1-%2.mp4")
+        .arg(lesson_->text(),
+             QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss"));
+    const QString path = QFileDialog::getSaveFileName(
+        this,
+        screen ? "Записать экран" : "Записать камеру",
+        suggested,
+        "MP4 (*.mp4)");
+    if (path.isEmpty())
+        return;
+
+    stopLecture();
+    stopRecording();
+
+    recordingPath_ = path;
+    recordingSession_ = new QMediaCaptureSession(this);
+    mediaRecorder_ = new QMediaRecorder(this);
+    recordingAudio_ = new QAudioInput(this);
+    recordingPreviewSink_ = new QVideoSink(this);
+
+    recordingSession_->setRecorder(mediaRecorder_);
+    recordingSession_->setAudioInput(recordingAudio_);
+    recordingSession_->setVideoSink(recordingPreviewSink_);
+
+    connect(recordingPreviewSink_, &QVideoSink::videoFrameChanged, this,
+            [this](const QVideoFrame& frame) {
+        const QImage image = frame.toImage();
+        if (!image.isNull())
+            showLocalPreview(image);
+    });
+
+    if (screen) {
+        recordingScreen_ = new QScreenCapture(this);
+        recordingScreen_->setScreen(QGuiApplication::primaryScreen());
+        recordingSession_->setScreenCapture(recordingScreen_);
+        recordingScreen_->start();
+    } else {
+        const auto device = QMediaDevices::defaultVideoInput();
+        if (device.isNull()) {
+            QMessageBox::warning(this, "Запись", "Камера не найдена.");
+            stopRecording();
+            return;
+        }
+        recordingCamera_ = new QCamera(device, this);
+        recordingSession_->setCamera(recordingCamera_);
+        recordingCamera_->start();
+    }
+
+    QMediaFormat format(QMediaFormat::MPEG4);
+    format.setVideoCodec(QMediaFormat::VideoCodec::H264);
+    format.setAudioCodec(QMediaFormat::AudioCodec::AAC);
+    format.resolveForEncoding(QMediaFormat::RequiresVideo);
+
+    mediaRecorder_->setMediaFormat(format);
+    mediaRecorder_->setQuality(QMediaRecorder::HighQuality);
+    mediaRecorder_->setVideoResolution(1280, 720);
+    mediaRecorder_->setVideoFrameRate(30.0);
+    mediaRecorder_->setOutputLocation(QUrl::fromLocalFile(path));
+
+    connect(mediaRecorder_, &QMediaRecorder::errorOccurred, this,
+            [this](QMediaRecorder::Error, const QString& errorString) {
+        QMessageBox::warning(this, "Запись",
+            "Ошибка записи: " + errorString);
+        status_->setText("Ошибка записи");
+    });
+
+    connect(mediaRecorder_, &QMediaRecorder::recorderStateChanged, this,
+            [this](QMediaRecorder::RecorderState state) {
+        if (state == QMediaRecorder::RecordingState) {
+            status_->setText("⏺ Идёт запись: " + recordingPath_);
+        } else if (state == QMediaRecorder::StoppedState &&
+                   !recordingPath_.isEmpty()) {
+            status_->setText("Запись сохранена: " + recordingPath_);
+        }
+    });
+
+    mediaRecorder_->record();
+}
+
+void TeacherWindow::stopRecording() {
+    if (mediaRecorder_ &&
+        mediaRecorder_->recorderState() != QMediaRecorder::StoppedState) {
+        mediaRecorder_->stop();
+    }
+
+    if (recordingCamera_) {
+        recordingCamera_->stop();
+        recordingCamera_->deleteLater();
+        recordingCamera_ = nullptr;
+    }
+    if (recordingScreen_) {
+        recordingScreen_->stop();
+        recordingScreen_->deleteLater();
+        recordingScreen_ = nullptr;
+    }
+    if (recordingAudio_) {
+        recordingAudio_->deleteLater();
+        recordingAudio_ = nullptr;
+    }
+    if (recordingPreviewSink_) {
+        recordingPreviewSink_->deleteLater();
+        recordingPreviewSink_ = nullptr;
+    }
+    if (recordingSession_) {
+        recordingSession_->deleteLater();
+        recordingSession_ = nullptr;
+    }
+    if (mediaRecorder_) {
+        mediaRecorder_->deleteLater();
+        mediaRecorder_ = nullptr;
+    }
+}
+
 void TeacherWindow::stopLecture() {
     screenTimer_->stop();
+
+    if (filePlayer_) {
+        filePlayer_->stop();
+        filePlayer_->deleteLater();
+        filePlayer_ = nullptr;
+    }
+    if (fileVideoSink_) {
+        fileVideoSink_->deleteLater();
+        fileVideoSink_ = nullptr;
+    }
+    if (fileAudioBuffer_) {
+        fileAudioBuffer_->deleteLater();
+        fileAudioBuffer_ = nullptr;
+    }
 
     if (camera_) {
         camera_->stop();
