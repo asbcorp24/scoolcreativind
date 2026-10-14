@@ -14,6 +14,7 @@
 #include <QApplication>
 #include <QFileInfo>
 #include <QFileDialog>
+#include <QFile>
 #include <QListWidget>
 #include <QStackedLayout>
 #include <QPlainTextEdit>
@@ -380,8 +381,12 @@ void StudentWindow::onMessage(const QJsonObject& obj) {
 
     if (type == "chat_control") {
         publicChatEnabled_ = obj.value("enabled").toBool();
-        chatState_->setText(publicChatEnabled_ ? "Общий чат включён" : "Общий чат отключён преподавателем");
-        chatInput_->setEnabled(publicChatEnabled_);
+        chatState_->setText(publicChatEnabled_
+            ? "Общий чат включён"
+            : "Общий чат отключён. Личные сообщения преподавателю доступны.");
+        chatInput_->setPlaceholderText(publicChatEnabled_
+            ? "Сообщение в общий чат..."
+            : "Общий чат выключен — используйте «Преподавателю»");
         return;
     }
 
