@@ -4,6 +4,9 @@
 #include <QDateTime>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QDir>
+#include <QScreen>
+#include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QJsonObject>
 #include <QLabel>
@@ -62,9 +65,11 @@ StudentLessonsWidget::StudentLessonsWidget(QWidget* parent)
     dv->addWidget(selectedFiles_);
     auto* fileButtons = new QHBoxLayout;
     auto* addBtn = new QPushButton("Добавить файлы");
+    auto* screenshotBtn = new QPushButton("Скриншот результата");
     auto* clearBtn = new QPushButton("Очистить");
     auto* submitBtn = new QPushButton("Отправить");
     fileButtons->addWidget(addBtn);
+    fileButtons->addWidget(screenshotBtn);
     fileButtons->addWidget(clearBtn);
     fileButtons->addWidget(submitBtn);
     dv->addLayout(fileButtons);
@@ -84,6 +89,7 @@ StudentLessonsWidget::StudentLessonsWidget(QWidget* parent)
     connect(refreshBtn, &QPushButton::clicked, this, &StudentLessonsWidget::refresh);
     connect(lessons_, &QListWidget::currentRowChanged, this, [this]{ loadSelectedLesson(); });
     connect(addBtn, &QPushButton::clicked, this, &StudentLessonsWidget::addFiles);
+    connect(screenshotBtn, &QPushButton::clicked, this, &StudentLessonsWidget::addScreenshot);
     connect(clearBtn, &QPushButton::clicked, this, [this] {
         files_.clear();
         selectedFiles_->clear();
@@ -194,6 +200,26 @@ void StudentLessonsWidget::addFiles() {
         files_ << path;
         selectedFiles_->addItem(path);
     }
+}
+
+void StudentLessonsWidget::addScreenshot() {
+    QScreen* screen = QGuiApplication::primaryScreen();
+    if (!screen) {
+        QMessageBox::warning(this, "Скриншот", "Экран не найден.");
+        return;
+    }
+
+    const QString path = QDir::temp().filePath(
+        QString("classroom-result-%1.png")
+            .arg(QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss-zzz")));
+    if (!screen->grabWindow(0).save(path, "PNG")) {
+        QMessageBox::warning(this, "Скриншот", "Не удалось сохранить скриншот.");
+        return;
+    }
+
+    files_ << path;
+    selectedFiles_->addItem("📷 " + path);
+    status_->setText("Скриншот добавлен к домашней работе");
 }
 
 void StudentLessonsWidget::submit() {
