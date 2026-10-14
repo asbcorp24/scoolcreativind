@@ -50,6 +50,9 @@ StudentLessonsWidget::StudentLessonsWidget(QWidget* parent)
     dv->addWidget(downloadBtn);
 
     dv->addWidget(new QLabel("<b>Сдать домашнюю работу</b>"));
+    uploadLimit_ = new QLabel("Лимит одной отправки: 50 МБ");
+    uploadLimit_->setStyleSheet("color:#94a3b8;");
+    dv->addWidget(uploadLimit_);
     note_ = new QTextEdit;
     note_->setPlaceholderText("Комментарий преподавателю");
     note_->setMaximumHeight(80);
@@ -130,6 +133,12 @@ StudentLessonsWidget::StudentLessonsWidget(QWidget* parent)
     connect(api_, &LearningApi::operationFailed, this, [this](const QString& s) {
         status_->setText("Ошибка: " + s);
     });
+}
+
+void StudentLessonsWidget::setMaxUploadMB(int mb) {
+    maxUploadMB_ = mb > 0 ? mb : 50;
+    if (uploadLimit_)
+        uploadLimit_->setText(QString("Лимит одной отправки: %1 МБ").arg(maxUploadMB_));
 }
 
 void StudentLessonsWidget::setSession(const QUrl& httpBase, const QString& classroomId,
