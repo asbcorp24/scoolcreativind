@@ -23,6 +23,7 @@ public:
 private:
     void loadSelectedLesson();
     void addFiles();
+    void addScreenshot();
     void submit();
     void downloadSelectedMaterial();
 
