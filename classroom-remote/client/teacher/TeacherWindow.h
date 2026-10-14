@@ -13,6 +13,11 @@ class QCamera;
 class QMediaCaptureSession;
 class QVideoSink;
 class QImage;
+class QMediaRecorder;
+class QScreenCapture;
+class QAudioInput;
+class QMediaPlayer;
+class QAudioBufferOutput;
 class QNetworkAccessManager;
 class QUrl;
 class WsClient;
@@ -37,7 +42,13 @@ private:
 
     void startScreenLecture();
     void startCameraLecture();
+    void startFileLecture();
     void stopLecture();
+
+    void startCameraRecording();
+    void startScreenRecording();
+    void stopRecording();
+    void startRecording(bool screen);
     void sendLectureImage(const QImage& image);
     void showLocalPreview(const QImage& image);
     void onRtcVideo(const QString& trackId, const QByteArray& h264);
@@ -68,9 +79,22 @@ private:
     QMediaCaptureSession* captureSession_{};
     QVideoSink* videoSink_{};
 
+    QMediaCaptureSession* recordingSession_{};
+    QMediaRecorder* mediaRecorder_{};
+    QCamera* recordingCamera_{};
+    QScreenCapture* recordingScreen_{};
+    QAudioInput* recordingAudio_{};
+    QVideoSink* recordingPreviewSink_{};
+    QString recordingPath_;
+
+    QMediaPlayer* filePlayer_{};
+    QVideoSink* fileVideoSink_{};
+    QAudioBufferOutput* fileAudioBuffer_{};
+
     QHash<QString, QString> names_;
     QString activeStudent_;
     QString privateAudioTarget_;
     bool micOn_{false};
     qint64 lastCameraSendMs_{0};
+    qint64 lastFileVideoSendMs_{0};
 };
