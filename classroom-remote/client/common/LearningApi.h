@@ -1,8 +1,11 @@
 #pragma once
 
+#include <functional>
+
 #include <QObject>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QJsonDocument>
 #include <QNetworkRequest>
 #include <QUrl>
 
