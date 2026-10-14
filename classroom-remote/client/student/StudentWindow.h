@@ -13,6 +13,7 @@ class WsClient;
 class RtcRelayClient;
 class AudioPipe;
 class MediaCodec;
+class StudentLessonsWidget;
 
 class StudentWindow final : public QMainWindow {
     Q_OBJECT
@@ -44,6 +45,7 @@ private:
     QLabel* status_{};
     QLabel* remoteBanner_{};
     QLabel* lecture_{};
+    StudentLessonsWidget* lessonsWidget_{};
     QPushButton* hand_{};
 
     QTimer* snapshotTimer_{};
