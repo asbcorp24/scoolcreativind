@@ -104,8 +104,15 @@ FROM lessons WHERE classroom_id=?`
 				v := due.Int64
 				item.DueAt = &v
 			}
-			item.Files, _ = lessonFiles(store, item.ID)
 			out = append(out, item)
+		}
+		if err := rows.Err(); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		_ = rows.Close()
+		for i := range out {
+			out[i].Files, _ = lessonFiles(store, out[i].ID)
 		}
 		writeJSON(w, out)
 	}
@@ -370,8 +377,15 @@ FROM submissions WHERE lesson_id=? ORDER BY submitted_at DESC`, lessonID)
 				http.Error(w, err.Error(), 500)
 				return
 			}
-			item.Files, _ = submissionFiles(store, item.ID)
 			out = append(out, item)
+		}
+		if err := rows.Err(); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		_ = rows.Close()
+		for i := range out {
+			out[i].Files, _ = submissionFiles(store, out[i].ID)
 		}
 		writeJSON(w, out)
 	}
@@ -408,8 +422,15 @@ FROM submissions WHERE lesson_id=? AND student_id=? ORDER BY submitted_at DESC`,
 				http.Error(w, err.Error(), 500)
 				return
 			}
-			item.Files, _ = submissionFiles(store, item.ID)
 			out = append(out, item)
+		}
+		if err := rows.Err(); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		_ = rows.Close()
+		for i := range out {
+			out[i].Files, _ = submissionFiles(store, out[i].ID)
 		}
 		writeJSON(w, out)
 	}
