@@ -18,6 +18,7 @@ class TeacherLessonsWidget final : public QWidget {
 public:
     explicit TeacherLessonsWidget(QWidget* parent = nullptr);
     void setSession(const QUrl& httpBase, const QString& classroomId, const QString& token);
+    void setMaxUploadMB(int mb) { maxUploadMB_ = mb > 0 ? mb : 50; }
     void refresh();
 
 private:
@@ -44,4 +45,5 @@ private:
 
     QJsonArray lessonData_;
     qint64 currentLessonId_{0};
+    int maxUploadMB_{50};
 };
