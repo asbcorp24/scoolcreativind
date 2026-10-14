@@ -3,6 +3,7 @@
 #include "../common/RtcRelayClient.h"
 #include "../common/AudioPipe.h"
 #include "../common/MediaCodec.h"
+#include "../common/InviteLink.h"
 #include "WinRemoteInput.h"
 
 #include <QBuffer>
@@ -10,10 +11,13 @@
 #include <QHBoxLayout>
 #include <QImage>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QJsonObject>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMessageBox>
 #include <QNetworkAccessManager>
+#include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QPixmap>
 #include <QPushButton>
@@ -36,24 +40,49 @@ StudentWindow::StudentWindow(QWidget* parent)
 
     auto* root = new QWidget;
     auto* outer = new QVBoxLayout(root);
-    auto* form = new QHBoxLayout;
+    invite_ = new QLineEdit;
+    invite_->setPlaceholderText("Вставьте ссылку ученика");
+    name_ = new QLineEdit(qEnvironmentVariable("USERNAME", "Ученик"));
+    auto* inviteBtn = new QPushButton("Войти по ссылке");
+    auto* advancedBtn = new QPushButton("Ручная настройка");
 
-    wsUrl_ = new QLineEdit("wss://classroom.example.ru/ws");
-    httpUrl_ = new QLineEdit("https://classroom.example.ru");
+    auto* inviteRow = new QHBoxLayout;
+    inviteRow->addWidget(new QLabel("Ссылка:"));
+    inviteRow->addWidget(invite_, 3);
+    inviteRow->addWidget(new QLabel("Имя:"));
+    inviteRow->addWidget(name_);
+    inviteRow->addWidget(inviteBtn);
+    inviteRow->addWidget(advancedBtn);
+    outer->addLayout(inviteRow);
+
+    auto* advanced = new QWidget;
+    auto* form = new QHBoxLayout(advanced);
+    form->setContentsMargins(0, 0, 0, 0);
+    wsUrl_ = new QLineEdit("ws://127.0.0.1:8080/ws");
+    httpUrl_ = new QLineEdit("http://127.0.0.1:8080");
     lesson_ = new QLineEdit("101");
     token_ = new QLineEdit;
-    token_->setPlaceholderText("STUDENT_TOKEN");
+    token_->setPlaceholderText("Ключ доступа");
     token_->setEchoMode(QLineEdit::Password);
-    name_ = new QLineEdit(qEnvironmentVariable("USERNAME", "Ученик"));
-    auto* connectBtn = new QPushButton("Подключиться");
+    auto* connectBtn = new QPushButton("Подключиться вручную");
 
     form->addWidget(new QLabel("WS:")); form->addWidget(wsUrl_, 2);
     form->addWidget(new QLabel("HTTP:")); form->addWidget(httpUrl_, 2);
     form->addWidget(new QLabel("Занятие:")); form->addWidget(lesson_);
-    form->addWidget(new QLabel("Токен:")); form->addWidget(token_);
-    form->addWidget(new QLabel("Имя:")); form->addWidget(name_);
+    form->addWidget(new QLabel("Ключ:")); form->addWidget(token_);
     form->addWidget(connectBtn);
-    outer->addLayout(form);
+    advanced->setVisible(false);
+    outer->addWidget(advanced);
+
+    connect(inviteBtn, &QPushButton::clicked, this, [this] {
+        openInviteUrl(QUrl::fromUserInput(invite_->text()));
+    });
+    connect(invite_, &QLineEdit::returnPressed, this, [this] {
+        openInviteUrl(QUrl::fromUserInput(invite_->text()));
+    });
+    connect(advancedBtn, &QPushButton::clicked, this, [advanced] {
+        advanced->setVisible(!advanced->isVisible());
+    });
 
     status_ = new QLabel("Не подключено");
     outer->addWidget(status_);
@@ -147,6 +176,53 @@ StudentWindow::~StudentWindow() {
     audio_->stopPlayback();
     rtc_->stop();
     delete codec_;
+}
+
+void StudentWindow::openInviteUrl(const QUrl& rawUrl) {
+    const QUrl inviteUrl = InviteLink::normalizeInviteUrl(rawUrl);
+    const QUrl endpoint = InviteLink::resolveEndpoint(inviteUrl);
+    if (!endpoint.isValid() || endpoint.scheme().isEmpty()) {
+        QMessageBox::warning(this, "Ссылка", "Некорректная ссылка приглашения.");
+        return;
+    }
+
+    invite_->setText(inviteUrl.toString());
+    status_->setText("Проверяю ссылку приглашения...");
+
+    auto* reply = network_->get(QNetworkRequest(endpoint));
+    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+        const QByteArray body = reply->readAll();
+        if (reply->error() != QNetworkReply::NoError) {
+            QMessageBox::warning(this, "Ссылка",
+                "Ссылка недействительна, отозвана или сервер недоступен.");
+            status_->setText("Не удалось войти по ссылке");
+            reply->deleteLater();
+            return;
+        }
+
+        const QJsonDocument doc = QJsonDocument::fromJson(body);
+        if (!doc.isObject()) {
+            QMessageBox::warning(this, "Ссылка", "Сервер вернул некорректный ответ.");
+            reply->deleteLater();
+            return;
+        }
+
+        const QJsonObject obj = doc.object();
+        if (obj.value("role").toString() != "student") {
+            QMessageBox::warning(this, "Ссылка",
+                "Это ссылка преподавателя. Откройте её через ClassroomTeacher.");
+            reply->deleteLater();
+            return;
+        }
+
+        wsUrl_->setText(obj.value("ws_url").toString());
+        httpUrl_->setText(obj.value("http_url").toString());
+        lesson_->setText(obj.value("lesson_id").toString());
+        token_->setText(obj.value("access_token").toString());
+        status_->setText("Ссылка принята, подключаюсь...");
+        reply->deleteLater();
+        connectServer();
+    });
 }
 
 void StudentWindow::connectServer() {
