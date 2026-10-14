@@ -6,6 +6,7 @@
 #include "../common/AudioPipe.h"
 #include "../common/MediaCodec.h"
 #include "../common/InviteLink.h"
+#include "../common/AnnotationOverlay.h"
 
 #include <QBuffer>
 #include <QScreenCapture>
@@ -20,6 +21,11 @@
 #include <QDateTime>
 #include <QGuiApplication>
 #include <QHBoxLayout>
+#include <QJsonValue>
+#include <QHttpMultiPart>
+#include <QStackedLayout>
+#include <QPlainTextEdit>
+#include <QInputDialog>
 #include <QImage>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -137,17 +143,85 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     auto* split = new QSplitter;
 
     auto* tabs = new QTabWidget;
+
+    auto* previewPage = new QWidget;
+    auto* previewLayout = new QVBoxLayout(previewPage);
+    auto* annotationBar = new QHBoxLayout;
+    auto* annOff = new QPushButton("Курсор");
+    auto* annMarker = new QPushButton("Маркер");
+    auto* annArrow = new QPushButton("Стрелка");
+    auto* annRect = new QPushButton("Прямоугольник");
+    auto* annText = new QPushButton("Текст");
+    auto* annLaser = new QPushButton("Лазер");
+    auto* annClear = new QPushButton("Очистить");
+    annotationBar->addWidget(new QLabel("<b>Аннотации:</b>"));
+    annotationBar->addWidget(annOff);
+    annotationBar->addWidget(annMarker);
+    annotationBar->addWidget(annArrow);
+    annotationBar->addWidget(annRect);
+    annotationBar->addWidget(annText);
+    annotationBar->addWidget(annLaser);
+    annotationBar->addWidget(annClear);
+    annotationBar->addStretch();
+    previewLayout->addLayout(annotationBar);
+
+    auto* previewStackHost = new QWidget;
+    auto* previewStack = new QStackedLayout(previewStackHost);
+    previewStack->setStackingMode(QStackedLayout::StackAll);
     lecturePreview_ = new QLabel("Предпросмотр лекции");
     lecturePreview_->setAlignment(Qt::AlignCenter);
     lecturePreview_->setMinimumSize(640, 360);
     lecturePreview_->setStyleSheet("background:#111827;color:#e5e7eb;font-size:22px;border-radius:8px;");
-    tabs->addTab(lecturePreview_, "Моя трансляция");
+    annotationOverlay_ = new AnnotationOverlay;
+    annotationOverlay_->setEditable(true);
+    previewStack->addWidget(lecturePreview_);
+    previewStack->addWidget(annotationOverlay_);
+    previewLayout->addWidget(previewStackHost, 1);
+    tabs->addTab(previewPage, "Моя трансляция");
 
     remoteView_ = new RemoteView;
     tabs->addTab(remoteView_, "Экран ученика");
 
     lessonsWidget_ = new TeacherLessonsWidget;
     tabs->addTab(lessonsWidget_, "Уроки и ДЗ");
+
+    auto* interactivePage = new QWidget;
+    auto* interactiveLayout = new QVBoxLayout(interactivePage);
+
+    auto* pollRow = new QHBoxLayout;
+    auto* pollBtn = new QPushButton("Запустить быстрый опрос");
+    pollStatus_ = new QLabel("Опрос не запущен");
+    pollStatus_->setWordWrap(true);
+    pollRow->addWidget(pollBtn);
+    pollRow->addWidget(pollStatus_, 1);
+    interactiveLayout->addLayout(pollRow);
+
+    auto* chatControls = new QHBoxLayout;
+    chatToggle_ = new QPushButton("Общий чат: ВКЛ");
+    auto* quickFileBtn = new QPushButton("Отправить файл сейчас");
+    auto* attendanceBtn = new QPushButton("Посещаемость");
+    chatControls->addWidget(chatToggle_);
+    chatControls->addWidget(quickFileBtn);
+    chatControls->addWidget(attendanceBtn);
+    chatControls->addStretch();
+    interactiveLayout->addLayout(chatControls);
+
+    chatLog_ = new QPlainTextEdit;
+    chatLog_->setReadOnly(true);
+    chatLog_->setPlaceholderText("Сообщения урока");
+    interactiveLayout->addWidget(chatLog_, 1);
+
+    auto* chatRow = new QHBoxLayout;
+    chatInput_ = new QLineEdit;
+    chatInput_->setPlaceholderText("Сообщение...");
+    auto* sendAllBtn = new QPushButton("Всем");
+    auto* sendPrivateBtn = new QPushButton("Выбранному");
+    chatRow->addWidget(chatInput_, 1);
+    chatRow->addWidget(sendAllBtn);
+    chatRow->addWidget(sendPrivateBtn);
+    interactiveLayout->addLayout(chatRow);
+
+    tabs->addTab(interactivePage, "Интерактив");
 
     auto* right = new QWidget;
     auto* rv = new QVBoxLayout(right);
@@ -190,6 +264,31 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     connect(recordCameraBtn, &QPushButton::clicked, this, &TeacherWindow::startCameraRecording);
     connect(recordScreenBtn, &QPushButton::clicked, this, &TeacherWindow::startScreenRecording);
     connect(stopRecordBtn, &QPushButton::clicked, this, &TeacherWindow::stopRecording);
+
+    connect(annOff, &QPushButton::clicked, this, [this] { annotationOverlay_->setTool(AnnotationOverlay::Tool::Off); });
+    connect(annMarker, &QPushButton::clicked, this, [this] { annotationOverlay_->setTool(AnnotationOverlay::Tool::Marker); });
+    connect(annArrow, &QPushButton::clicked, this, [this] { annotationOverlay_->setTool(AnnotationOverlay::Tool::Arrow); });
+    connect(annRect, &QPushButton::clicked, this, [this] { annotationOverlay_->setTool(AnnotationOverlay::Tool::Rectangle); });
+    connect(annText, &QPushButton::clicked, this, [this] { annotationOverlay_->setTool(AnnotationOverlay::Tool::Text); });
+    connect(annLaser, &QPushButton::clicked, this, [this] { annotationOverlay_->setTool(AnnotationOverlay::Tool::Laser); });
+    connect(annClear, &QPushButton::clicked, this, [this] {
+        annotationOverlay_->clearAll();
+        ws_->send(QJsonObject{{"type", "annotation_clear"}});
+    });
+    connect(annotationOverlay_, &AnnotationOverlay::annotationCreated, this,
+            [this](const QJsonObject& obj) { ws_->send(obj); });
+
+    connect(pollBtn, &QPushButton::clicked, this, &TeacherWindow::startPoll);
+    connect(quickFileBtn, &QPushButton::clicked, this, &TeacherWindow::uploadQuickFile);
+    connect(attendanceBtn, &QPushButton::clicked, this, &TeacherWindow::showAttendance);
+    connect(chatToggle_, &QPushButton::clicked, this, [this] {
+        publicChatEnabled_ = !publicChatEnabled_;
+        chatToggle_->setText(publicChatEnabled_ ? "Общий чат: ВКЛ" : "Общий чат: ВЫКЛ");
+        ws_->send(QJsonObject{{"type", "chat_control"}, {"enabled", publicChatEnabled_}});
+    });
+    connect(sendAllBtn, &QPushButton::clicked, this, [this] { sendChat(false); });
+    connect(sendPrivateBtn, &QPushButton::clicked, this, [this] { sendChat(true); });
+    connect(chatInput_, &QLineEdit::returnPressed, this, [this] { sendChat(false); });
 
     connect(micButton_, &QPushButton::clicked, this, [this] {
         if (!privateAudioTarget_.isEmpty()) {
@@ -400,7 +499,17 @@ void TeacherWindow::onMessage(const QJsonObject& obj) {
             const auto id = u.value("id").toString();
             const auto name = u.value("name").toString();
             names_[id] = name;
-            auto* item = new QListWidgetItem("● " + name);
+            QStringList badges;
+            if (u.value("hand_raised").toBool()) badges << "✋";
+            if (!u.value("rtc_ready").toBool()) badges << "RTC?";
+            if (!u.value("watching").toBool()) badges << "не смотрит";
+            if (u.value("homework_busy").toBool()) badges << "сдаёт ДЗ";
+            const QString state = u.value("status").toString();
+            if (state == "minimized") badges << "свёрнуто";
+            else if (state == "background") badges << "фон";
+            QString text = "● " + name;
+            if (!badges.isEmpty()) text += "  [" + badges.join(", ") + "]";
+            auto* item = new QListWidgetItem(text);
             item->setData(Qt::UserRole, id);
             students_->addItem(item);
         }
@@ -418,6 +527,21 @@ void TeacherWindow::onMessage(const QJsonObject& obj) {
             if (item->data(Qt::UserRole).toString() == id)
                 item->setText("● " + names_.value(id, id));
         }
+    } else if (type == "poll_answer") {
+        if (obj.value("poll_id").toString() == activePollId_) {
+            const int answer = obj.value("answer").toInt(-1);
+            if (answer >= 0) {
+                pollCounts_[answer] = pollCounts_.value(answer) + 1;
+                ++pollResponses_;
+                updatePollStatus();
+            }
+        }
+    } else if (type == "chat_message") {
+        const QString from = obj.value("from_name").toString();
+        const QString text = obj.value("text").toString();
+        const QString target = obj.value("target").toString();
+        chatLog_->appendPlainText(QString("%1%2: %3")
+            .arg(target.isEmpty() ? "" : "[личное] ", from, text));
     } else if (type == "keyframe_request") {
         codec_->requestKeyframe();
     }
@@ -784,6 +908,137 @@ void TeacherWindow::onRtcAudio(const QString& trackId, const QByteArray& opus) {
         audio_->play(pcm);
 }
 
+
+QUrl TeacherWindow::httpBaseUrl() const {
+    QUrl url(server_->text());
+    if (url.scheme() == "wss") url.setScheme("https");
+    else if (url.scheme() == "ws") url.setScheme("http");
+    url.setPath("");
+    url.setQuery(QString());
+    return url;
+}
+
+void TeacherWindow::startPoll() {
+    bool ok = false;
+    const QString question = QInputDialog::getText(
+        this, "Быстрый опрос", "Вопрос:", QLineEdit::Normal, {}, &ok).trimmed();
+    if (!ok || question.isEmpty()) return;
+
+    const QString optionText = QInputDialog::getText(
+        this, "Быстрый опрос",
+        "Варианты через точку с запятой (например: Понятно;Не понятно):",
+        QLineEdit::Normal, "Понятно;Не понятно", &ok).trimmed();
+    if (!ok) return;
+
+    const QStringList options = optionText.split(';', Qt::SkipEmptyParts);
+    if (options.size() < 2) {
+        QMessageBox::information(this, "Опрос", "Нужно минимум два варианта.");
+        return;
+    }
+
+    activePollId_ = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    activePollQuestion_ = question;
+    pollCounts_.clear();
+    pollResponses_ = 0;
+
+    QJsonArray arr;
+    for (const QString& option : options)
+        arr.append(option.trimmed());
+    ws_->send(QJsonObject{
+        {"type", "poll_start"},
+        {"poll_id", activePollId_},
+        {"question", question},
+        {"options", arr}
+    });
+    pollStatus_->setProperty("options", options);
+    updatePollStatus();
+}
+
+void TeacherWindow::updatePollStatus() {
+    const QStringList options = pollStatus_->property("options").toStringList();
+    QStringList parts;
+    for (int i = 0; i < options.size(); ++i)
+        parts << QString("%1 — %2").arg(options.at(i)).arg(pollCounts_.value(i));
+    pollStatus_->setText(activePollQuestion_ + " | Ответов: " +
+                         QString::number(pollResponses_) + " | " + parts.join(" · "));
+}
+
+void TeacherWindow::sendChat(bool privateMessage) {
+    const QString text = chatInput_->text().trimmed();
+    if (text.isEmpty()) return;
+    QString target;
+    if (privateMessage) {
+        target = selectedStudentId();
+        if (target.isEmpty()) {
+            QMessageBox::information(this, "Чат", "Сначала выберите ученика.");
+            return;
+        }
+    }
+    ws_->send(QJsonObject{{"type", "chat_message"}, {"text", text}, {"target", target}});
+    chatInput_->clear();
+}
+
+void TeacherWindow::uploadQuickFile() {
+    const QString path = QFileDialog::getOpenFileName(this, "Отправить файл ученикам");
+    if (path.isEmpty()) return;
+
+    auto* multi = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+    auto* file = new QFile(path, multi);
+    if (!file->open(QIODevice::ReadOnly)) {
+        delete multi;
+        QMessageBox::warning(this, "Файл", "Не удалось открыть файл.");
+        return;
+    }
+    QHttpPart part;
+    part.setHeader(QNetworkRequest::ContentDispositionHeader,
+                   QString("form-data; name=\"file\"; filename=\"%1\"")
+                       .arg(QFileInfo(path).fileName()));
+    part.setBodyDevice(file);
+    multi->append(part);
+
+    QUrl url = httpBaseUrl();
+    url.setPath(QString("/api/v1/classrooms/%1/quick-files").arg(lesson_->text()));
+    QNetworkRequest req(url);
+    req.setRawHeader("Authorization", "Bearer " + token_->text().toUtf8());
+    auto* reply = network_->post(req, multi);
+    multi->setParent(reply);
+    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+        if (reply->error() == QNetworkReply::NoError)
+            status_->setText("Файл отправлен ученикам");
+        else
+            QMessageBox::warning(this, "Файл", "Ошибка загрузки: " + reply->errorString());
+        reply->deleteLater();
+    });
+}
+
+void TeacherWindow::showAttendance() {
+    QUrl url = httpBaseUrl();
+    url.setPath(QString("/api/v1/classrooms/%1/attendance").arg(lesson_->text()));
+    QNetworkRequest req(url);
+    req.setRawHeader("Authorization", "Bearer " + token_->text().toUtf8());
+    auto* reply = network_->get(req);
+    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+        const QByteArray data = reply->readAll();
+        if (reply->error() != QNetworkReply::NoError) {
+            QMessageBox::warning(this, "Посещаемость", reply->errorString());
+            reply->deleteLater();
+            return;
+        }
+        const QJsonArray rows = QJsonDocument::fromJson(data).array();
+        QString text;
+        for (const auto& v : rows) {
+            const auto r = v.toObject();
+            const qint64 ms = qint64(r.value("online_ms").toDouble());
+            text += QString("%1 — %2 мин., переподключений: %3\n")
+                .arg(r.value("student_name").toString())
+                .arg(ms / 60000)
+                .arg(r.value("reconnects").toInt());
+        }
+        if (text.isEmpty()) text = "Подключений учеников пока не было.";
+        QMessageBox::information(this, "Посещаемость занятия", text);
+        reply->deleteLater();
+    });
+}
 
 void TeacherWindow::downloadRecording() {
     const QString studentId = selectedStudentId();
