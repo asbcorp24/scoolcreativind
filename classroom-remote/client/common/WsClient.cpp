@@ -4,8 +4,21 @@
 #include <QUrlQuery>
 
 WsClient::WsClient(QObject* parent) : QObject(parent) {
-    connect(&socket_, &QWebSocket::connected, this, &WsClient::connected);
-    connect(&socket_, &QWebSocket::disconnected, this, &WsClient::disconnected);
+    reconnectTimer_.setSingleShot(true);
+    connect(&reconnectTimer_, &QTimer::timeout, this, &WsClient::openSaved);
+
+    connect(&socket_, &QWebSocket::connected, this, [this] {
+        reconnectAttempt_ = 0;
+        emit connected();
+    });
+    connect(&socket_, &QWebSocket::disconnected, this, [this] {
+        emit disconnected();
+        if (autoReconnect_ && !manualClose_ && savedUrl_.isValid()) {
+            const int delay = qMin(10000, 1000 * (1 << qMin(reconnectAttempt_, 3)));
+            ++reconnectAttempt_;
+            reconnectTimer_.start(delay);
+        }
+    });
     connect(&socket_, &QWebSocket::textMessageReceived, this, [this](const QString& text) {
         const auto doc = QJsonDocument::fromJson(text.toUtf8());
         if (doc.isObject()) emit message(doc.object());
@@ -24,9 +37,35 @@ void WsClient::connectTo(const QUrl& baseWs, const QString& lesson, const QStrin
     q.addQueryItem("role", role);
     q.addQueryItem("name", name);
     u.setQuery(q);
-    QNetworkRequest request(u);
-    request.setRawHeader("Authorization", "Bearer " + token.toUtf8());
+
+    savedUrl_ = u;
+    savedToken_ = token;
+    manualClose_ = false;
+    reconnectAttempt_ = 0;
+    reconnectTimer_.stop();
+    openSaved();
+}
+
+void WsClient::openSaved() {
+    if (!savedUrl_.isValid() || socket_.state() == QAbstractSocket::ConnectedState ||
+        socket_.state() == QAbstractSocket::ConnectingState)
+        return;
+    manualClose_ = false;
+    QNetworkRequest request(savedUrl_);
+    request.setRawHeader("Authorization", "Bearer " + savedToken_.toUtf8());
     socket_.open(request);
+}
+
+void WsClient::setAutoReconnect(bool enabled) {
+    autoReconnect_ = enabled;
+    if (!enabled)
+        reconnectTimer_.stop();
+}
+
+void WsClient::disconnectFromServer() {
+    manualClose_ = true;
+    reconnectTimer_.stop();
+    socket_.close();
 }
 
 void WsClient::send(const QJsonObject& obj) {
