@@ -47,6 +47,7 @@ jobs:
           if [ "${{ matrix.goos }}" = "windows" ]; then
             cp start-server.bat dist/start-server.bat
             cp windows-firewall.bat dist/windows-firewall.bat
+            cp open-admin.bat dist/open-admin.bat
           fi
       - uses: actions/upload-artifact@v4
         with:
