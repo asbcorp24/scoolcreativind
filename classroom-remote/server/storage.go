@@ -68,6 +68,59 @@ CREATE TABLE IF NOT EXISTS invitations (
 );
 CREATE INDEX IF NOT EXISTS idx_invitations_lesson_role
 	ON invitations(lesson_id, role, revoked_at);
+
+CREATE TABLE IF NOT EXISTS lessons (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	classroom_id TEXT NOT NULL,
+	title TEXT NOT NULL,
+	description TEXT NOT NULL DEFAULT '',
+	homework_text TEXT NOT NULL DEFAULT '',
+	due_at INTEGER,
+	position INTEGER NOT NULL DEFAULT 0,
+	published INTEGER NOT NULL DEFAULT 0,
+	created_at INTEGER NOT NULL,
+	updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_lessons_classroom_position
+	ON lessons(classroom_id, position, id);
+
+CREATE TABLE IF NOT EXISTS lesson_files (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	lesson_id INTEGER NOT NULL,
+	original_name TEXT NOT NULL,
+	stored_name TEXT NOT NULL,
+	mime_type TEXT NOT NULL DEFAULT '',
+	size_bytes INTEGER NOT NULL,
+	created_at INTEGER NOT NULL,
+	FOREIGN KEY(lesson_id) REFERENCES lessons(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_lesson_files_lesson ON lesson_files(lesson_id);
+
+CREATE TABLE IF NOT EXISTS submissions (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	lesson_id INTEGER NOT NULL,
+	student_id TEXT NOT NULL,
+	student_name TEXT NOT NULL,
+	note TEXT NOT NULL DEFAULT '',
+	submitted_at INTEGER NOT NULL,
+	updated_at INTEGER NOT NULL,
+	FOREIGN KEY(lesson_id) REFERENCES lessons(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_submissions_lesson_student
+	ON submissions(lesson_id, student_id, submitted_at);
+
+CREATE TABLE IF NOT EXISTS submission_files (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	submission_id INTEGER NOT NULL,
+	original_name TEXT NOT NULL,
+	stored_name TEXT NOT NULL,
+	mime_type TEXT NOT NULL DEFAULT '',
+	size_bytes INTEGER NOT NULL,
+	created_at INTEGER NOT NULL,
+	FOREIGN KEY(submission_id) REFERENCES submissions(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_submission_files_submission
+	ON submission_files(submission_id);
 `)
 	return err
 }
