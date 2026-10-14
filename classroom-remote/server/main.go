@@ -240,6 +240,13 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, st
 			c.AttendanceID = store.AttendanceConnect(lessonID, id, name)
 		}
 		h.add(c)
+		if c.Role == "teacher" {
+			h.mu.Lock()
+			if _, ok := h.chatEnabled[lessonID]; !ok {
+				h.chatEnabled[lessonID] = true
+			}
+			h.mu.Unlock()
+		}
 		h.sendTo(lessonID, c.ID, map[string]any{
 			"type":          "server_config",
 			"ice_servers":   iceURLs,
@@ -370,10 +377,14 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, st
 				}
 				watching, _ := m["watching"].(bool)
 				homework, _ := m["homework_busy"].(bool)
+				rtcReady, hasRTC := m["rtc_ready"].(bool)
 				h.mu.Lock()
 				c.Status = status
 				c.Watching = watching
 				c.HomeworkBusy = homework
+				if hasRTC {
+					c.RTCReady = rtcReady
+				}
 				h.mu.Unlock()
 				h.broadcastPresence(lessonID)
 
@@ -462,7 +473,11 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, st
 					"from": c.ID, "from_name": c.Name, "from_role": c.Role,
 					"target": target, "created_at": time.Now().UTC().UnixMilli(),
 				}
-				if target != "" {
+				if target == "teacher" && c.Role == "student" {
+					h.sendLesson(lessonID, msg, func(x *Client) bool {
+						return x.Role == "teacher" || x.ID == c.ID
+					})
+				} else if target != "" {
 					h.sendTo(lessonID, target, msg)
 					h.sendTo(lessonID, c.ID, msg)
 				} else {
