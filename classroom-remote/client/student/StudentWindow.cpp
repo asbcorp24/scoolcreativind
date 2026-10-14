@@ -263,8 +263,10 @@ void StudentWindow::onMessage(const QJsonObject& obj) {
     }
 
     if (type == "lecture_state") {
-        if (!obj.value("active").toBool())
-            lecture_->setText("Лекция приостановлена");
+        if (!obj.value("active").toBool()) {
+            lecture_->setText("Лекция завершена. Материалы урока обновляются...");
+            lessonsWidget_->refresh();
+        }
         return;
     }
 
