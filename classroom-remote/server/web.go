@@ -28,6 +28,7 @@ func adminStatus(h *Hub, cfg Config, turnServer *EmbeddedTURN) http.HandlerFunc 
 			"public_ip":    cfg.PublicIP,
 			"turn_enabled": turnEnabled,
 			"rtc_ports":    []int{cfg.RTCMinPort, cfg.RTCMaxPort},
+			"max_upload_mb": cfg.MaxUploadMB,
 		})
 	}
 }
