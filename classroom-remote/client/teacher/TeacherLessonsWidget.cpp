@@ -255,7 +255,7 @@ void TeacherLessonsWidget::saveLesson() {
 }
 
 void TeacherLessonsWidget::uploadMaterial() {
-    if (currentLessonId_ == 0) {
+    if (currentLessonId_ <= 0) {
         QMessageBox::information(this, "Материал", "Сначала сохраните урок.");
         return;
     }
@@ -272,7 +272,7 @@ void TeacherLessonsWidget::uploadMaterial() {
 
 void TeacherLessonsWidget::downloadSelectedMaterial() {
     auto* item = materials_->currentItem();
-    if (!item || currentLessonId_ == 0) return;
+    if (!item || currentLessonId_ <= 0) return;
     const QString name = item->data(Qt::UserRole + 1).toString();
     const QString path = QFileDialog::getSaveFileName(this, "Сохранить материал", name);
     if (!path.isEmpty())
