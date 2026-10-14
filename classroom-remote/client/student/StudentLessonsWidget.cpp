@@ -126,9 +126,11 @@ StudentLessonsWidget::StudentLessonsWidget(QWidget* parent)
 
     connect(api_, &LearningApi::operationSucceeded, this, [this](const QString& s) {
         status_->setText(s);
-        files_.clear();
-        selectedFiles_->clear();
-        note_->clear();
+        if (s.startsWith("Домашняя работа отправлена")) {
+            files_.clear();
+            selectedFiles_->clear();
+            note_->clear();
+        }
     });
     connect(api_, &LearningApi::operationFailed, this, [this](const QString& s) {
         status_->setText("Ошибка: " + s);
