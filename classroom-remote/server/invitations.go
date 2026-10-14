@@ -81,6 +81,7 @@ func resolveInvitation(store *Store, cfg Config) http.HandlerFunc {
 			"access_token": inv.Code,
 			"http_url":     httpBase,
 			"ws_url":       websocketBaseURL(httpBase),
+			"max_upload_mb": cfg.MaxUploadMB,
 		})
 	}
 }
