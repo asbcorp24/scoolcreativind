@@ -14,6 +14,7 @@ class QMediaCaptureSession;
 class QVideoSink;
 class QImage;
 class QNetworkAccessManager;
+class QUrl;
 class WsClient;
 class RtcRelayClient;
 class AudioPipe;
@@ -25,6 +26,7 @@ class TeacherWindow final : public QMainWindow {
 public:
     explicit TeacherWindow(QWidget* parent = nullptr);
     ~TeacherWindow() override;
+    void openInviteUrl(const QUrl& url);
 
 private:
     void connectServer();
@@ -47,6 +49,7 @@ private:
     AudioPipe* audio_{};
     MediaCodec* codec_{};
 
+    QLineEdit* invite_{};
     QLineEdit* server_{};
     QLineEdit* lesson_{};
     QLineEdit* token_{};
