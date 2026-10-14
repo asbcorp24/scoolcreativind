@@ -5,11 +5,18 @@
 #include "../common/AudioPipe.h"
 #include "../common/MediaCodec.h"
 #include "../common/InviteLink.h"
+#include "../common/AnnotationOverlay.h"
 #include "WinRemoteInput.h"
 
 #include <QBuffer>
 #include <QGuiApplication>
 #include <QHBoxLayout>
+#include <QApplication>
+#include <QFileInfo>
+#include <QFileDialog>
+#include <QListWidget>
+#include <QStackedLayout>
+#include <QPlainTextEdit>
 #include <QImage>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -38,6 +45,7 @@ StudentWindow::StudentWindow(QWidget* parent)
       codec_(new MediaCodec),
       snapshotTimer_(new QTimer(this)),
       remoteScreenTimer_(new QTimer(this)),
+      statusTimer_(new QTimer(this)),
       network_(new QNetworkAccessManager(this)) {
 
     QSettings settings("SHKI", "ClassroomRemote");
@@ -102,24 +110,72 @@ StudentWindow::StudentWindow(QWidget* parent)
     remoteBanner_->hide();
     outer->addWidget(remoteBanner_);
 
-    auto* tabs = new QTabWidget;
+    mainTabs_ = new QTabWidget;
     auto* livePage = new QWidget;
     auto* liveLayout = new QVBoxLayout(livePage);
 
+    auto* liveStackHost = new QWidget;
+    auto* liveStack = new QStackedLayout(liveStackHost);
+    liveStack->setStackingMode(QStackedLayout::StackAll);
     lecture_ = new QLabel("Ожидание трансляции преподавателя");
     lecture_->setAlignment(Qt::AlignCenter);
     lecture_->setMinimumSize(640, 360);
     lecture_->setStyleSheet("background:#020617;color:white;font-size:24px;border-radius:10px;");
-    liveLayout->addWidget(lecture_, 1);
+    annotationOverlay_ = new AnnotationOverlay;
+    annotationOverlay_->setEditable(false);
+    liveStack->addWidget(lecture_);
+    liveStack->addWidget(annotationOverlay_);
+    liveLayout->addWidget(liveStackHost, 1);
 
     hand_ = new QPushButton("✋ Поднять руку");
     hand_->setMinimumHeight(48);
     liveLayout->addWidget(hand_);
 
-    tabs->addTab(livePage, "Урок сейчас");
+    mainTabs_->addTab(livePage, "Урок сейчас");
     lessonsWidget_ = new StudentLessonsWidget;
-    tabs->addTab(lessonsWidget_, "Уроки и домашние работы");
-    outer->addWidget(tabs, 1);
+    mainTabs_->addTab(lessonsWidget_, "Уроки и домашние работы");
+
+    auto* interactivePage = new QWidget;
+    auto* interactiveLayout = new QVBoxLayout(interactivePage);
+    pollQuestion_ = new QLabel("Нет активного опроса");
+    pollQuestion_->setWordWrap(true);
+    pollOptions_ = new QListWidget;
+    pollOptions_->setMaximumHeight(160);
+    pollAnswerButton_ = new QPushButton("Ответить");
+    pollAnswerButton_->setEnabled(false);
+    interactiveLayout->addWidget(new QLabel("<b>Быстрый опрос</b>"));
+    interactiveLayout->addWidget(pollQuestion_);
+    interactiveLayout->addWidget(pollOptions_);
+    interactiveLayout->addWidget(pollAnswerButton_);
+
+    chatState_ = new QLabel("Общий чат включён");
+    chatLog_ = new QPlainTextEdit;
+    chatLog_->setReadOnly(true);
+    chatLog_->setPlaceholderText("Чат урока");
+    auto* chatRow = new QHBoxLayout;
+    chatInput_ = new QLineEdit;
+    chatInput_->setPlaceholderText("Сообщение в общий чат...");
+    auto* sendChatBtn = new QPushButton("Отправить");
+    chatRow->addWidget(chatInput_, 1);
+    chatRow->addWidget(sendChatBtn);
+    interactiveLayout->addWidget(new QLabel("<b>Чат</b>"));
+    interactiveLayout->addWidget(chatState_);
+    interactiveLayout->addWidget(chatLog_, 1);
+    interactiveLayout->addLayout(chatRow);
+
+    interactiveLayout->addWidget(new QLabel("<b>Файлы преподавателя «на урок сейчас»</b>"));
+    quickFiles_ = new QListWidget;
+    auto* quickRow = new QHBoxLayout;
+    auto* refreshQuickBtn = new QPushButton("Обновить");
+    auto* downloadQuickBtn = new QPushButton("Скачать выбранный");
+    quickRow->addWidget(refreshQuickBtn);
+    quickRow->addWidget(downloadQuickBtn);
+    quickRow->addStretch();
+    interactiveLayout->addWidget(quickFiles_);
+    interactiveLayout->addLayout(quickRow);
+
+    mainTabs_->addTab(interactivePage, "Опрос / чат / файлы");
+    outer->addWidget(mainTabs_, 1);
 
     setCentralWidget(root);
     setWindowTitle("Classroom Student");
@@ -129,6 +185,7 @@ StudentWindow::StudentWindow(QWidget* parent)
 
     snapshotTimer_->setInterval(1000);
     remoteScreenTimer_->setInterval(100);
+    statusTimer_->setInterval(5000);
 
     connect(connectBtn, &QPushButton::clicked, this, &StudentWindow::connectServer);
 
@@ -138,15 +195,38 @@ StudentWindow::StudentWindow(QWidget* parent)
         hand_->setText(handRaised_ ? "Опустить руку" : "✋ Поднять руку");
     });
 
+    connect(pollAnswerButton_, &QPushButton::clicked, this, [this] {
+        if (activePollId_.isEmpty() || pollOptions_->currentRow() < 0)
+            return;
+        ws_->send(QJsonObject{
+            {"type", "poll_answer"},
+            {"poll_id", activePollId_},
+            {"answer", pollOptions_->currentRow()}
+        });
+        pollAnswerButton_->setEnabled(false);
+        pollQuestion_->setText(pollQuestion_->text() + " — ответ отправлен");
+    });
+
+    connect(chatInput_, &QLineEdit::returnPressed, this, &StudentWindow::sendChat);
+    connect(sendChatBtn, &QPushButton::clicked, this, &StudentWindow::sendChat);
+    connect(refreshQuickBtn, &QPushButton::clicked, this, &StudentWindow::loadQuickFiles);
+    connect(downloadQuickBtn, &QPushButton::clicked, this, &StudentWindow::downloadQuickFile);
+    connect(statusTimer_, &QTimer::timeout, this, &StudentWindow::sendStudentStatus);
+    connect(mainTabs_, &QTabWidget::currentChanged, this, [this] { sendStudentStatus(); });
+    connect(qApp, &QGuiApplication::applicationStateChanged, this, [this] { sendStudentStatus(); });
+
     connect(ws_, &WsClient::connected, this, [this] {
         status_->setText("● Сигналинг подключён, получаю ICE/TURN конфигурацию...");
         snapshotTimer_->start();
+        statusTimer_->start();
+        QTimer::singleShot(250, this, &StudentWindow::sendStudentStatus);
     });
 
     connect(ws_, &WsClient::disconnected, this, [this] {
         status_->setText("○ Отключено");
         snapshotTimer_->stop();
         remoteScreenTimer_->stop();
+        statusTimer_->stop();
         audio_->stopCapture();
         rtc_->stop();
         setRemoteActive(false);
@@ -163,6 +243,7 @@ StudentWindow::StudentWindow(QWidget* parent)
     connect(rtc_, &RtcRelayClient::opened, this, [this] {
         status_->setText("● Подключено к занятию / WebRTC готов");
         audio_->startPlayback();
+        sendStudentStatus();
     });
 
     connect(rtc_, &RtcRelayClient::stateText, this, [this](const QString& s) {
@@ -261,6 +342,7 @@ void StudentWindow::onMessage(const QJsonObject& obj) {
             iceServers << v.toString();
         status_->setText("● ICE/TURN получен, устанавливаю WebRTC...");
         rtc_->start("student", iceServers);
+        loadQuickFiles();
         return;
     }
 
@@ -269,6 +351,45 @@ void StudentWindow::onMessage(const QJsonObject& obj) {
             lecture_->setText("Лекция завершена. Материалы урока обновляются...");
             lessonsWidget_->refresh();
         }
+        return;
+    }
+
+    if (type == "annotation" || type == "annotation_clear") {
+        annotationOverlay_->applyRemote(obj);
+        return;
+    }
+
+    if (type == "poll_start") {
+        activePollId_ = obj.value("poll_id").toString();
+        pollQuestion_->setText(obj.value("question").toString());
+        pollOptions_->clear();
+        for (const auto& v : obj.value("options").toArray())
+            pollOptions_->addItem(v.toString());
+        pollAnswerButton_->setEnabled(pollOptions_->count() > 0);
+        mainTabs_->setCurrentIndex(2);
+        return;
+    }
+
+    if (type == "chat_control") {
+        publicChatEnabled_ = obj.value("enabled").toBool();
+        chatState_->setText(publicChatEnabled_ ? "Общий чат включён" : "Общий чат отключён преподавателем");
+        chatInput_->setEnabled(publicChatEnabled_);
+        return;
+    }
+
+    if (type == "chat_message") {
+        const QString from = obj.value("from_name").toString();
+        const QString text = obj.value("text").toString();
+        const QString target = obj.value("target").toString();
+        chatLog_->appendPlainText(QString("%1%2: %3")
+            .arg(target.isEmpty() ? "" : "[личное] ", from, text));
+        return;
+    }
+
+    if (type == "quick_file") {
+        loadQuickFiles();
+        mainTabs_->setCurrentIndex(2);
+        status_->setText("Преподаватель отправил файл: " + obj.value("name").toString());
         return;
     }
 
@@ -333,6 +454,100 @@ void StudentWindow::onRtcAudio(const QString& trackId, const QByteArray& opus) {
     const QByteArray pcm = codec_->decodeAudio(opus, trackId);
     if (!pcm.isEmpty())
         audio_->play(pcm);
+}
+
+void StudentWindow::sendStudentStatus() {
+    if (!ws_->isConnected())
+        return;
+
+    QString state = "online";
+    if (isMinimized())
+        state = "minimized";
+    else if (QGuiApplication::applicationState() != Qt::ApplicationActive)
+        state = "background";
+
+    const bool homeworkBusy = mainTabs_ && mainTabs_->currentIndex() == 1;
+    const bool watching = mainTabs_ && mainTabs_->currentIndex() == 0 &&
+                          state == "online";
+
+    ws_->send(QJsonObject{
+        {"type", "student_status"},
+        {"status", state},
+        {"watching", watching},
+        {"homework_busy", homeworkBusy},
+        {"rtc_ready", rtc_->isOpen()}
+    });
+}
+
+void StudentWindow::sendChat() {
+    const QString text = chatInput_->text().trimmed();
+    if (text.isEmpty() || !publicChatEnabled_)
+        return;
+    ws_->send(QJsonObject{{"type", "chat_message"}, {"text", text}});
+    chatInput_->clear();
+}
+
+QUrl StudentWindow::quickFileUrl(qint64 fileId) const {
+    QUrl url(httpUrl_->text());
+    if (fileId > 0)
+        url.setPath(QString("/api/v1/classrooms/%1/quick-files/%2").arg(lesson_->text()).arg(fileId));
+    else
+        url.setPath(QString("/api/v1/classrooms/%1/quick-files").arg(lesson_->text()));
+    url.setQuery(QString());
+    return url;
+}
+
+void StudentWindow::loadQuickFiles() {
+    if (lesson_->text().isEmpty() || token_->text().isEmpty())
+        return;
+    QNetworkRequest req(quickFileUrl());
+    req.setRawHeader("Authorization", "Bearer " + token_->text().toUtf8());
+    auto* reply = network_->get(req);
+    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+        const QByteArray data = reply->readAll();
+        if (reply->error() != QNetworkReply::NoError) {
+            reply->deleteLater();
+            return;
+        }
+        const QJsonArray rows = QJsonDocument::fromJson(data).array();
+        quickFiles_->clear();
+        for (const auto& v : rows) {
+            const auto f = v.toObject();
+            auto* item = new QListWidgetItem(QString("📎 %1 (%2 KB)")
+                .arg(f.value("original_name").toString())
+                .arg(qint64(f.value("size_bytes").toDouble()) / 1024));
+            item->setData(Qt::UserRole, qint64(f.value("id").toDouble()));
+            item->setData(Qt::UserRole + 1, f.value("original_name").toString());
+            quickFiles_->addItem(item);
+        }
+        reply->deleteLater();
+    });
+}
+
+void StudentWindow::downloadQuickFile() {
+    auto* item = quickFiles_->currentItem();
+    if (!item) return;
+    const QString name = item->data(Qt::UserRole + 1).toString();
+    const QString path = QFileDialog::getSaveFileName(this, "Сохранить файл", name);
+    if (path.isEmpty()) return;
+
+    QNetworkRequest req(quickFileUrl(item->data(Qt::UserRole).toLongLong()));
+    req.setRawHeader("Authorization", "Bearer " + token_->text().toUtf8());
+    auto* reply = network_->get(req);
+    connect(reply, &QNetworkReply::finished, this, [this, reply, path] {
+        const QByteArray data = reply->readAll();
+        if (reply->error() != QNetworkReply::NoError) {
+            QMessageBox::warning(this, "Файл", reply->errorString());
+            reply->deleteLater();
+            return;
+        }
+        QFile file(path);
+        if (!file.open(QIODevice::WriteOnly) || file.write(data) != data.size())
+            QMessageBox::warning(this, "Файл", "Не удалось сохранить файл.");
+        else
+            status_->setText("Файл сохранён: " + path);
+        reply->deleteLater();
+    });
 }
 
 void StudentWindow::uploadSnapshot() {
