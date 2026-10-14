@@ -42,6 +42,10 @@ add_library(classroom_common
     common/AudioPipe.h
     common/MediaCodec.cpp
     common/MediaCodec.h
+    common/InviteLink.cpp
+    common/InviteLink.h
+    common/LearningApi.cpp
+    common/LearningApi.h
 )
 target_link_libraries(classroom_common
     PUBLIC
