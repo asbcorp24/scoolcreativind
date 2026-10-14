@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/subtle"
 	"flag"
 	"encoding/json"
@@ -160,6 +161,33 @@ func requireRoleAccess(auth authConfig, store *Store, role string, next http.Han
 		}
 		next(w, r)
 	}
+}
+
+type accessRoleKey struct{}
+
+func requireAnyRoleAccess(auth authConfig, store *Store, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		classroomID := chi.URLParam(r, "lesson")
+		token := bearerToken(r)
+		role := ""
+		if auth.valid("teacher", classroomID, token, store) {
+			role = "teacher"
+		} else if auth.valid("student", classroomID, token, store) {
+			role = "student"
+		} else {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		ctx := context.WithValue(r.Context(), accessRoleKey{}, role)
+		next(w, r.WithContext(ctx))
+	}
+}
+
+func requestAccessRole(r *http.Request) string {
+	if v, ok := r.Context().Value(accessRoleKey{}).(string); ok {
+		return v
+	}
+	return ""
 }
 
 func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, store *Store) http.HandlerFunc {
