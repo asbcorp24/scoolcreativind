@@ -52,6 +52,7 @@ add_library(classroom_common
 target_link_libraries(classroom_common
     PUBLIC
         Qt6::Core
+        Qt6::Widgets
         Qt6::Network
         Qt6::WebSockets
         Qt6::Multimedia
