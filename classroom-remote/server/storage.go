@@ -122,6 +122,30 @@ CREATE TABLE IF NOT EXISTS submission_files (
 );
 CREATE INDEX IF NOT EXISTS idx_submission_files_submission
 	ON submission_files(submission_id);
+
+CREATE TABLE IF NOT EXISTS attendance_sessions (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	classroom_id TEXT NOT NULL,
+	student_id TEXT NOT NULL,
+	student_name TEXT NOT NULL,
+	connected_at INTEGER NOT NULL,
+	disconnected_at INTEGER,
+	reconnect_no INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_attendance_classroom_student
+	ON attendance_sessions(classroom_id, student_id, connected_at);
+
+CREATE TABLE IF NOT EXISTS quick_files (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	classroom_id TEXT NOT NULL,
+	original_name TEXT NOT NULL,
+	stored_name TEXT NOT NULL,
+	mime_type TEXT NOT NULL DEFAULT '',
+	size_bytes INTEGER NOT NULL,
+	created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_quick_files_classroom_time
+	ON quick_files(classroom_id, created_at);
 `)
 	return err
 }
@@ -206,5 +230,36 @@ func (s *Store) RevokeInvitation(code string) {
 	_, _ = s.db.Exec(
 		`UPDATE invitations SET revoked_at=? WHERE code=? AND revoked_at IS NULL`,
 		time.Now().UTC().UnixMilli(), code,
+	)
+}
+
+
+func (s *Store) AttendanceConnect(classroomID, studentID, studentName string) int64 {
+	if s == nil || s.db == nil {
+		return 0
+	}
+	var reconnects int
+	_ = s.db.QueryRow(
+		`SELECT COUNT(1) FROM attendance_sessions WHERE classroom_id=? AND student_id=?`,
+		classroomID, studentID,
+	).Scan(&reconnects)
+	res, err := s.db.Exec(
+		`INSERT INTO attendance_sessions(classroom_id,student_id,student_name,connected_at,reconnect_no) VALUES(?,?,?,?,?)`,
+		classroomID, studentID, studentName, time.Now().UTC().UnixMilli(), reconnects,
+	)
+	if err != nil {
+		return 0
+	}
+	id, _ := res.LastInsertId()
+	return id
+}
+
+func (s *Store) AttendanceDisconnect(sessionID int64) {
+	if s == nil || s.db == nil || sessionID <= 0 {
+		return
+	}
+	_, _ = s.db.Exec(
+		`UPDATE attendance_sessions SET disconnected_at=? WHERE id=? AND disconnected_at IS NULL`,
+		time.Now().UTC().UnixMilli(), sessionID,
 	)
 }
