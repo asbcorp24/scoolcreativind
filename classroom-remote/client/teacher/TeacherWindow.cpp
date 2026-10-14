@@ -8,6 +8,14 @@
 #include "../common/InviteLink.h"
 
 #include <QBuffer>
+#include <QScreenCapture>
+#include <QMediaRecorder>
+#include <QMediaPlayer>
+#include <QMediaFormat>
+#include <QAudioInput>
+#include <QAudioFormat>
+#include <QAudioBufferOutput>
+#include <QAudioBuffer>
 #include <QCamera>
 #include <QDateTime>
 #include <QGuiApplication>
@@ -100,14 +108,27 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     auto* toolbar = new QHBoxLayout;
     auto* screenBtn = new QPushButton("🖥 Экран");
     auto* cameraBtn = new QPushButton("🎥 Камера");
+    auto* fileBtn = new QPushButton("▶ Видео-файл");
     auto* stopLectureBtn = new QPushButton("⏹ Остановить показ");
     micButton_ = new QPushButton("🎤 Микрофон");
     toolbar->addWidget(screenBtn);
     toolbar->addWidget(cameraBtn);
+    toolbar->addWidget(fileBtn);
     toolbar->addWidget(stopLectureBtn);
     toolbar->addWidget(micButton_);
     toolbar->addStretch();
     outer->addLayout(toolbar);
+
+    auto* recordToolbar = new QHBoxLayout;
+    auto* recordCameraBtn = new QPushButton("⏺ Записать камеру");
+    auto* recordScreenBtn = new QPushButton("⏺ Записать экран");
+    auto* stopRecordBtn = new QPushButton("⏹ Стоп записи");
+    recordToolbar->addWidget(new QLabel("<b>Локальная запись:</b>"));
+    recordToolbar->addWidget(recordCameraBtn);
+    recordToolbar->addWidget(recordScreenBtn);
+    recordToolbar->addWidget(stopRecordBtn);
+    recordToolbar->addStretch();
+    outer->addLayout(recordToolbar);
 
     status_ = new QLabel("Не подключено");
     outer->addWidget(status_);
@@ -163,7 +184,11 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     connect(connectBtn, &QPushButton::clicked, this, &TeacherWindow::connectServer);
     connect(screenBtn, &QPushButton::clicked, this, &TeacherWindow::startScreenLecture);
     connect(cameraBtn, &QPushButton::clicked, this, &TeacherWindow::startCameraLecture);
+    connect(fileBtn, &QPushButton::clicked, this, &TeacherWindow::startFileLecture);
     connect(stopLectureBtn, &QPushButton::clicked, this, &TeacherWindow::stopLecture);
+    connect(recordCameraBtn, &QPushButton::clicked, this, &TeacherWindow::startCameraRecording);
+    connect(recordScreenBtn, &QPushButton::clicked, this, &TeacherWindow::startScreenRecording);
+    connect(stopRecordBtn, &QPushButton::clicked, this, &TeacherWindow::stopRecording);
 
     connect(micButton_, &QPushButton::clicked, this, [this] {
         if (!privateAudioTarget_.isEmpty()) {
@@ -287,6 +312,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
 }
 
 TeacherWindow::~TeacherWindow() {
+    stopRecording();
     stopLecture();
     delete codec_;
 }
