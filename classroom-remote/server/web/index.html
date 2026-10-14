@@ -8,28 +8,69 @@
 body{font-family:system-ui;background:#0b1120;color:#e5e7eb;margin:0;padding:32px}
 main{max-width:960px;margin:auto}.card{background:#111827;border:1px solid #334155;border-radius:16px;padding:20px;margin:14px 0}
 input,button{padding:10px 12px;border-radius:10px;border:1px solid #475569;background:#020617;color:white}
-button{cursor:pointer}table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px solid #243244;text-align:left}
-.ok{color:#34d399}.muted{color:#94a3b8}
+button{cursor:pointer}.primary{background:#2563eb}.student{background:#059669}
+table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px solid #243244;text-align:left}
+.ok{color:#34d399}.muted{color:#94a3b8}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.linkbox{margin-top:10px;padding:12px;background:#020617;border-radius:10px;word-break:break-all}
+.hidden{display:none}a{color:#93c5fd}
 </style>
 </head>
 <body><main>
 <h1>Classroom Remote Server</h1>
 <div class="card"><b class="ok">● Сервер запущен</b><p class="muted">Go + Pion WebRTC + встроенный TURN/STUN + SQLite</p></div>
+
 <div class="card">
-<input id="token" type="password" placeholder="TEACHER_TOKEN">
+<h3>Администрирование</h3>
+<div class="row">
+<input id="token" type="password" placeholder="TEACHER_TOKEN администратора" style="min-width:320px">
 <button onclick="load()">Обновить</button>
+</div>
 <div id="summary"></div>
 </div>
+
+<div class="card">
+<h3>Ссылки для подключения</h3>
+<p class="muted">Укажите номер занятия. Новая ссылка автоматически отзывает предыдущую ссылку той же роли для этого занятия.</p>
+<div class="row">
+<input id="lesson" value="101" placeholder="Номер занятия">
+<button class="primary" onclick="makeInvite('teacher')">Создать ссылку преподавателя</button>
+<button class="student" onclick="makeInvite('student')">Создать ссылку учеников</button>
+</div>
+<div id="teacherInvite" class="linkbox hidden"></div>
+<div id="studentInvite" class="linkbox hidden"></div>
+</div>
+
 <div class="card"><h3>Подключённые клиенты</h3><table><thead><tr><th>Имя</th><th>Роль</th><th>Занятие</th><th>ID</th></tr></thead><tbody id="users"></tbody></table></div>
+
 <script>
+function adminToken(){ return document.getElementById('token').value; }
 async function load(){
- const token=document.getElementById('token').value;
+ const token=adminToken();
  const r=await fetch('/api/admin/status',{headers:{Authorization:'Bearer '+token}});
  if(!r.ok){document.getElementById('summary').textContent='Ошибка авторизации';return}
  const d=await r.json();
  document.getElementById('summary').innerHTML='<p>Онлайн: <b>'+d.online+'</b> · TURN: <b>'+(d.turn_enabled?'включён':'выключен')+'</b> · Public IP: <b>'+(d.public_ip||'LAN')+'</b></p>';
  document.getElementById('users').innerHTML=d.users.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.role)+'</td><td>'+esc(x.lesson_id)+'</td><td>'+esc(x.id)+'</td></tr>').join('');
 }
+async function makeInvite(role){
+ const lesson=document.getElementById('lesson').value.trim();
+ if(!lesson){ alert('Укажите номер занятия'); return; }
+ const r=await fetch('/api/admin/invites',{
+   method:'POST',
+   headers:{'Authorization':'Bearer '+adminToken(),'Content-Type':'application/json'},
+   body:JSON.stringify({lesson_id:lesson,role})
+ });
+ if(!r.ok){ alert('Не удалось создать ссылку. Проверьте TEACHER_TOKEN.'); return; }
+ const d=await r.json();
+ const id=role==='teacher'?'teacherInvite':'studentInvite';
+ const title=role==='teacher'?'Преподаватель':'Ученики';
+ const el=document.getElementById(id);
+ el.classList.remove('hidden');
+ el.innerHTML='<b>'+title+':</b><br><a href="'+escAttr(d.url)+'" target="_blank">'+esc(d.url)+'</a> '+
+   '<button onclick="copyText('+JSON.stringify(d.url)+')">Копировать</button>';
+}
+function copyText(s){ navigator.clipboard.writeText(s); }
 function esc(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function escAttr(s){return esc(s).replace(/'/g,'&#39;')}
 </script>
 </main></body></html>
