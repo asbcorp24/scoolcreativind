@@ -1,10 +1,12 @@
 #include "AnnotationOverlay.h"
 
 #include <QInputDialog>
+#include <QLineEdit>
 #include <QJsonValue>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QtMath>
+#include <cmath>
 
 AnnotationOverlay::AnnotationOverlay(QWidget* parent) : QWidget(parent) {
     setAttribute(Qt::WA_TranslucentBackground);
