@@ -66,7 +66,7 @@ target_include_directories(classroom_common PUBLIC
     ${OPUS_INCLUDE_DIR}
 )
 
-add_executable(ClassroomTeacher
+add_executable(ClassroomTeacher WIN32
     teacher/main.cpp
     teacher/TeacherWindow.cpp
     teacher/TeacherWindow.h
@@ -77,7 +77,7 @@ add_executable(ClassroomTeacher
 )
 target_link_libraries(ClassroomTeacher PRIVATE classroom_common Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Multimedia)
 
-add_executable(ClassroomStudent
+add_executable(ClassroomStudent WIN32
     student/main.cpp
     student/StudentWindow.cpp
     student/StudentWindow.h
