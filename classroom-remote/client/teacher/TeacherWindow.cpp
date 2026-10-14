@@ -1029,9 +1029,13 @@ void TeacherWindow::showAttendance() {
         for (const auto& v : rows) {
             const auto r = v.toObject();
             const qint64 ms = qint64(r.value("online_ms").toDouble());
-            text += QString("%1 — %2 мин., переподключений: %3\n")
+            const qint64 first = qint64(r.value("first_seen").toDouble());
+            const qint64 last = qint64(r.value("last_seen").toDouble());
+            text += QString("%1 — %2 мин.\n  вход: %3\n  последняя активность: %4\n  переподключений: %5\n\n")
                 .arg(r.value("student_name").toString())
                 .arg(ms / 60000)
+                .arg(QDateTime::fromMSecsSinceEpoch(first).toString("dd.MM.yyyy HH:mm:ss"))
+                .arg(QDateTime::fromMSecsSinceEpoch(last).toString("dd.MM.yyyy HH:mm:ss"))
                 .arg(r.value("reconnects").toInt());
         }
         if (text.isEmpty()) text = "Подключений учеников пока не было.";
