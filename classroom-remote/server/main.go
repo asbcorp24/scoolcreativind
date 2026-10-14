@@ -27,11 +27,20 @@ type Client struct {
 	Name     string
 	Conn     *websocket.Conn
 	Send     chan []byte
+
+	Status       string
+	RTCReady     bool
+	Watching     bool
+	HomeworkBusy bool
+	HandRaised   bool
+	AttendanceID int64
 }
 
 type Hub struct {
-	mu      sync.RWMutex
-	clients map[*Client]bool
+	mu          sync.RWMutex
+	clients     map[*Client]bool
+	chatEnabled map[string]bool
+	pollAnswers map[string]map[string]bool
 }
 
 type onlineClient struct {
@@ -52,7 +61,11 @@ func (h *Hub) snapshot() []onlineClient {
 }
 
 func NewHub() *Hub {
-	return &Hub{clients: map[*Client]bool{}}
+	return &Hub{
+		clients:     map[*Client]bool{},
+		chatEnabled: map[string]bool{},
+		pollAnswers: map[string]map[string]bool{},
+	}
 }
 
 func (h *Hub) add(c *Client) {
@@ -90,15 +103,24 @@ func (h *Hub) sendTo(lessonID, clientID string, payload any) {
 
 func (h *Hub) broadcastPresence(lessonID string) {
 	type item struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
-		Role string `json:"role"`
+		ID           string `json:"id"`
+		Name         string `json:"name"`
+		Role         string `json:"role"`
+		Status       string `json:"status,omitempty"`
+		RTCReady     bool   `json:"rtc_ready,omitempty"`
+		Watching     bool   `json:"watching,omitempty"`
+		HomeworkBusy bool   `json:"homework_busy,omitempty"`
+		HandRaised   bool   `json:"hand_raised,omitempty"`
 	}
 	var users []item
 	h.mu.RLock()
 	for c := range h.clients {
 		if c.LessonID == lessonID {
-			users = append(users, item{c.ID, c.Name, c.Role})
+			users = append(users, item{
+				ID: c.ID, Name: c.Name, Role: c.Role,
+				Status: c.Status, RTCReady: c.RTCReady, Watching: c.Watching,
+				HomeworkBusy: c.HomeworkBusy, HandRaised: c.HandRaised,
+			})
 		}
 	}
 	h.mu.RUnlock()
@@ -210,7 +232,13 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, st
 		if err != nil {
 			return
 		}
-		c := &Client{ID: id, Role: role, LessonID: lessonID, Name: name, Conn: conn, Send: make(chan []byte, 64)}
+		c := &Client{
+			ID: id, Role: role, LessonID: lessonID, Name: name,
+			Conn: conn, Send: make(chan []byte, 64), Status: "online",
+		}
+		if role == "student" {
+			c.AttendanceID = store.AttendanceConnect(lessonID, id, name)
+		}
 		h.add(c)
 		h.sendTo(lessonID, c.ID, map[string]any{
 			"type":          "server_config",
@@ -219,6 +247,9 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, st
 		})
 		store.Audit(lessonID, c.ID, "", "connect")
 		defer func() {
+			if c.Role == "student" {
+				store.AttendanceDisconnect(c.AttendanceID)
+			}
 			store.Audit(lessonID, c.ID, "", "disconnect")
 			rtcRelay.CloseClient(c.ID)
 			h.remove(c)
@@ -244,9 +275,13 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, st
 			switch t {
 			case "hand_raise", "hand_down":
 				if c.Role == "student" {
+					h.mu.Lock()
+					c.HandRaised = (t == "hand_raise")
+					h.mu.Unlock()
 					m["student_id"] = c.ID
 					m["student_name"] = c.Name
 					h.sendLesson(lessonID, m, func(x *Client) bool { return x.Role == "teacher" })
+					h.broadcastPresence(lessonID)
 				}
 			case "rtc_offer":
 				sdp, _ := m["sdp"].(string)
@@ -259,6 +294,12 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, st
 					continue
 				}
 				h.sendTo(lessonID, c.ID, map[string]any{"type": "rtc_answer", "sdp": answer})
+				if c.Role == "student" {
+					h.mu.Lock()
+					c.RTCReady = true
+					h.mu.Unlock()
+					h.broadcastPresence(lessonID)
+				}
 				if c.Role == "student" {
 					h.sendLesson(lessonID,
 						map[string]any{"type": "keyframe_request", "track": trackLectureVideo},
@@ -319,6 +360,115 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, st
 					m["from_role"] = c.Role
 					h.sendTo(lessonID, target, m)
 				}
+			case "student_status":
+				if c.Role != "student" {
+					continue
+				}
+				status, _ := m["status"].(string)
+				if status == "" {
+					status = "online"
+				}
+				watching, _ := m["watching"].(bool)
+				homework, _ := m["homework_busy"].(bool)
+				h.mu.Lock()
+				c.Status = status
+				c.Watching = watching
+				c.HomeworkBusy = homework
+				h.mu.Unlock()
+				h.broadcastPresence(lessonID)
+
+			case "annotation", "annotation_clear":
+				if c.Role != "teacher" || !jsonMessageSizeOK(m, 64*1024) {
+					continue
+				}
+				h.sendLesson(lessonID, m, func(x *Client) bool { return x.Role == "student" })
+
+			case "poll_start":
+				if c.Role != "teacher" {
+					continue
+				}
+				pollID := strings.TrimSpace(fmt.Sprint(m["poll_id"]))
+				question := strings.TrimSpace(fmt.Sprint(m["question"]))
+				options := safePollOptions(m["options"])
+				if pollID == "" || question == "" || len(options) < 2 {
+					continue
+				}
+				if len([]rune(question)) > 500 {
+					question = string([]rune(question)[:500])
+				}
+				h.mu.Lock()
+				h.pollAnswers[lessonID+"|"+pollID] = map[string]bool{}
+				h.mu.Unlock()
+				h.sendLesson(lessonID, map[string]any{
+					"type": "poll_start", "poll_id": pollID,
+					"question": question, "options": options,
+				}, func(x *Client) bool { return x.Role == "student" })
+
+			case "poll_answer":
+				if c.Role != "student" {
+					continue
+				}
+				pollID := strings.TrimSpace(fmt.Sprint(m["poll_id"]))
+				answer := int(-1)
+				if v, ok := m["answer"].(float64); ok {
+					answer = int(v)
+				}
+				key := lessonID + "|" + pollID
+				h.mu.Lock()
+				seen := h.pollAnswers[key]
+				if seen == nil {
+					h.mu.Unlock()
+					continue
+				}
+				if seen[c.ID] {
+					h.mu.Unlock()
+					continue
+				}
+				seen[c.ID] = true
+				h.mu.Unlock()
+				h.sendLesson(lessonID, map[string]any{
+					"type": "poll_answer", "poll_id": pollID, "answer": answer,
+					"student_id": c.ID, "student_name": c.Name,
+				}, func(x *Client) bool { return x.Role == "teacher" })
+
+			case "chat_control":
+				if c.Role != "teacher" {
+					continue
+				}
+				enabled, _ := m["enabled"].(bool)
+				h.mu.Lock()
+				h.chatEnabled[lessonID] = enabled
+				h.mu.Unlock()
+				h.sendLesson(lessonID, map[string]any{
+					"type": "chat_control", "enabled": enabled,
+				}, nil)
+
+			case "chat_message":
+				text := sanitizeChatText(m["text"])
+				if text == "" {
+					continue
+				}
+				target, _ := m["target"].(string)
+				if c.Role == "student" && target == "" {
+					h.mu.RLock()
+					enabled := h.chatEnabled[lessonID]
+					h.mu.RUnlock()
+					if !enabled {
+						continue
+					}
+				}
+				msg := map[string]any{
+					"type": "chat_message", "text": text,
+					"from": c.ID, "from_name": c.Name, "from_role": c.Role,
+					"target": target, "created_at": time.Now().UTC().UnixMilli(),
+				}
+				if target != "" {
+					h.sendTo(lessonID, target, msg)
+					h.sendTo(lessonID, c.ID, msg)
+				} else {
+					h.sendLesson(lessonID, msg, nil)
+				}
+
 			case "lecture_state":
 				if c.Role == "teacher" {
 					h.sendLesson(lessonID, m, func(x *Client) bool { return x.Role == "student" })
@@ -466,6 +616,8 @@ func main() {
 		requireAdmin(cfg, createInvitation(store, cfg)))
 	r.Get("/api/admin/status",
 		requireAdmin(cfg, adminStatus(hub, cfg, turnServer)))
+	r.Get("/api/admin/classrooms/{lesson}/attendance",
+		requireAdmin(cfg, attendanceReport(store)))
 
 	r.Get("/api/admin/classrooms/{lesson}/lessons",
 		requireAdminAsTeacher(cfg, listLessons(store)))
@@ -503,6 +655,15 @@ func main() {
 		requireRoleAccess(auth, store, "student", listOwnSubmissions(store)))
 	r.Get("/api/v1/classrooms/{lesson}/lessons/{lessonId}/submissions/{submissionId}/files/{fileId}",
 		requireRoleAccess(auth, store, "teacher", downloadSubmissionFile(store, cfg)))
+
+	r.Get("/api/v1/classrooms/{lesson}/quick-files",
+		requireAnyRoleAccess(auth, store, listQuickFiles(store)))
+	r.Post("/api/v1/classrooms/{lesson}/quick-files",
+		requireRoleAccess(auth, store, "teacher", uploadQuickFile(store, cfg, hub)))
+	r.Get("/api/v1/classrooms/{lesson}/quick-files/{fileId}",
+		requireAnyRoleAccess(auth, store, downloadQuickFile(store, cfg)))
+	r.Get("/api/v1/classrooms/{lesson}/attendance",
+		requireRoleAccess(auth, store, "teacher", attendanceReport(store)))
 
 	r.Post("/api/v1/lessons/{lesson}/students/{student}/snapshot",
 		requireRoleAccess(auth, store, "student", snapshotUpload(cfg.StorageDir, store)))
