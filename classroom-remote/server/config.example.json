@@ -17,5 +17,6 @@
   "turn_password": "",
   "turn_min_port": 49160,
   "turn_max_port": 49260,
-  "ffmpeg_path": ""
+  "ffmpeg_path": "",
+  "max_upload_mb": 50
 }
