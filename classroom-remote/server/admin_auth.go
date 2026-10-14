@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -73,6 +74,13 @@ func requireAdmin(cfg Config, next http.HandlerFunc) http.HandlerFunc {
 		}
 		next(w, r)
 	}
+}
+
+func requireAdminAsTeacher(cfg Config, next http.HandlerFunc) http.HandlerFunc {
+	return requireAdmin(cfg, func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), accessRoleKey{}, "teacher")
+		next(w, r.WithContext(ctx))
+	})
 }
 
 func adminSession(cfg Config) http.HandlerFunc {
