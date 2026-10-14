@@ -65,6 +65,8 @@ add_executable(ClassroomTeacher
     teacher/TeacherWindow.h
     teacher/RemoteView.cpp
     teacher/RemoteView.h
+    teacher/TeacherLessonsWidget.cpp
+    teacher/TeacherLessonsWidget.h
 )
 target_link_libraries(ClassroomTeacher PRIVATE classroom_common Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Multimedia)
 
@@ -74,6 +76,8 @@ add_executable(ClassroomStudent
     student/StudentWindow.h
     student/WinRemoteInput.cpp
     student/WinRemoteInput.h
+    student/StudentLessonsWidget.cpp
+    student/StudentLessonsWidget.h
 )
 target_link_libraries(ClassroomStudent PRIVATE classroom_common Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Multimedia)
 if(WIN32)
