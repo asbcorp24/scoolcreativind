@@ -112,7 +112,7 @@ type authConfig struct {
 	studentToken string
 }
 
-func (a authConfig) valid(role, token string) bool {
+func (a authConfig) valid(role, lessonID, token string, store *Store) bool {
 	expected := ""
 	switch role {
 	case "teacher":
@@ -122,10 +122,12 @@ func (a authConfig) valid(role, token string) bool {
 	default:
 		return false
 	}
-	if expected == "" || token == "" || len(expected) != len(token) {
-		return false
+
+	if expected != "" && token != "" && len(expected) == len(token) &&
+		subtle.ConstantTimeCompare([]byte(expected), []byte(token)) == 1 {
+		return true
 	}
-	return subtle.ConstantTimeCompare([]byte(expected), []byte(token)) == 1
+	return store != nil && store.ValidateInvitation(token, role, lessonID)
 }
 
 func bearerToken(r *http.Request) string {
@@ -149,6 +151,17 @@ func requireBearer(expected string, next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+func requireRoleAccess(auth authConfig, store *Store, role string, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		lessonID := chi.URLParam(r, "lesson")
+		if !auth.valid(role, lessonID, bearerToken(r), store) {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next(w, r)
+	}
+}
+
 func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, store *Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		lessonID := r.URL.Query().Get("lesson")
@@ -160,7 +173,7 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, st
 			http.Error(w, "lesson, id and role are required", http.StatusBadRequest)
 			return
 		}
-		if !auth.valid(role, token) {
+		if !auth.valid(role, lessonID, token, store) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -416,14 +429,20 @@ func main() {
 	r := chi.NewRouter()
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("ok")) })
 	r.Get("/ws", wsHandler(hub, rtcRelay, auth, iceURLs, store))
+
+	r.Post("/api/admin/invites",
+		requireBearer(auth.teacherToken, createInvitation(store, cfg)))
+	r.Get("/api/invite/{code}", resolveInvitation(store, cfg))
+	r.Get("/join/{code}", joinInvitationPage(store))
+
 	r.Post("/api/v1/lessons/{lesson}/students/{student}/snapshot",
-		requireBearer(auth.studentToken, snapshotUpload(cfg.StorageDir, store)))
+		requireRoleAccess(auth, store, "student", snapshotUpload(cfg.StorageDir, store)))
 	r.Get("/api/v1/lessons/{lesson}/students/{student}/snapshot/latest",
-		requireBearer(auth.teacherToken, latestSnapshot(cfg.StorageDir)))
+		requireRoleAccess(auth, store, "teacher", latestSnapshot(cfg.StorageDir)))
 	r.Get("/api/v1/lessons/{lesson}/students/{student}/recording.zip",
-		requireBearer(auth.teacherToken, recordingZip(cfg.StorageDir)))
+		requireRoleAccess(auth, store, "teacher", recordingZip(cfg.StorageDir)))
 	r.Get("/api/v1/lessons/{lesson}/students/{student}/recording.mp4",
-		requireBearer(auth.teacherToken, recordingMP4(cfg.StorageDir, cfg.FFmpegPath)))
+		requireRoleAccess(auth, store, "teacher", recordingMP4(cfg.StorageDir, cfg.FFmpegPath)))
 	r.Get("/api/admin/status",
 		requireBearer(auth.teacherToken, adminStatus(hub, cfg, turnServer)))
 	r.Handle("/*", webHandler())
