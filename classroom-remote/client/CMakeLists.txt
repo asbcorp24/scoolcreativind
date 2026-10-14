@@ -46,6 +46,8 @@ add_library(classroom_common
     common/InviteLink.h
     common/LearningApi.cpp
     common/LearningApi.h
+    common/AnnotationOverlay.cpp
+    common/AnnotationOverlay.h
 )
 target_link_libraries(classroom_common
     PUBLIC
