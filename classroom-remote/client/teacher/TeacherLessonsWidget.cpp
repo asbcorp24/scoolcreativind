@@ -122,8 +122,12 @@ TeacherLessonsWidget::TeacherLessonsWidget(QWidget* parent)
             lessons_->addItem(item);
             if (id == keep) selectRow = i;
         }
-        if (selectRow >= 0) lessons_->setCurrentRow(selectRow);
-        else if (lessons_->count() > 0) lessons_->setCurrentRow(0);
+        if (keep == -1 && lessons_->count() > 0)
+            lessons_->setCurrentRow(lessons_->count() - 1);
+        else if (selectRow >= 0)
+            lessons_->setCurrentRow(selectRow);
+        else if (lessons_->count() > 0)
+            lessons_->setCurrentRow(0);
         status_->setText(QString("Уроков: %1").arg(lessons.size()));
     });
 
@@ -242,8 +246,12 @@ void TeacherLessonsWidget::saveLesson() {
         QMessageBox::information(this, "Урок", "Введите тему урока.");
         return;
     }
-    if (currentLessonId_ == 0) api_->createLesson(obj);
-    else api_->updateLesson(currentLessonId_, obj);
+    if (currentLessonId_ == 0) {
+        currentLessonId_ = -1;
+        api_->createLesson(obj);
+    } else {
+        api_->updateLesson(currentLessonId_, obj);
+    }
 }
 
 void TeacherLessonsWidget::uploadMaterial() {
