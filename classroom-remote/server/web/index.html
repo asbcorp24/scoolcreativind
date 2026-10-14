@@ -5,75 +5,228 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Classroom Remote Server</title>
 <style>
-body{font-family:system-ui;background:#0b1120;color:#e5e7eb;margin:0;padding:32px}
-main{max-width:960px;margin:auto}.card{background:#111827;border:1px solid #334155;border-radius:16px;padding:20px;margin:14px 0}
-input,button{padding:10px 12px;border-radius:10px;border:1px solid #475569;background:#020617;color:white}
-button{cursor:pointer}.primary{background:#2563eb}.student{background:#059669}
-table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px solid #243244;text-align:left}
-.ok{color:#34d399}.muted{color:#94a3b8}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.linkbox{margin-top:10px;padding:12px;background:#020617;border-radius:10px;word-break:break-all}
-.hidden{display:none}a{color:#93c5fd}
+:root{color-scheme:dark}
+*{box-sizing:border-box}body{font-family:system-ui;background:#08111f;color:#e5e7eb;margin:0;padding:24px}
+main{max-width:1180px;margin:auto}.card{background:#111827;border:1px solid #334155;border-radius:16px;padding:18px;margin:14px 0}
+input,textarea,button{font:inherit}input,textarea{padding:10px 12px;border-radius:10px;border:1px solid #475569;background:#020617;color:white;width:100%}
+button{padding:10px 14px;border-radius:10px;border:1px solid #475569;background:#1f2937;color:white;cursor:pointer}
+button.primary{background:#2563eb}.student{background:#059669}.danger{background:#991b1b}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row>*{width:auto}.grow{flex:1;min-width:180px}
+.grid{display:grid;grid-template-columns:300px 1fr;gap:16px}.hidden{display:none!important}.muted{color:#94a3b8}.ok{color:#34d399}
+.linkbox{margin-top:10px;padding:12px;background:#020617;border-radius:10px;word-break:break-all}a{color:#93c5fd}
+table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #243244;text-align:left}
+.lesson-item{padding:10px;border:1px solid #334155;border-radius:9px;margin:7px 0;cursor:pointer}.lesson-item.active{border-color:#60a5fa;background:#172554}
+label{display:block;margin:8px 0 5px}.small{font-size:13px}
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body><main>
 <h1>Classroom Remote Server</h1>
-<div class="card"><b class="ok">● Сервер запущен</b><p class="muted">Go + Pion WebRTC + встроенный TURN/STUN + SQLite</p></div>
 
-<div class="card">
-<h3>Администрирование</h3>
+<div id="loginCard" class="card hidden">
+<h3>Вход в управление сервером</h3>
+<p class="muted">На компьютере самого сервера авторизация выполняется автоматически. При удалённом входе введите <code>teacher_token</code> один раз — дальше используется защищённая HttpOnly-cookie.</p>
 <div class="row">
-<input id="token" type="password" placeholder="TEACHER_TOKEN администратора" style="min-width:320px">
-<button onclick="load()">Обновить</button>
+<input id="loginToken" class="grow" type="password" placeholder="teacher_token">
+<button class="primary" onclick="login()">Войти</button>
 </div>
-<div id="summary"></div>
+<div id="loginError" class="muted"></div>
+</div>
+
+<div id="app" class="hidden">
+<div class="card">
+<div class="row">
+<b class="ok">● Сервер запущен</b>
+<span id="summary" class="muted"></span>
+<button style="margin-left:auto" onclick="logout()">Выйти</button>
+</div>
 </div>
 
 <div class="card">
 <h3>Ссылки для подключения</h3>
-<p class="muted">Укажите номер занятия. Новая ссылка автоматически отзывает предыдущую ссылку той же роли для этого занятия.</p>
+<p class="muted">Новая ссылка автоматически отзывает предыдущую ссылку той же роли для этого занятия.</p>
 <div class="row">
-<input id="lesson" value="101" placeholder="Номер занятия">
-<button class="primary" onclick="makeInvite('teacher')">Создать ссылку преподавателя</button>
-<button class="student" onclick="makeInvite('student')">Создать ссылку учеников</button>
+<input id="classroomId" value="101" class="grow" placeholder="Номер занятия / класса">
+<button class="primary" onclick="makeInvite('teacher')">Ссылка преподавателя</button>
+<button class="student" onclick="makeInvite('student')">Ссылка учеников</button>
+<button onclick="loadLessons()">Открыть уроки</button>
 </div>
 <div id="teacherInvite" class="linkbox hidden"></div>
 <div id="studentInvite" class="linkbox hidden"></div>
 </div>
 
-<div class="card"><h3>Подключённые клиенты</h3><table><thead><tr><th>Имя</th><th>Роль</th><th>Занятие</th><th>ID</th></tr></thead><tbody id="users"></tbody></table></div>
+<div class="card">
+<h3>Уроки, материалы и домашние задания</h3>
+<div class="grid">
+<div>
+<div class="row">
+<button onclick="newLesson()">Новый урок</button>
+<button onclick="loadLessons()">Обновить</button>
+</div>
+<div id="lessonList"></div>
+</div>
+<div>
+<input type="hidden" id="lessonId">
+<div class="row">
+<div class="grow"><label>Тема урока</label><input id="lessonTitle"></div>
+<div style="width:110px"><label>Порядок</label><input id="lessonPosition" type="number" value="1"></div>
+</div>
+<label>Описание / содержание урока</label>
+<textarea id="lessonDescription" rows="5"></textarea>
+<label>Домашнее задание</label>
+<textarea id="lessonHomework" rows="4"></textarea>
+<div class="row">
+<label><input id="lessonPublished" type="checkbox" style="width:auto"> Опубликован ученикам</label>
+<label><input id="dueEnabled" type="checkbox" style="width:auto"> Есть срок</label>
+<input id="lessonDue" type="datetime-local" style="max-width:250px">
+</div>
+<div class="row" style="margin-top:12px">
+<button class="primary" onclick="saveLesson()">Сохранить урок</button>
+<span id="lessonStatus" class="muted"></span>
+</div>
+
+<hr style="border-color:#334155;margin:18px 0">
+<h4>Документы урока</h4>
+<div id="materialList"></div>
+<div class="row">
+<input id="materialFile" type="file" class="grow">
+<button onclick="uploadMaterial()">Загрузить документ</button>
+</div>
+<p id="uploadLimit" class="muted small"></p>
+
+<h4>Сданные домашние работы</h4>
+<button onclick="loadSubmissions()">Обновить сдачи</button>
+<div id="submissionList"></div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<h3>Подключённые клиенты</h3>
+<table><thead><tr><th>Имя</th><th>Роль</th><th>Занятие</th><th>ID</th></tr></thead><tbody id="users"></tbody></table>
+</div>
+</div>
 
 <script>
-const tokenInput=document.getElementById('token');
-tokenInput.value=localStorage.getItem('classroom_admin_token')||'';
-tokenInput.addEventListener('change',()=>localStorage.setItem('classroom_admin_token',tokenInput.value));
-function adminToken(){ return tokenInput.value; }
-async function load(){
- const token=adminToken();
- const r=await fetch('/api/admin/status',{headers:{Authorization:'Bearer '+token}});
- if(!r.ok){document.getElementById('summary').textContent='Ошибка авторизации';return}
- const d=await r.json();
- document.getElementById('summary').innerHTML='<p>Онлайн: <b>'+d.online+'</b> · TURN: <b>'+(d.turn_enabled?'включён':'выключен')+'</b> · Public IP: <b>'+(d.public_ip||'LAN')+'</b></p>';
- document.getElementById('users').innerHTML=d.users.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.role)+'</td><td>'+esc(x.lesson_id)+'</td><td>'+esc(x.id)+'</td></tr>').join('');
+let lessons=[];
+let currentLesson=null;
+let maxUploadMB=50;
+
+async function api(url, options={}){
+  const r=await fetch(url,{...options,credentials:'same-origin'});
+  if(r.status===401){ showLogin(); throw new Error('unauthorized'); }
+  return r;
+}
+async function init(){
+  const r=await fetch('/api/admin/session',{credentials:'same-origin'});
+  if(r.ok){ showApp(); await loadStatus(); await loadLessons(); }
+  else showLogin();
+}
+function showLogin(){ document.getElementById('loginCard').classList.remove('hidden'); document.getElementById('app').classList.add('hidden'); }
+function showApp(){ document.getElementById('loginCard').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); }
+async function login(){
+  const token=document.getElementById('loginToken').value.trim();
+  const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token}),credentials:'same-origin'});
+  if(!r.ok){ document.getElementById('loginError').textContent='Неверный teacher_token'; return; }
+  document.getElementById('loginToken').value='';
+  showApp(); await loadStatus(); await loadLessons();
+}
+async function logout(){ await fetch('/api/admin/logout',{method:'POST',credentials:'same-origin'}); showLogin(); }
+async function loadStatus(){
+  const r=await api('/api/admin/status'); if(!r.ok)return;
+  const d=await r.json(); maxUploadMB=d.max_upload_mb||50;
+  document.getElementById('summary').textContent='Онлайн: '+d.online+' · TURN: '+(d.turn_enabled?'включён':'выключен')+' · лимит файлов: '+maxUploadMB+' МБ';
+  document.getElementById('uploadLimit').textContent='Максимальный размер одного загружаемого документа / комплекта ДЗ: '+maxUploadMB+' МБ';
+  document.getElementById('users').innerHTML=d.users.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.role)+'</td><td>'+esc(x.lesson_id)+'</td><td>'+esc(x.id)+'</td></tr>').join('');
 }
 async function makeInvite(role){
- const lesson=document.getElementById('lesson').value.trim();
- if(!lesson){ alert('Укажите номер занятия'); return; }
- const r=await fetch('/api/admin/invites',{
-   method:'POST',
-   headers:{'Authorization':'Bearer '+adminToken(),'Content-Type':'application/json'},
-   body:JSON.stringify({lesson_id:lesson,role})
- });
- if(!r.ok){ alert('Не удалось создать ссылку. Проверьте TEACHER_TOKEN.'); return; }
- const d=await r.json();
- const id=role==='teacher'?'teacherInvite':'studentInvite';
- const title=role==='teacher'?'Преподаватель':'Ученики';
- const el=document.getElementById(id);
- el.classList.remove('hidden');
- el.innerHTML='<b>'+title+':</b><br><a href="'+escAttr(d.url)+'" target="_blank">'+esc(d.url)+'</a> '+
-   '<button onclick="copyText('+JSON.stringify(d.url)+')">Копировать</button>';
+  const lesson=document.getElementById('classroomId').value.trim(); if(!lesson)return;
+  const r=await api('/api/admin/invites',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lesson_id:lesson,role})});
+  if(!r.ok){alert(await r.text());return}
+  const d=await r.json();
+  const el=document.getElementById(role==='teacher'?'teacherInvite':'studentInvite');
+  el.classList.remove('hidden');
+  el.innerHTML='<b>'+(role==='teacher'?'Преподаватель':'Ученики')+':</b><br><a href="'+escAttr(d.url)+'" target="_blank">'+esc(d.url)+'</a> <button onclick='+quoteJs('navigator.clipboard.writeText('+JSON.stringify(d.url)+')')+'>Копировать</button>';
 }
-function copyText(s){ navigator.clipboard.writeText(s); }
-function esc(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function classroom(){ return document.getElementById('classroomId').value.trim(); }
+async function loadLessons(){
+  if(!classroom())return;
+  const r=await api('/api/admin/classrooms/'+encodeURIComponent(classroom())+'/lessons'); if(!r.ok)return;
+  lessons=await r.json(); renderLessonList();
+  if(currentLesson){
+    const fresh=lessons.find(x=>x.id===currentLesson.id);
+    if(fresh) selectLesson(fresh.id);
+  } else if(lessons.length) selectLesson(lessons[lessons.length-1].id);
+}
+function renderLessonList(){
+  const root=document.getElementById('lessonList');
+  root.innerHTML=lessons.map(l=>'<div class="lesson-item '+(currentLesson&&currentLesson.id===l.id?'active':'')+'" onclick="selectLesson('+l.id+')"><b>'+esc(l.position+'. '+l.title)+'</b><br><span class="muted small">'+(l.published?'опубликован':'черновик')+'</span></div>').join('');
+}
+function newLesson(){
+  currentLesson=null; document.getElementById('lessonId').value='';
+  document.getElementById('lessonTitle').value=''; document.getElementById('lessonDescription').value='';
+  document.getElementById('lessonHomework').value=''; document.getElementById('lessonPosition').value=lessons.length+1;
+  document.getElementById('lessonPublished').checked=false; document.getElementById('dueEnabled').checked=false;
+  document.getElementById('materialList').innerHTML=''; document.getElementById('submissionList').innerHTML='';
+  renderLessonList();
+}
+function selectLesson(id){
+  currentLesson=lessons.find(x=>x.id===id); if(!currentLesson)return;
+  document.getElementById('lessonId').value=currentLesson.id;
+  document.getElementById('lessonTitle').value=currentLesson.title||'';
+  document.getElementById('lessonDescription').value=currentLesson.description||'';
+  document.getElementById('lessonHomework').value=currentLesson.homework_text||'';
+  document.getElementById('lessonPosition').value=currentLesson.position||0;
+  document.getElementById('lessonPublished').checked=!!currentLesson.published;
+  document.getElementById('dueEnabled').checked=!!currentLesson.due_at;
+  document.getElementById('lessonDue').value=currentLesson.due_at?toLocalInput(currentLesson.due_at):'';
+  renderMaterials(); renderLessonList(); loadSubmissions();
+}
+function lessonPayload(){
+  return {
+    title:document.getElementById('lessonTitle').value.trim(),
+    description:document.getElementById('lessonDescription').value,
+    homework_text:document.getElementById('lessonHomework').value,
+    position:Number(document.getElementById('lessonPosition').value||0),
+    published:document.getElementById('lessonPublished').checked,
+    due_at:document.getElementById('dueEnabled').checked && document.getElementById('lessonDue').value ? new Date(document.getElementById('lessonDue').value).getTime() : null
+  };
+}
+async function saveLesson(){
+  const p=lessonPayload(); if(!p.title){alert('Введите тему урока');return}
+  const id=document.getElementById('lessonId').value;
+  const url='/api/admin/classrooms/'+encodeURIComponent(classroom())+'/lessons'+(id?'/'+id:'');
+  const r=await api(url,{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+  if(!r.ok){alert(await r.text());return}
+  document.getElementById('lessonStatus').textContent=id?'Урок сохранён':'Урок создан';
+  if(!id){ const d=await r.json(); currentLesson={id:d.id}; }
+  await loadLessons();
+}
+function renderMaterials(){
+  const root=document.getElementById('materialList');
+  if(!currentLesson){root.innerHTML='';return}
+  root.innerHTML=(currentLesson.files||[]).map(f=>'<div>📄 <a href="/api/admin/classrooms/'+encodeURIComponent(classroom())+'/lessons/'+currentLesson.id+'/materials/'+f.id+'">'+esc(f.original_name)+'</a> <span class="muted small">'+Math.round(f.size_bytes/1024)+' KB</span></div>').join('');
+}
+async function uploadMaterial(){
+  if(!currentLesson){alert('Сначала сохраните урок');return}
+  const input=document.getElementById('materialFile'); if(!input.files.length)return;
+  if(input.files[0].size>maxUploadMB*1024*1024){alert('Файл превышает лимит '+maxUploadMB+' МБ');return}
+  const fd=new FormData(); fd.append('file',input.files[0]);
+  const r=await api('/api/admin/classrooms/'+encodeURIComponent(classroom())+'/lessons/'+currentLesson.id+'/materials',{method:'POST',body:fd});
+  if(!r.ok){alert(await r.text());return}
+  input.value=''; await loadLessons();
+}
+async function loadSubmissions(){
+  if(!currentLesson)return;
+  const r=await api('/api/admin/classrooms/'+encodeURIComponent(classroom())+'/lessons/'+currentLesson.id+'/submissions'); if(!r.ok)return;
+  const rows=await r.json();
+  document.getElementById('submissionList').innerHTML=rows.map(s=>'<div class="linkbox"><b>'+esc(s.student_name)+'</b> · '+new Date(s.submitted_at).toLocaleString()+(s.note?'<br>'+esc(s.note):'')+'<br>'+(s.files||[]).map(f=>'📎 <a href="/api/admin/classrooms/'+encodeURIComponent(classroom())+'/lessons/'+currentLesson.id+'/submissions/'+s.id+'/files/'+f.id+'">'+esc(f.original_name)+'</a>').join('<br>')+'</div>').join('');
+}
+function toLocalInput(ms){ const d=new Date(ms-dOffset(ms)); return d.toISOString().slice(0,16); }
+function dOffset(ms){ return new Date(ms).getTimezoneOffset()*60000; }
+function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function escAttr(s){return esc(s).replace(/'/g,'&#39;')}
+function quoteJs(s){return '"'+String(s).replace(/"/g,'&quot;')+'"'}
+init();
 </script>
 </main></body></html>
