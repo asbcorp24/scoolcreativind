@@ -14,6 +14,10 @@ class RtcRelayClient;
 class AudioPipe;
 class MediaCodec;
 class StudentLessonsWidget;
+class AnnotationOverlay;
+class QPlainTextEdit;
+class QListWidget;
+class QTabWidget;
 
 class StudentWindow final : public QMainWindow {
     Q_OBJECT
@@ -30,6 +34,11 @@ private:
     void setRemoteActive(bool active);
     void onRtcVideo(const QString& trackId, const QByteArray& h264);
     void onRtcAudio(const QString& trackId, const QByteArray& opus);
+    void sendStudentStatus();
+    void sendChat();
+    void loadQuickFiles();
+    void downloadQuickFile();
+    QUrl quickFileUrl(qint64 fileId = 0) const;
 
     WsClient* ws_{};
     RtcRelayClient* rtc_{};
@@ -45,11 +54,25 @@ private:
     QLabel* status_{};
     QLabel* remoteBanner_{};
     QLabel* lecture_{};
+    AnnotationOverlay* annotationOverlay_{};
     StudentLessonsWidget* lessonsWidget_{};
     QPushButton* hand_{};
+    QTabWidget* mainTabs_{};
+
+    QLabel* pollQuestion_{};
+    QListWidget* pollOptions_{};
+    QPushButton* pollAnswerButton_{};
+    QPlainTextEdit* chatLog_{};
+    QLineEdit* chatInput_{};
+    QLabel* chatState_{};
+    QListWidget* quickFiles_{};
+
+    QString activePollId_;
+    bool publicChatEnabled_{true};
 
     QTimer* snapshotTimer_{};
     QTimer* remoteScreenTimer_{};
+    QTimer* statusTimer_{};
     QNetworkAccessManager* network_{};
 
     QString studentId_;
