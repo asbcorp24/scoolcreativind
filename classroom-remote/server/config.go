@@ -78,6 +78,10 @@ func loadConfig(path string) (Config, bool, error) {
 		cfg.TURNPassword = randomSecret(24)
 		changed = true
 	}
+	if cfg.MaxUploadMB <= 0 {
+		cfg.MaxUploadMB = 50
+		changed = true
+	}
 
 	if err := normalizeConfig(&cfg); err != nil {
 		return Config{}, false, err
