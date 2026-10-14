@@ -25,7 +25,7 @@ bool LearningApi::ready() const {
 QNetworkRequest LearningApi::request(const QString& path) const {
     QUrl url = base_;
     url.setPath(path);
-    url.setQuery({});
+    url.setQuery(QString());
     QNetworkRequest req(url);
     req.setRawHeader("Authorization", "Bearer " + token_.toUtf8());
     return req;
