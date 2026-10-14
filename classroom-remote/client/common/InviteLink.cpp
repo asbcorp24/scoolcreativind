@@ -14,11 +14,11 @@ void registerProtocol(const QString& scheme, const QString& description) {
     base.setValue("URL Protocol", "");
 
     QSettings icon(root + "\\DefaultIcon", QSettings::NativeFormat);
-    icon.setValue(".", QString(""%1",0").arg(QCoreApplication::applicationFilePath()));
+    icon.setValue(".", QStringLiteral("\"%1\",0").arg(QCoreApplication::applicationFilePath()));
 
     QSettings command(root + "\\shell\\open\\command", QSettings::NativeFormat);
-    command.setValue(".", QString(""%1" "%2"")
-        .arg(QCoreApplication::applicationFilePath(), "%1"));
+    command.setValue(".", QStringLiteral("\"%1\" \"%2\"")
+        .arg(QCoreApplication::applicationFilePath(), QStringLiteral("%1")));
     base.sync();
     icon.sync();
     command.sync();
@@ -43,8 +43,8 @@ QUrl resolveEndpoint(const QUrl& input) {
     if (parts.size() >= 2 && parts.at(parts.size() - 2) == "join") {
         const QString code = parts.constLast();
         invite.setPath("/api/invite/" + code);
-        invite.setQuery({});
-        invite.setFragment({});
+        invite.setQuery(QString());
+        invite.setFragment(QString());
     }
     return invite;
 }
