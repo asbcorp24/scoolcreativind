@@ -26,6 +26,8 @@ class AudioPipe;
 class MediaCodec;
 class RemoteView;
 class TeacherLessonsWidget;
+class AnnotationOverlay;
+class QPlainTextEdit;
 
 class TeacherWindow final : public QMainWindow {
     Q_OBJECT
@@ -56,6 +58,12 @@ private:
     void onRtcAudio(const QString& trackId, const QByteArray& opus);
     void downloadRecording();
     void downloadFramesZip();
+    void startPoll();
+    void uploadQuickFile();
+    void showAttendance();
+    void sendChat(bool privateMessage);
+    QUrl httpBaseUrl() const;
+    void updatePollStatus();
 
     WsClient* ws_{};
     RtcRelayClient* rtc_{};
@@ -71,8 +79,19 @@ private:
     QLabel* lecturePreview_{};
     RemoteView* remoteView_{};
     TeacherLessonsWidget* lessonsWidget_{};
+    AnnotationOverlay* annotationOverlay_{};
     QListWidget* students_{};
     QPushButton* micButton_{};
+
+    QPlainTextEdit* chatLog_{};
+    QLineEdit* chatInput_{};
+    QPushButton* chatToggle_{};
+    QLabel* pollStatus_{};
+    bool publicChatEnabled_{true};
+    QString activePollId_;
+    QString activePollQuestion_;
+    QHash<int, int> pollCounts_;
+    int pollResponses_{0};
 
     QTimer* screenTimer_{};
     QNetworkAccessManager* network_{};
