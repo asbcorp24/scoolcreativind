@@ -49,6 +49,7 @@ private:
     void startScreenRecording();
     void stopRecording();
     void startRecording(bool screen);
+    void cleanupRecording();
     void sendLectureImage(const QImage& image);
     void showLocalPreview(const QImage& image);
     void onRtcVideo(const QString& trackId, const QByteArray& h264);
