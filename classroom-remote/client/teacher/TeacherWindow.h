@@ -20,6 +20,7 @@ class RtcRelayClient;
 class AudioPipe;
 class MediaCodec;
 class RemoteView;
+class TeacherLessonsWidget;
 
 class TeacherWindow final : public QMainWindow {
     Q_OBJECT
@@ -57,6 +58,7 @@ private:
     QLabel* status_{};
     QLabel* lecturePreview_{};
     RemoteView* remoteView_{};
+    TeacherLessonsWidget* lessonsWidget_{};
     QListWidget* students_{};
     QPushButton* micButton_{};
 
