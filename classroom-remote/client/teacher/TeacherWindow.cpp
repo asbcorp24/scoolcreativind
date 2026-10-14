@@ -331,6 +331,7 @@ void TeacherWindow::openInviteUrl(const QUrl& rawUrl) {
         server_->setText(obj.value("ws_url").toString());
         lesson_->setText(obj.value("lesson_id").toString());
         token_->setText(obj.value("access_token").toString());
+        lessonsWidget_->setMaxUploadMB(obj.value("max_upload_mb").toInt(50));
         status_->setText("Ссылка принята, подключаюсь...");
         reply->deleteLater();
         connectServer();
@@ -354,6 +355,7 @@ void TeacherWindow::connectServer() {
 void TeacherWindow::onMessage(const QJsonObject& obj) {
     const auto type = obj.value("type").toString();
     if (type == "server_config") {
+        lessonsWidget_->setMaxUploadMB(obj.value("max_upload_mb").toInt(50));
         QStringList iceServers;
         for (const auto& v : obj.value("ice_servers").toArray())
             iceServers << v.toString();
