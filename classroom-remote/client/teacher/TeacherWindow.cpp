@@ -593,7 +593,11 @@ void TeacherWindow::startRecording(bool screen) {
         return;
 
     stopLecture();
-    stopRecording();
+    if (mediaRecorder_) {
+        QMessageBox::information(this, "Запись",
+            "Дождитесь завершения предыдущей записи.");
+        return;
+    }
 
     recordingPath_ = path;
     recordingSession_ = new QMediaCaptureSession(this);
@@ -654,6 +658,7 @@ void TeacherWindow::startRecording(bool screen) {
         } else if (state == QMediaRecorder::StoppedState &&
                    !recordingPath_.isEmpty()) {
             status_->setText("Запись сохранена: " + recordingPath_);
+            cleanupRecording();
         }
     });
 
@@ -661,18 +666,29 @@ void TeacherWindow::startRecording(bool screen) {
 }
 
 void TeacherWindow::stopRecording() {
-    if (mediaRecorder_ &&
-        mediaRecorder_->recorderState() != QMediaRecorder::StoppedState) {
+    if (!mediaRecorder_)
+        return;
+
+    if (recordingCamera_)
+        recordingCamera_->stop();
+    if (recordingScreen_)
+        recordingScreen_->stop();
+
+    if (mediaRecorder_->recorderState() != QMediaRecorder::StoppedState) {
+        status_->setText("Завершаю запись...");
         mediaRecorder_->stop();
+        return;
     }
 
+    cleanupRecording();
+}
+
+void TeacherWindow::cleanupRecording() {
     if (recordingCamera_) {
-        recordingCamera_->stop();
         recordingCamera_->deleteLater();
         recordingCamera_ = nullptr;
     }
     if (recordingScreen_) {
-        recordingScreen_->stop();
         recordingScreen_->deleteLater();
         recordingScreen_ = nullptr;
     }
@@ -692,6 +708,7 @@ void TeacherWindow::stopRecording() {
         mediaRecorder_->deleteLater();
         mediaRecorder_ = nullptr;
     }
+    recordingPath_.clear();
 }
 
 void TeacherWindow::stopLecture() {
