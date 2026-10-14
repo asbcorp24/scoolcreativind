@@ -31,6 +31,7 @@
 #include <QMediaCaptureSession>
 #include <QMediaDevices>
 #include <QFile>
+#include <QFileInfo>
 #include <QFileDialog>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
