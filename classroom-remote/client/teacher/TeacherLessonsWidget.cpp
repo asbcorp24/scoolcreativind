@@ -5,6 +5,7 @@
 #include <QDateTime>
 #include <QDateTimeEdit>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QJsonObject>
@@ -242,7 +243,14 @@ void TeacherLessonsWidget::uploadMaterial() {
         return;
     }
     const QString path = QFileDialog::getOpenFileName(this, "Добавить материал к уроку");
-    if (!path.isEmpty()) api_->uploadMaterial(currentLessonId_, path);
+    if (path.isEmpty()) return;
+    const qint64 maxBytes = qint64(maxUploadMB_) * 1024 * 1024;
+    if (QFileInfo(path).size() > maxBytes) {
+        QMessageBox::warning(this, "Материал",
+            QString("Файл превышает лимит %1 МБ.").arg(maxUploadMB_));
+        return;
+    }
+    api_->uploadMaterial(currentLessonId_, path);
 }
 
 void TeacherLessonsWidget::downloadSelectedMaterial() {
