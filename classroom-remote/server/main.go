@@ -458,10 +458,50 @@ func main() {
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("ok")) })
 	r.Get("/ws", wsHandler(hub, rtcRelay, auth, iceURLs, store))
 
+	r.Get("/api/admin/session", adminSession(cfg))
+	r.Post("/api/admin/login", adminLogin(cfg))
+	r.Post("/api/admin/logout", adminLogout(cfg))
 	r.Post("/api/admin/invites",
-		requireBearer(auth.teacherToken, createInvitation(store, cfg)))
+		requireAdmin(cfg, createInvitation(store, cfg)))
+	r.Get("/api/admin/status",
+		requireAdmin(cfg, adminStatus(hub, cfg, turnServer)))
+
+	r.Get("/api/admin/classrooms/{lesson}/lessons",
+		requireAdminAsTeacher(cfg, listLessons(store)))
+	r.Post("/api/admin/classrooms/{lesson}/lessons",
+		requireAdminAsTeacher(cfg, createLesson(store)))
+	r.Put("/api/admin/classrooms/{lesson}/lessons/{lessonId}",
+		requireAdminAsTeacher(cfg, updateLesson(store)))
+	r.Post("/api/admin/classrooms/{lesson}/lessons/{lessonId}/materials",
+		requireAdminAsTeacher(cfg, uploadLessonMaterial(store, cfg)))
+	r.Get("/api/admin/classrooms/{lesson}/lessons/{lessonId}/materials/{fileId}",
+		requireAdminAsTeacher(cfg, downloadLessonMaterial(store, cfg)))
+	r.Get("/api/admin/classrooms/{lesson}/lessons/{lessonId}/submissions",
+		requireAdminAsTeacher(cfg, listSubmissions(store)))
+	r.Get("/api/admin/classrooms/{lesson}/lessons/{lessonId}/submissions/{submissionId}/files/{fileId}",
+		requireAdminAsTeacher(cfg, downloadSubmissionFile(store, cfg)))
+
 	r.Get("/api/invite/{code}", resolveInvitation(store, cfg))
 	r.Get("/join/{code}", joinInvitationPage(store))
+
+	r.Get("/api/v1/classrooms/{lesson}/lessons",
+		requireAnyRoleAccess(auth, store, listLessons(store)))
+	r.Post("/api/v1/classrooms/{lesson}/lessons",
+		requireRoleAccess(auth, store, "teacher", createLesson(store)))
+	r.Put("/api/v1/classrooms/{lesson}/lessons/{lessonId}",
+		requireRoleAccess(auth, store, "teacher", updateLesson(store)))
+	r.Post("/api/v1/classrooms/{lesson}/lessons/{lessonId}/materials",
+		requireRoleAccess(auth, store, "teacher", uploadLessonMaterial(store, cfg)))
+	r.Get("/api/v1/classrooms/{lesson}/lessons/{lessonId}/materials/{fileId}",
+		requireAnyRoleAccess(auth, store, downloadLessonMaterial(store, cfg)))
+	r.Post("/api/v1/classrooms/{lesson}/lessons/{lessonId}/submissions",
+		requireRoleAccess(auth, store, "student", submitHomework(store, cfg)))
+	r.Get("/api/v1/classrooms/{lesson}/lessons/{lessonId}/submissions",
+		requireRoleAccess(auth, store, "teacher", listSubmissions(store)))
+	r.Get("/api/v1/classrooms/{lesson}/lessons/{lessonId}/my-submissions",
+		requireRoleAccess(auth, store, "student", listOwnSubmissions(store)))
+	r.Get("/api/v1/classrooms/{lesson}/lessons/{lessonId}/submissions/{submissionId}/files/{fileId}",
+		requireRoleAccess(auth, store, "teacher", downloadSubmissionFile(store, cfg)))
 
 	r.Post("/api/v1/lessons/{lesson}/students/{student}/snapshot",
 		requireRoleAccess(auth, store, "student", snapshotUpload(cfg.StorageDir, store)))
@@ -471,8 +511,7 @@ func main() {
 		requireRoleAccess(auth, store, "teacher", recordingZip(cfg.StorageDir)))
 	r.Get("/api/v1/lessons/{lesson}/students/{student}/recording.mp4",
 		requireRoleAccess(auth, store, "teacher", recordingMP4(cfg.StorageDir, cfg.FFmpegPath)))
-	r.Get("/api/admin/status",
-		requireBearer(auth.teacherToken, adminStatus(hub, cfg, turnServer)))
+
 	r.Handle("/*", webHandler())
 	r.Handle("/", webHandler())
 
