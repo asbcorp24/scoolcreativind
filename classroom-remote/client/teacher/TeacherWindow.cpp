@@ -1,5 +1,6 @@
 #include "TeacherWindow.h"
 #include "RemoteView.h"
+#include "TeacherLessonsWidget.h"
 #include "../common/WsClient.h"
 #include "../common/RtcRelayClient.h"
 #include "../common/AudioPipe.h"
@@ -122,6 +123,9 @@ TeacherWindow::TeacherWindow(QWidget* parent)
 
     remoteView_ = new RemoteView;
     tabs->addTab(remoteView_, "Экран ученика");
+
+    lessonsWidget_ = new TeacherLessonsWidget;
+    tabs->addTab(lessonsWidget_, "Уроки и ДЗ");
 
     auto* right = new QWidget;
     auto* rv = new QVBoxLayout(right);
@@ -334,7 +338,15 @@ void TeacherWindow::openInviteUrl(const QUrl& rawUrl) {
 }
 
 void TeacherWindow::connectServer() {
-    ws_->connectTo(QUrl(server_->text()), lesson_->text(),
+    QUrl wsUrl(server_->text());
+    QUrl httpUrl = wsUrl;
+    if (httpUrl.scheme() == "wss") httpUrl.setScheme("https");
+    else if (httpUrl.scheme() == "ws") httpUrl.setScheme("http");
+    httpUrl.setPath("");
+    httpUrl.setQuery({});
+    lessonsWidget_->setSession(httpUrl, lesson_->text(), token_->text());
+
+    ws_->connectTo(wsUrl, lesson_->text(),
                    "teacher-" + QUuid::createUuid().toString(QUuid::WithoutBraces),
                    "teacher", teacherName_->text(), token_->text());
 }
