@@ -17,6 +17,7 @@ public:
     explicit StudentLessonsWidget(QWidget* parent = nullptr);
     void setSession(const QUrl& httpBase, const QString& classroomId, const QString& token,
                     const QString& studentId, const QString& studentName);
+    void setMaxUploadMB(int mb) { maxUploadMB_ = mb > 0 ? mb : 50; }
     void refresh();
 
 private:
@@ -42,4 +43,5 @@ private:
     QString studentId_;
     QString studentName_;
     QStringList files_;
+    int maxUploadMB_{50};
 };
