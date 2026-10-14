@@ -155,9 +155,11 @@ StudentWindow::StudentWindow(QWidget* parent)
     auto* chatRow = new QHBoxLayout;
     chatInput_ = new QLineEdit;
     chatInput_->setPlaceholderText("Сообщение в общий чат...");
-    auto* sendChatBtn = new QPushButton("Отправить");
+    auto* sendChatBtn = new QPushButton("Всем");
+    auto* sendTeacherBtn = new QPushButton("Преподавателю");
     chatRow->addWidget(chatInput_, 1);
     chatRow->addWidget(sendChatBtn);
+    chatRow->addWidget(sendTeacherBtn);
     interactiveLayout->addWidget(new QLabel("<b>Чат</b>"));
     interactiveLayout->addWidget(chatState_);
     interactiveLayout->addWidget(chatLog_, 1);
@@ -209,6 +211,12 @@ StudentWindow::StudentWindow(QWidget* parent)
 
     connect(chatInput_, &QLineEdit::returnPressed, this, &StudentWindow::sendChat);
     connect(sendChatBtn, &QPushButton::clicked, this, &StudentWindow::sendChat);
+    connect(sendTeacherBtn, &QPushButton::clicked, this, [this] {
+        const QString text = chatInput_->text().trimmed();
+        if (text.isEmpty()) return;
+        ws_->send(QJsonObject{{"type", "chat_message"}, {"text", text}, {"target", "teacher"}});
+        chatInput_->clear();
+    });
     connect(refreshQuickBtn, &QPushButton::clicked, this, &StudentWindow::loadQuickFiles);
     connect(downloadQuickBtn, &QPushButton::clicked, this, &StudentWindow::downloadQuickFile);
     connect(statusTimer_, &QTimer::timeout, this, &StudentWindow::sendStudentStatus);
