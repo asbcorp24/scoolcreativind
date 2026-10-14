@@ -31,6 +31,7 @@ type Config struct {
 	TURNMinPort    int    `json:"turn_min_port"`
 	TURNMaxPort    int    `json:"turn_max_port"`
 	FFmpegPath     string `json:"ffmpeg_path"`
+	MaxUploadMB    int    `json:"max_upload_mb"`
 }
 
 func defaultConfig() Config {
@@ -47,6 +48,7 @@ func defaultConfig() Config {
 		TURNUsername: "classroom",
 		TURNMinPort:  49160,
 		TURNMaxPort:  49260,
+		MaxUploadMB:  50,
 	}
 }
 
@@ -121,6 +123,12 @@ func normalizeConfig(cfg *Config) error {
 	if cfg.TURNUsername == "" {
 		cfg.TURNUsername = "classroom"
 	}
+	if cfg.MaxUploadMB <= 0 {
+		cfg.MaxUploadMB = 50
+	}
+	if cfg.MaxUploadMB > 1024 {
+		return fmt.Errorf("max_upload_mb must be <= 1024")
+	}
 	if cfg.TeacherToken == "" || cfg.StudentToken == "" {
 		return fmt.Errorf("teacher_token and student_token are required")
 	}
@@ -169,6 +177,7 @@ func applyEnvOverrides(cfg *Config) {
 	setString("STUDENT_TOKEN", &cfg.StudentToken)
 	setInt("RTC_MIN_PORT", &cfg.RTCMinPort)
 	setInt("RTC_MAX_PORT", &cfg.RTCMaxPort)
+	setInt("MAX_UPLOAD_MB", &cfg.MaxUploadMB)
 }
 
 func randomSecret(bytes int) string {
