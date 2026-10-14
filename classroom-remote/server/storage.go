@@ -37,6 +37,7 @@ func (s *Store) migrate() error {
 	_, err := s.db.Exec(`
 PRAGMA journal_mode=WAL;
 PRAGMA busy_timeout=5000;
+PRAGMA foreign_keys=ON;
 
 CREATE TABLE IF NOT EXISTS snapshots (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
