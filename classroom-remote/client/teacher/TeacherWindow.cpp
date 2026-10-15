@@ -9,6 +9,8 @@
 #include "../common/AnnotationOverlay.h"
 
 #include <QBuffer>
+#include <QRadioButton>
+#include <QButtonGroup>
 #include <QScreenCapture>
 #include <QMediaRecorder>
 #include <QMediaPlayer>
@@ -225,8 +227,19 @@ TeacherWindow::TeacherWindow(QWidget* parent)
 
     auto* right = new QWidget;
     auto* rv = new QVBoxLayout(right);
-    rv->addWidget(new QLabel("<b>Участники</b>"));
+    rv->addWidget(new QLabel("<b>Выберите ученика</b>"));
+
+    selectedStudentLabel_ = new QLabel("Никто не выбран");
+    selectedStudentLabel_->setWordWrap(true);
+    selectedStudentLabel_->setStyleSheet(
+        "background:#0f172a;color:#cbd5e1;padding:8px;border-radius:6px;");
+    rv->addWidget(selectedStudentLabel_);
+
     students_ = new QListWidget;
+    students_->setSelectionMode(QAbstractItemView::NoSelection);
+    students_->setSpacing(2);
+    studentButtons_ = new QButtonGroup(this);
+    studentButtons_->setExclusive(true);
     rv->addWidget(students_, 1);
 
     auto* viewBtn = new QPushButton("Посмотреть экран");
@@ -384,6 +397,14 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     connect(downloadBtn, &QPushButton::clicked, this, &TeacherWindow::downloadRecording);
     connect(downloadZipBtn, &QPushButton::clicked, this, &TeacherWindow::downloadFramesZip);
 
+    connect(students_, &QListWidget::itemClicked, this, [this](QListWidgetItem* item) {
+        if (!item) return;
+        if (auto* row = students_->itemWidget(item)) {
+            if (auto* radio = row->findChild<QRadioButton*>())
+                radio->setChecked(true);
+        }
+    });
+
     connect(remoteView_, &RemoteView::remoteEvent, this, [this](const QJsonObject& e) {
         rtc_->sendText(e);
     });
@@ -490,43 +511,85 @@ void TeacherWindow::onMessage(const QJsonObject& obj) {
         return;
     }
     if (type == "presence") {
+        const QString keepSelected = selectedStudentId_;
         students_->clear();
+        for (auto* button : studentButtons_->buttons())
+            studentButtons_->removeButton(button);
         names_.clear();
+
+        bool selectedStillOnline = false;
         for (const auto& v : obj.value("users").toArray()) {
             const auto u = v.toObject();
             if (u.value("role").toString() != "student")
                 continue;
-            const auto id = u.value("id").toString();
-            const auto name = u.value("name").toString();
+
+            const QString id = u.value("id").toString();
+            const QString name = u.value("name").toString();
             names_[id] = name;
+
             QStringList badges;
-            if (u.value("hand_raised").toBool()) badges << "✋";
+            if (u.value("hand_raised").toBool()) badges << "✋ рука";
             if (!u.value("rtc_ready").toBool()) badges << "RTC?";
             if (!u.value("watching").toBool()) badges << "не смотрит";
             if (u.value("homework_busy").toBool()) badges << "сдаёт ДЗ";
             const QString state = u.value("status").toString();
             if (state == "minimized") badges << "свёрнуто";
             else if (state == "background") badges << "фон";
-            QString text = "● " + name;
-            if (!badges.isEmpty()) text += "  [" + badges.join(", ") + "]";
-            auto* item = new QListWidgetItem(text);
+
+            auto* item = new QListWidgetItem;
             item->setData(Qt::UserRole, id);
+            item->setSizeHint(QSize(260, badges.isEmpty() ? 46 : 62));
             students_->addItem(item);
+
+            auto* row = new QWidget;
+            auto* layout = new QVBoxLayout(row);
+            layout->setContentsMargins(8, 4, 8, 4);
+            layout->setSpacing(1);
+
+            auto* radio = new QRadioButton(name);
+            radio->setProperty("student_id", id);
+            radio->setStyleSheet("QRadioButton{font-weight:600;font-size:14px;}");
+            studentButtons_->addButton(radio);
+            layout->addWidget(radio);
+
+            auto* status = new QLabel(badges.isEmpty()
+                ? "● онлайн"
+                : "● онлайн · " + badges.join(" · "));
+            status->setStyleSheet(badges.isEmpty()
+                ? "color:#22c55e;font-size:11px;"
+                : "color:#f59e0b;font-size:11px;");
+            layout->addWidget(status);
+
+            students_->setItemWidget(item, row);
+
+            connect(radio, &QRadioButton::toggled, this,
+                    [this, id, name, row](bool checked) {
+                if (!checked) {
+                    row->setStyleSheet(QString());
+                    return;
+                }
+                selectedStudentId_ = id;
+                selectedStudentLabel_->setText("Выбран: <b>" + name.toHtmlEscaped() + "</b>");
+                selectedStudentLabel_->setStyleSheet(
+                    "background:#1d4ed8;color:white;padding:8px;border-radius:6px;");
+                row->setStyleSheet(
+                    "background:#dbeafe;border:1px solid #3b82f6;border-radius:6px;");
+            });
+
+            if (id == keepSelected) {
+                selectedStillOnline = true;
+                radio->setChecked(true);
+            }
         }
-    } else if (type == "hand_raise") {
-        const auto id = obj.value("student_id").toString();
-        for (int i = 0; i < students_->count(); ++i) {
-            auto* item = students_->item(i);
-            if (item->data(Qt::UserRole).toString() == id)
-                item->setText("✋ " + names_.value(id, id));
+
+        if (!selectedStillOnline) {
+            selectedStudentId_.clear();
+            selectedStudentLabel_->setText("Никто не выбран");
+            selectedStudentLabel_->setStyleSheet(
+                "background:#0f172a;color:#cbd5e1;padding:8px;border-radius:6px;");
         }
-    } else if (type == "hand_down") {
-        const auto id = obj.value("student_id").toString();
-        for (int i = 0; i < students_->count(); ++i) {
-            auto* item = students_->item(i);
-            if (item->data(Qt::UserRole).toString() == id)
-                item->setText("● " + names_.value(id, id));
-        }
+    } else if (type == "hand_raise" || type == "hand_down") {
+        // Актуальный статус руки приходит следом в presence и обновляет строку ученика.
     } else if (type == "poll_answer") {
         if (obj.value("poll_id").toString() == activePollId_) {
             const int answer = obj.value("answer").toInt(-1);
@@ -548,8 +611,7 @@ void TeacherWindow::onMessage(const QJsonObject& obj) {
 }
 
 QString TeacherWindow::selectedStudentId() const {
-    auto* item = students_->currentItem();
-    return item ? item->data(Qt::UserRole).toString() : QString{};
+    return selectedStudentId_;
 }
 
 void TeacherWindow::sendToSelected(const QString& type) {
