@@ -1,0 +1,92 @@
+name: Publish Classroom Remote Release
+
+permissions:
+  contents: write
+  actions: read
+
+on:
+  push:
+    paths:
+      - ".github/workflows/classroom-remote-release.yml"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Windows clients
+        uses: actions/download-artifact@v4
+        with:
+          name: classroom-remote-windows
+          path: staging/clients
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: 38625082812
+
+      - name: Download Windows server
+        uses: actions/download-artifact@v4
+        with:
+          name: classroom-server-windows-amd64
+          path: staging/server
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: 38618725404
+
+      - name: Assemble full Windows package
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf release
+          mkdir -p release/ClassroomRemote-Windows-Full-Interactive-GUI/{Server,Teacher,Student}
+
+          cp -a staging/server/. release/ClassroomRemote-Windows-Full-Interactive-GUI/Server/
+          cp -a staging/clients/teacher/. release/ClassroomRemote-Windows-Full-Interactive-GUI/Teacher/
+          cp -a staging/clients/student/. release/ClassroomRemote-Windows-Full-Interactive-GUI/Student/
+
+          cat > release/ClassroomRemote-Windows-Full-Interactive-GUI/README-FIRST.txt <<'EOF'
+          Classroom Remote v1.0.0
+
+          Server:
+            1. Run Server/windows-firewall.bat as Administrator once.
+            2. Run Server/start-server.bat.
+
+          Teacher:
+            Run Teacher/ClassroomTeacher.exe.
+
+          Student:
+            Run Student/ClassroomStudent.exe.
+
+          This build includes:
+          - camera / screen / local video-file broadcast
+          - local MP4 recording
+          - lessons, materials and homework
+          - synchronized annotations
+          - live polls
+          - public/private lesson chat
+          - attendance tracking
+          - student live status
+          - automatic reconnect
+          - quick lesson files
+          - screenshot attachment to homework
+
+          Teacher and Student are Windows GUI subsystem executables and do not open a console window.
+          EOF
+
+          cd release
+          zip -r -9 ClassroomRemote-Windows-Full-Interactive-GUI.zip ClassroomRemote-Windows-Full-Interactive-GUI
+          sha256sum ClassroomRemote-Windows-Full-Interactive-GUI.zip > ClassroomRemote-Windows-Full-Interactive-GUI.zip.sha256
+
+      - name: Create release and upload assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euxo pipefail
+          TAG="classroom-remote-v1.0.0"
+          TITLE="Classroom Remote v1.0.0"
+          NOTES=$'Windows full package for Classroom Remote.\n\nIncludes Server, Teacher and Student with Qt/OpenH264/Opus/OpenSSL runtime, interactive lesson features, homework, attendance, chat, polls, annotations, quick files, reconnect, recording and GUI-subsystem clients without console windows.'
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG"               release/ClassroomRemote-Windows-Full-Interactive-GUI.zip               release/ClassroomRemote-Windows-Full-Interactive-GUI.zip.sha256               --clobber
+          else
+            gh release create "$TAG"               release/ClassroomRemote-Windows-Full-Interactive-GUI.zip               release/ClassroomRemote-Windows-Full-Interactive-GUI.zip.sha256               --target "${GITHUB_SHA}"               --title "$TITLE"               --notes "$NOTES"
+          fi
