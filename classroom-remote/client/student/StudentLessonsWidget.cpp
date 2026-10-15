@@ -1,4 +1,5 @@
 #include "StudentLessonsWidget.h"
+#include "ScreenshotCapture.h"
 #include "../common/LearningApi.h"
 
 #include <QDateTime>
@@ -203,23 +204,24 @@ void StudentLessonsWidget::addFiles() {
 }
 
 void StudentLessonsWidget::addScreenshot() {
-    QScreen* screen = QGuiApplication::primaryScreen();
-    if (!screen) {
-        QMessageBox::warning(this, "Скриншот", "Экран не найден.");
+    QString source;
+    const QImage image = ScreenshotCapture::capture(this, &source);
+    if (image.isNull()) {
+        status_->setText("Скриншот отменён");
         return;
     }
 
     const QString path = QDir::temp().filePath(
         QString("classroom-result-%1.png")
             .arg(QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss-zzz")));
-    if (!screen->grabWindow(0).save(path, "PNG")) {
+    if (!image.save(path, "PNG")) {
         QMessageBox::warning(this, "Скриншот", "Не удалось сохранить скриншот.");
         return;
     }
 
     files_ << path;
-    selectedFiles_->addItem("📷 " + path);
-    status_->setText("Скриншот добавлен к домашней работе");
+    selectedFiles_->addItem("📷 " + source);
+    status_->setText("Скриншот добавлен к ДЗ: " + source);
 }
 
 void StudentLessonsWidget::submit() {
