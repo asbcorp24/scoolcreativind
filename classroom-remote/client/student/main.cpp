@@ -3,10 +3,12 @@
 #include <QUrl>
 #include "StudentWindow.h"
 #include "../common/InviteLink.h"
+#include "../common/SciTheme.h"
 
 int main(int argc, char** argv) {
     QApplication app(argc, argv);
     QApplication::setApplicationName("Classroom Student");
+    SciTheme::apply(app);
 
     InviteLink::registerProtocol("classroomstudent", "Classroom Student Invite");
 
