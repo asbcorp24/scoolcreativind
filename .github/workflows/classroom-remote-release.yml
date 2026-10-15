@@ -90,19 +90,56 @@ jobs:
           cp -a staging/linux-server/. linux-release/classroom-server-linux-amd64/
 
           cat > linux-release/classroom-server-linux-amd64/README-LINUX.txt <<'EOF'
-          Classroom Remote Server for Linux x86_64
+          Classroom Remote Server for Debian / Ubuntu x86_64
 
-          Quick start:
-            chmod +x classroom-server
-            ./classroom-server
+          QUICK INSTALL
+          =============
+          1. Extract:
+             tar -xzf classroom-server-linux-amd64.tar.gz
+             cd classroom-server-linux-amd64
 
-          Recommended:
-            - run behind a systemd service
-            - open TCP 8080 and required WebRTC/TURN UDP ranges
-            - configure PUBLIC_IP / DOMAIN / HTTPS as needed
-            - keep data/ and storage/ on persistent disk
+          2. Install as system service:
+             sudo ./install.sh
 
-          This is the server-only package. Teacher and Student clients are Windows GUI applications.
+          3. Check:
+             systemctl status classroom-remote
+
+          4. Logs:
+             journalctl -u classroom-remote -f
+
+          INSTALL PATHS
+          =============
+          Binary/config:
+             /opt/classroom-remote/
+
+          Persistent data:
+             /var/lib/classroom-remote/
+
+          Environment:
+             /etc/classroom-remote/classroom-remote.env
+
+          Service:
+             /etc/systemd/system/classroom-remote.service
+
+          DEFAULT PORTS
+          =============
+          TCP 8080       HTTP/WebSocket
+          TCP/UDP 3478   TURN/STUN
+          UDP 50000-50100 WebRTC media
+          UDP 49160-49260 TURN relay
+
+          Configure PUBLIC_IP / DOMAIN / HTTPS / tokens in:
+             /etc/classroom-remote/classroom-remote.env
+
+          Commands:
+             sudo systemctl start classroom-remote
+             sudo systemctl stop classroom-remote
+             sudo systemctl restart classroom-remote
+             sudo systemctl status classroom-remote
+             sudo journalctl -u classroom-remote -f
+
+          Remove:
+             sudo ./uninstall.sh
           EOF
 
           cat > linux-release/classroom-server-linux-amd64/start-server.sh <<'EOF'
@@ -111,7 +148,145 @@ jobs:
           cd "$(dirname "$0")"
           exec ./classroom-server "$@"
           EOF
+
+          cat > linux-release/classroom-server-linux-amd64/classroom-remote.service <<'EOF'
+          [Unit]
+          Description=Classroom Remote Server
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=simple
+          User=classroom-remote
+          Group=classroom-remote
+          WorkingDirectory=/opt/classroom-remote
+          EnvironmentFile=-/etc/classroom-remote/classroom-remote.env
+          ExecStart=/opt/classroom-remote/classroom-server
+          Restart=on-failure
+          RestartSec=3
+          TimeoutStopSec=15
+          LimitNOFILE=65536
+
+          # Persistent paths
+          StateDirectory=classroom-remote
+          StateDirectoryMode=0750
+
+          # Basic hardening
+          NoNewPrivileges=true
+          PrivateTmp=true
+          ProtectSystem=full
+          ProtectHome=true
+          ReadWritePaths=/var/lib/classroom-remote /opt/classroom-remote
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
+          cat > linux-release/classroom-server-linux-amd64/classroom-remote.env.example <<'EOF'
+          # Classroom Remote server environment
+          # Copy is installed as /etc/classroom-remote/classroom-remote.env
+
+          HTTP_ADDR=:8080
+          HTTPS_ADDR=:443
+
+          STORAGE_DIR=/var/lib/classroom-remote/storage
+          DB_PATH=/var/lib/classroom-remote/classroom.db
+
+          # Change these before exposing the server to the Internet.
+          # TEACHER_TOKEN=
+          # STUDENT_TOKEN=
+
+          # Public deployment examples:
+          # PUBLIC_IP=203.0.113.10
+          # DOMAIN=classroom.example.org
+          # ACME_EMAIL=admin@example.org
+
+          # TURN/STUN
+          TURN_ADDR=:3478
+          WEBRTC_UDP_MIN=50000
+          WEBRTC_UDP_MAX=50100
+          TURN_RELAY_MIN=49160
+          TURN_RELAY_MAX=49260
+
+          MAX_UPLOAD_MB=50
+
+          # Optional:
+          # FFMPEG_PATH=/usr/bin/ffmpeg
+          EOF
+
+          cat > linux-release/classroom-server-linux-amd64/install.sh <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          if [[ ${EUID} -ne 0 ]]; then
+            echo "Run as root: sudo ./install.sh"
+            exit 1
+          fi
+
+          SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          INSTALL_DIR="/opt/classroom-remote"
+          DATA_DIR="/var/lib/classroom-remote"
+          ETC_DIR="/etc/classroom-remote"
+          SERVICE_FILE="/etc/systemd/system/classroom-remote.service"
+
+          if ! id classroom-remote >/dev/null 2>&1; then
+            useradd --system --home "$DATA_DIR" --shell /usr/sbin/nologin classroom-remote
+          fi
+
+          install -d -m 0755 "$INSTALL_DIR"
+          install -d -o classroom-remote -g classroom-remote -m 0750 "$DATA_DIR"
+          install -d -o classroom-remote -g classroom-remote -m 0750 "$DATA_DIR/storage"
+          install -d -m 0750 "$ETC_DIR"
+
+          install -m 0755 "$SRC_DIR/classroom-server" "$INSTALL_DIR/classroom-server"
+          install -m 0644 "$SRC_DIR/classroom-remote.service" "$SERVICE_FILE"
+
+          if [[ ! -f "$ETC_DIR/classroom-remote.env" ]]; then
+            install -m 0640 "$SRC_DIR/classroom-remote.env.example" "$ETC_DIR/classroom-remote.env"
+          fi
+
+          chown -R root:root "$INSTALL_DIR"
+          chown -R classroom-remote:classroom-remote "$DATA_DIR"
+          chown root:classroom-remote "$ETC_DIR/classroom-remote.env"
+
+          systemctl daemon-reload
+          systemctl enable classroom-remote
+          systemctl restart classroom-remote
+
+          echo
+          echo "Classroom Remote installed."
+          echo "Status: systemctl status classroom-remote"
+          echo "Logs:   journalctl -u classroom-remote -f"
+          echo "Config: $ETC_DIR/classroom-remote.env"
+          EOF
+
+          cat > linux-release/classroom-server-linux-amd64/uninstall.sh <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          if [[ ${EUID} -ne 0 ]]; then
+            echo "Run as root: sudo ./uninstall.sh"
+            exit 1
+          fi
+
+          systemctl disable --now classroom-remote 2>/dev/null || true
+          rm -f /etc/systemd/system/classroom-remote.service
+          systemctl daemon-reload
+
+          rm -rf /opt/classroom-remote
+
+          echo "Program removed."
+          echo "Persistent data was kept in /var/lib/classroom-remote"
+          echo "Configuration was kept in /etc/classroom-remote"
+          echo
+          echo "To remove everything manually:"
+          echo "  rm -rf /var/lib/classroom-remote /etc/classroom-remote"
+          echo "  userdel classroom-remote 2>/dev/null || true"
+          EOF
+
           chmod +x linux-release/classroom-server-linux-amd64/start-server.sh
+          chmod +x linux-release/classroom-server-linux-amd64/install.sh
+          chmod +x linux-release/classroom-server-linux-amd64/uninstall.sh
           chmod +x linux-release/classroom-server-linux-amd64/classroom-server || true
 
           tar -C linux-release -czf release/classroom-server-linux-amd64.tar.gz classroom-server-linux-amd64
