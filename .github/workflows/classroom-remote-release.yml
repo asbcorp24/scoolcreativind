@@ -31,6 +31,15 @@ jobs:
           repository: ${{ github.repository }}
           run-id: 38618725404
 
+      - name: Download Linux server
+        uses: actions/download-artifact@v4
+        with:
+          name: classroom-server-linux-amd64
+          path: staging/linux-server
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: 38618725404
+
       - name: Assemble full Windows package
         shell: bash
         run: |
@@ -74,6 +83,39 @@ jobs:
           cd release
           zip -r -9 ClassroomRemote-Windows-Full-Interactive-GUI.zip ClassroomRemote-Windows-Full-Interactive-GUI
           sha256sum ClassroomRemote-Windows-Full-Interactive-GUI.zip > ClassroomRemote-Windows-Full-Interactive-GUI.zip.sha256
+
+          cd ..
+          rm -rf linux-release
+          mkdir -p linux-release/classroom-server-linux-amd64
+          cp -a staging/linux-server/. linux-release/classroom-server-linux-amd64/
+
+          cat > linux-release/classroom-server-linux-amd64/README-LINUX.txt <<'EOF'
+          Classroom Remote Server for Linux x86_64
+
+          Quick start:
+            chmod +x classroom-server
+            ./classroom-server
+
+          Recommended:
+            - run behind a systemd service
+            - open TCP 8080 and required WebRTC/TURN UDP ranges
+            - configure PUBLIC_IP / DOMAIN / HTTPS as needed
+            - keep data/ and storage/ on persistent disk
+
+          This is the server-only package. Teacher and Student clients are Windows GUI applications.
+          EOF
+
+          cat > linux-release/classroom-server-linux-amd64/start-server.sh <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          cd "$(dirname "$0")"
+          exec ./classroom-server "$@"
+          EOF
+          chmod +x linux-release/classroom-server-linux-amd64/start-server.sh
+          chmod +x linux-release/classroom-server-linux-amd64/classroom-server || true
+
+          tar -C linux-release -czf release/classroom-server-linux-amd64.tar.gz classroom-server-linux-amd64
+          sha256sum release/classroom-server-linux-amd64.tar.gz > release/classroom-server-linux-amd64.tar.gz.sha256
 
       - name: Create release and upload assets
         env:
