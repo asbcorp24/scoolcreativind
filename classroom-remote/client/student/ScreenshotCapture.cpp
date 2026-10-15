@@ -1,6 +1,10 @@
 #include "ScreenshotCapture.h"
 
 #include <QApplication>
+#include <algorithm>
+#include <QKeyEvent>
+#include <QHash>
+#include <QEventLoop>
 #include <QDialog>
 #include <QGuiApplication>
 #include <QInputDialog>
