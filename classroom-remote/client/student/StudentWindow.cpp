@@ -121,7 +121,7 @@ StudentWindow::StudentWindow(QWidget* parent)
     lecture_ = new QLabel("Ожидание трансляции преподавателя");
     lecture_->setAlignment(Qt::AlignCenter);
     lecture_->setMinimumSize(640, 360);
-    lecture_->setStyleSheet("background:#020617;color:white;font-size:24px;border-radius:10px;");
+    lecture_->setStyleSheet("background:#0c0f16;color:#f5f7ff;font-size:24px;border:1px solid rgba(255,255,255,28);border-radius:18px;");
     annotationOverlay_ = new AnnotationOverlay;
     annotationOverlay_->setEditable(false);
     liveStack->addWidget(lecture_);
@@ -130,6 +130,7 @@ StudentWindow::StudentWindow(QWidget* parent)
 
     hand_ = new QPushButton("✋ Поднять руку");
     hand_->setMinimumHeight(48);
+    hand_->setProperty("accent", "primary");
     liveLayout->addWidget(hand_);
 
     mainTabs_->addTab(livePage, "Урок сейчас");
