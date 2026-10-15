@@ -85,8 +85,10 @@ jobs:
           TITLE="Classroom Remote v1.0.0"
           NOTES=$'Windows full package for Classroom Remote.\n\nIncludes Server, Teacher and Student with Qt/OpenH264/Opus/OpenSSL runtime, interactive lesson features, homework, attendance, chat, polls, annotations, quick files, reconnect, recording and GUI-subsystem clients without console windows.'
 
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG"               release/ClassroomRemote-Windows-Full-Interactive-GUI.zip               release/ClassroomRemote-Windows-Full-Interactive-GUI.zip.sha256               --clobber
+          if gh release view "$TAG" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release upload "$TAG"               release/ClassroomRemote-Windows-Full-Interactive-GUI.zip               release/ClassroomRemote-Windows-Full-Interactive-GUI.zip.sha256               --clobber \
+              --repo "${GITHUB_REPOSITORY}"
           else
-            gh release create "$TAG"               release/ClassroomRemote-Windows-Full-Interactive-GUI.zip               release/ClassroomRemote-Windows-Full-Interactive-GUI.zip.sha256               --target "${GITHUB_SHA}"               --title "$TITLE"               --notes "$NOTES"
+            gh release create "$TAG"               release/ClassroomRemote-Windows-Full-Interactive-GUI.zip               release/ClassroomRemote-Windows-Full-Interactive-GUI.zip.sha256               --target "${GITHUB_SHA}"               --title "$TITLE"               --notes "$NOTES" \
+              --repo "${GITHUB_REPOSITORY}"
           fi
