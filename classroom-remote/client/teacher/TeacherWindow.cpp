@@ -173,7 +173,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     lecturePreview_ = new QLabel("Предпросмотр лекции");
     lecturePreview_->setAlignment(Qt::AlignCenter);
     lecturePreview_->setMinimumSize(640, 360);
-    lecturePreview_->setStyleSheet("background:#111827;color:#e5e7eb;font-size:22px;border-radius:8px;");
+    lecturePreview_->setStyleSheet("background:#0c0f16;color:#f5f7ff;font-size:22px;border:1px solid rgba(255,255,255,28);border-radius:18px;");
     annotationOverlay_ = new AnnotationOverlay;
     annotationOverlay_->setEditable(true);
     previewStack->addWidget(lecturePreview_);
@@ -232,7 +232,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     selectedStudentLabel_ = new QLabel("Никто не выбран");
     selectedStudentLabel_->setWordWrap(true);
     selectedStudentLabel_->setStyleSheet(
-        "background:#0f172a;color:#cbd5e1;padding:8px;border-radius:6px;");
+        "background:#0d1017;color:#cfd5e2;padding:10px;border:1px solid rgba(255,255,255,28);border-radius:12px;");
     rv->addWidget(selectedStudentLabel_);
 
     students_ = new QListWidget;
@@ -248,6 +248,18 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     auto* audioBtn = new QPushButton("Аудиодиалог");
     auto* downloadBtn = new QPushButton("Скачать запись MP4");
     auto* downloadZipBtn = new QPushButton("Скачать кадры ZIP");
+
+    screenBtn->setProperty("accent", "cyan");
+    cameraBtn->setProperty("accent", "cyan");
+    fileBtn->setProperty("accent", "primary");
+    stopLectureBtn->setProperty("accent", "danger");
+    recordCameraBtn->setProperty("accent", "primary");
+    recordScreenBtn->setProperty("accent", "primary");
+    stopRecordBtn->setProperty("accent", "danger");
+    viewBtn->setProperty("accent", "cyan");
+    controlBtn->setProperty("accent", "primary");
+    audioBtn->setProperty("accent", "success");
+    stopBtn->setProperty("accent", "danger");
     rv->addWidget(viewBtn);
     rv->addWidget(controlBtn);
     rv->addWidget(audioBtn);
@@ -571,9 +583,9 @@ void TeacherWindow::onMessage(const QJsonObject& obj) {
                 selectedStudentId_ = id;
                 selectedStudentLabel_->setText("Выбран: <b>" + name.toHtmlEscaped() + "</b>");
                 selectedStudentLabel_->setStyleSheet(
-                    "background:#1d4ed8;color:white;padding:8px;border-radius:6px;");
+                    "background:rgba(138,92,255,55);color:#ffffff;padding:10px;border:1px solid rgba(0,229,255,85);border-radius:12px;");
                 row->setStyleSheet(
-                    "background:#dbeafe;border:1px solid #3b82f6;border-radius:6px;");
+                    "background:rgba(138,92,255,32);border:1px solid rgba(0,229,255,90);border-radius:10px;");
             });
 
             if (id == keepSelected) {
