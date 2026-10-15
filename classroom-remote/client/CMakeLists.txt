@@ -48,6 +48,8 @@ add_library(classroom_common
     common/LearningApi.h
     common/AnnotationOverlay.cpp
     common/AnnotationOverlay.h
+    common/SciTheme.cpp
+    common/SciTheme.h
 )
 target_link_libraries(classroom_common
     PUBLIC
