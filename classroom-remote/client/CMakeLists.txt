@@ -85,6 +85,8 @@ add_executable(ClassroomStudent WIN32
     student/WinRemoteInput.h
     student/StudentLessonsWidget.cpp
     student/StudentLessonsWidget.h
+    student/ScreenshotCapture.cpp
+    student/ScreenshotCapture.h
 )
 target_link_libraries(ClassroomStudent PRIVATE classroom_common Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Multimedia)
 if(WIN32)
