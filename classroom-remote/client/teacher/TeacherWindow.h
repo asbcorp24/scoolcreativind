@@ -28,6 +28,8 @@ class RemoteView;
 class TeacherLessonsWidget;
 class AnnotationOverlay;
 class QPlainTextEdit;
+class QButtonGroup;
+class QRadioButton;
 
 class TeacherWindow final : public QMainWindow {
     Q_OBJECT
@@ -81,6 +83,8 @@ private:
     TeacherLessonsWidget* lessonsWidget_{};
     AnnotationOverlay* annotationOverlay_{};
     QListWidget* students_{};
+    QButtonGroup* studentButtons_{};
+    QLabel* selectedStudentLabel_{};
     QPushButton* micButton_{};
 
     QPlainTextEdit* chatLog_{};
@@ -112,6 +116,7 @@ private:
     QAudioBufferOutput* fileAudioBuffer_{};
 
     QHash<QString, QString> names_;
+    QString selectedStudentId_;
     QString activeStudent_;
     QString privateAudioTarget_;
     bool micOn_{false};
