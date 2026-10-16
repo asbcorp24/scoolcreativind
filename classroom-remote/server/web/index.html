@@ -25,9 +25,9 @@ label{display:block;margin:8px 0 5px}.small{font-size:13px}
 
 <div id="loginCard" class="card hidden">
 <h3>Вход в управление сервером</h3>
-<p class="muted">На компьютере самого сервера авторизация выполняется автоматически. При удалённом входе введите <code>teacher_token</code> один раз — дальше используется защищённая HttpOnly-cookie.</p>
+<p class="muted">На компьютере самого сервера авторизация выполняется автоматически. При удалённом входе введите пароль администратора. После успешного входа используется защищённая HttpOnly-cookie.</p>
 <div class="row">
-<input id="loginToken" class="grow" type="password" placeholder="teacher_token">
+<input id="loginPassword" class="grow" type="password" placeholder="Пароль администратора" autocomplete="current-password">
 <button class="primary" onclick="login()">Войти</button>
 </div>
 <div id="loginError" class="muted"></div>
@@ -125,10 +125,11 @@ async function init(){
 function showLogin(){ document.getElementById('loginCard').classList.remove('hidden'); document.getElementById('app').classList.add('hidden'); }
 function showApp(){ document.getElementById('loginCard').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); }
 async function login(){
-  const token=document.getElementById('loginToken').value.trim();
-  const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token}),credentials:'same-origin'});
-  if(!r.ok){ document.getElementById('loginError').textContent='Неверный teacher_token'; return; }
-  document.getElementById('loginToken').value='';
+  const password=document.getElementById('loginPassword').value;
+  const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password}),credentials:'same-origin'});
+  if(!r.ok){ document.getElementById('loginError').textContent='Неверный пароль'; return; }
+  document.getElementById('loginPassword').value='';
+  document.getElementById('loginError').textContent='';
   showApp(); await loadStatus(); await loadLessons();
 }
 async function logout(){ await fetch('/api/admin/logout',{method:'POST',credentials:'same-origin'}); showLogin(); }
