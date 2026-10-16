@@ -1,6 +1,7 @@
 #include "TeacherWindow.h"
 #include "RemoteView.h"
 #include "TeacherLessonsWidget.h"
+#include "RegionSelector.h"
 #include "../common/WsClient.h"
 #include "../common/RtcRelayClient.h"
 #include "../common/AudioPipe.h"
@@ -20,6 +21,11 @@
 #include <QWindowCapture>
 #include <QCapturableWindow>
 #include <QSettings>
+#include <QFileInfo>
+#include <QDir>
+#include <QDesktopServices>
+#include <QProcess>
+#include <QStandardPaths>
 #include <QAudioDevice>
 #include <QCameraDevice>
 #include <QScreenCapture>
@@ -132,6 +138,8 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     auto* screenBtn = new QPushButton("🖥 Экран");
     auto* cameraBtn = new QPushButton("🎥 Камера");
     auto* fileBtn = new QPushButton("▶ Видео-файл");
+    auto* presentationBtn = new QPushButton("📊 Презентация");
+    auto* regionBtn = new QPushButton("▱ Область экрана");
     auto* stopLectureBtn = new QPushButton("⏹ Остановить показ");
     micButton_ = new QPushButton("🎤 Микрофон");
 
@@ -172,10 +180,105 @@ TeacherWindow::TeacherWindow(QWidget* parent)
         QSettings s("SHKI", "ClassroomRemoteTeacher");
         s.setValue("devices/microphone_id", micCombo_->currentData().toByteArray());
     });
+    connect(presentationBtn, &QPushButton::clicked, this, [this] {
+        const QString file = QFileDialog::getOpenFileName(
+            this,
+            "Выберите презентацию",
+            QString(),
+            "Презентации (*.ppt *.pptx *.pdf);;PowerPoint (*.ppt *.pptx);;PDF (*.pdf)");
+        if (file.isEmpty())
+            return;
+
+        const QFileInfo info(file);
+        const QString suffix = info.suffix().toLower();
+        bool launched = false;
+
+#ifdef Q_OS_WIN
+        if (suffix == "ppt" || suffix == "pptx") {
+            const QString powerPoint = QStandardPaths::findExecutable("POWERPNT.EXE");
+            if (!powerPoint.isEmpty())
+                launched = QProcess::startDetached(powerPoint, {"/S", QDir::toNativeSeparators(file)});
+        }
+#endif
+        if (!launched)
+            launched = QDesktopServices::openUrl(QUrl::fromLocalFile(file));
+
+        if (!launched) {
+            QMessageBox::warning(this, "Презентация", "Не удалось открыть файл презентации.");
+            return;
+        }
+
+        status_->setText("Открываю презентацию…");
+        QTimer::singleShot(1800, this, [this, base = info.completeBaseName()] {
+            refreshCaptureSources();
+            int match = -1;
+            for (int i = 0; i < sourceCombo_->count(); ++i) {
+                const QString text = sourceCombo_->itemText(i);
+                if (text.contains(base, Qt::CaseInsensitive) ||
+                    text.contains("PowerPoint", Qt::CaseInsensitive) ||
+                    text.contains("Slide Show", Qt::CaseInsensitive) ||
+                    text.contains("Слайд", Qt::CaseInsensitive)) {
+                    match = i;
+                    break;
+                }
+            }
+
+            if (match >= 0) {
+                sourceCombo_->setCurrentIndex(match);
+                startScreenLecture();
+                status_->setText("Транслируется презентация");
+            } else {
+                status_->setText("Презентация открыта. Выберите её окно в списке «Источник» и нажмите «Экран».");
+            }
+        });
+    });
+
+    connect(regionBtn, &QPushButton::clicked, this, [this] {
+        const auto screens = QGuiApplication::screens();
+        if (screens.isEmpty())
+            return;
+
+        QScreen* screen = QGuiApplication::primaryScreen();
+        const QString data = sourceCombo_ ? sourceCombo_->currentData().toString() : QString();
+        if (data.startsWith("screen:")) {
+            bool ok = false;
+            const int index = data.mid(7).toInt(&ok);
+            if (ok && index >= 0 && index < screens.size())
+                screen = screens[index];
+        }
+
+        const int screenIndex = screens.indexOf(screen);
+        new RegionSelector(screen, [this, screenIndex](const QRect& region) {
+            const QString data = QString("area:%1:%2:%3:%4:%5")
+                .arg(screenIndex)
+                .arg(region.x())
+                .arg(region.y())
+                .arg(region.width())
+                .arg(region.height());
+            const QString label = QString("▱ Область %1×%2 (%3,%4)")
+                .arg(region.width()).arg(region.height()).arg(region.x()).arg(region.y());
+
+            const int existing = sourceCombo_->findData(data);
+            if (existing < 0)
+                sourceCombo_->addItem(label, data);
+
+            const int idx = sourceCombo_->findData(data);
+            if (idx >= 0)
+                sourceCombo_->setCurrentIndex(idx);
+
+            QSettings s("SHKI", "ClassroomRemoteTeacher");
+            s.setValue("capture/area_source", data);
+            s.setValue("capture/area_label", label);
+            status_->setText("Область экрана выбрана");
+        }, this);
+    });
+
 
     toolbar->addWidget(screenBtn);
     toolbar->addWidget(cameraBtn);
     toolbar->addWidget(fileBtn);
+    toolbar->addWidget(presentationBtn);
+    toolbar->addWidget(regionBtn);
     toolbar->addWidget(stopLectureBtn);
     toolbar->addWidget(micButton_);
     toolbar->addStretch();
@@ -230,6 +333,21 @@ TeacherWindow::TeacherWindow(QWidget* parent)
             const auto screens=QGuiApplication::screens();
             if (ok && index>=0 && index<screens.size())
                 showLocalPreview(screens[index]->grabWindow(0).toImage());
+            return;
+        }
+        if (data.startsWith("area:")) {
+            const QStringList p = data.split(':');
+            if (p.size() == 6) {
+                bool ok0=false, ok1=false, ok2=false, ok3=false, ok4=false;
+                const int index=p[1].toInt(&ok0);
+                const int x=p[2].toInt(&ok1);
+                const int y=p[3].toInt(&ok2);
+                const int w=p[4].toInt(&ok3);
+                const int h=p[5].toInt(&ok4);
+                const auto screens=QGuiApplication::screens();
+                if(ok0&&ok1&&ok2&&ok3&&ok4&&index>=0&&index<screens.size())
+                    showLocalPreview(screens[index]->grabWindow(0, x, y, w, h).toImage());
+            }
             return;
         }
         if (data.startsWith("window:")) {
@@ -649,14 +767,31 @@ TeacherWindow::TeacherWindow(QWidget* parent)
         if (!rtc_->isOpen() || !sourceCombo_)
             return;
         const QString data = sourceCombo_->currentData().toString();
-        if (!data.startsWith("screen:"))
-            return;
-        bool ok=false;
-        const int index=data.mid(7).toInt(&ok);
         const auto screens=QGuiApplication::screens();
-        if (!ok || index < 0 || index >= screens.size())
+
+        if (data.startsWith("screen:")) {
+            bool ok=false;
+            const int index=data.mid(7).toInt(&ok);
+            if (!ok || index < 0 || index >= screens.size())
+                return;
+            sendLectureImage(screens[index]->grabWindow(0).toImage());
             return;
-        sendLectureImage(screens[index]->grabWindow(0).toImage());
+        }
+
+        if (data.startsWith("area:")) {
+            const QStringList p = data.split(':');
+            if (p.size() != 6)
+                return;
+            bool ok0=false, ok1=false, ok2=false, ok3=false, ok4=false;
+            const int index=p[1].toInt(&ok0);
+            const int x=p[2].toInt(&ok1);
+            const int y=p[3].toInt(&ok2);
+            const int w=p[4].toInt(&ok3);
+            const int h=p[5].toInt(&ok4);
+            if(!ok0||!ok1||!ok2||!ok3||!ok4||index<0||index>=screens.size())
+                return;
+            sendLectureImage(screens[index]->grabWindow(0, x, y, w, h).toImage());
+        }
     });
 
     connect(viewBtn, &QPushButton::clicked, this, [this] {
@@ -1026,6 +1161,12 @@ void TeacherWindow::refreshCaptureSources() {
         sourceCombo_->addItem(QString("🖥 %1").arg(label), QString("screen:%1").arg(i));
     }
 
+    QSettings s("SHKI", "ClassroomRemoteTeacher");
+    const QString savedArea = s.value("capture/area_source").toString();
+    const QString savedAreaLabel = s.value("capture/area_label").toString();
+    if (savedArea.startsWith("area:"))
+        sourceCombo_->addItem(savedAreaLabel.isEmpty() ? "▱ Сохранённая область" : savedAreaLabel, savedArea);
+
     const auto windows = QWindowCapture::capturableWindows();
     for (int i = 0; i < windows.size(); ++i) {
         const QString title = windows[i].description().trimmed();
@@ -1116,7 +1257,8 @@ void TeacherWindow::startScreenLecture() {
     }
 
     screenTimer_->start();
-    ws_->send(QJsonObject{{"type", "lecture_state"}, {"mode", "screen"}, {"active", true}});
+    const QString lectureMode = source.startsWith("area:") ? "area" : "screen";
+    ws_->send(QJsonObject{{"type", "lecture_state"}, {"mode", lectureMode}, {"active", true}});
 }
 
 void TeacherWindow::startCameraLecture() {
