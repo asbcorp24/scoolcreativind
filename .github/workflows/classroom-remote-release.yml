@@ -20,7 +20,7 @@ jobs:
           path: staging/clients
           github-token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
-          run-id: 38727282704
+          run-id: 38934236926
 
       - name: Download Windows server
         uses: actions/download-artifact@v4
@@ -29,7 +29,7 @@ jobs:
           path: staging/server
           github-token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
-          run-id: 38618725404
+          run-id: 38933721699
 
       - name: Download Linux server
         uses: actions/download-artifact@v4
@@ -38,7 +38,7 @@ jobs:
           path: staging/linux-server
           github-token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
-          run-id: 38618725404
+          run-id: 38933721699
 
       - name: Assemble full Windows package
         shell: bash
@@ -51,6 +51,22 @@ jobs:
           cp -a staging/clients/teacher/. release/ClassroomRemote-Windows-Full-Interactive-GUI/Teacher/
           cp -a staging/clients/student/. release/ClassroomRemote-Windows-Full-Interactive-GUI/Student/
 
+          cat > release/ClassroomRemote-Windows-Full-Interactive-GUI/Teacher/config.json <<'EOF'
+          {
+            "server_url": "http://127.0.0.1:8080",
+            "lesson_id": "101",
+            "display_name": "Преподаватель"
+          }
+          EOF
+
+          cat > release/ClassroomRemote-Windows-Full-Interactive-GUI/Student/config.json <<'EOF'
+          {
+            "server_url": "http://127.0.0.1:8080",
+            "lesson_id": "101",
+            "display_name": "Ученик"
+          }
+          EOF
+
           cat > release/ClassroomRemote-Windows-Full-Interactive-GUI/README-FIRST.txt <<'EOF'
           Classroom Remote v1.0.0
 
@@ -60,9 +76,17 @@ jobs:
 
           Teacher:
             Run Teacher/ClassroomTeacher.exe.
+            Enter only the numeric teacher PIN.
+            Connection settings are stored in Teacher/config.json
+            and can also be changed via the Settings button.
 
           Student:
             Run Student/ClassroomStudent.exe.
+            Enter only the numeric student PIN.
+            Connection settings are stored in Student/config.json
+            and can also be changed via the Settings button.
+
+          PINs are never stored in the client config.json.
 
           This build includes:
           - camera / screen / local video-file broadcast
@@ -128,8 +152,21 @@ jobs:
           UDP 50000-50100 WebRTC media
           UDP 49160-49260 TURN relay
 
-          Configure PUBLIC_IP / DOMAIN / HTTPS / tokens in:
-             /etc/classroom-remote/classroom-remote.env
+          Main server config:
+             /var/lib/classroom-remote/config.json
+
+          On first start the server creates config.json with random:
+             teacher_token
+             student_token
+             teacher_pin
+             student_pin
+             TURN password
+
+          Show the current numeric PINs:
+             sudo grep -E '"(teacher_pin|student_pin)"' /var/lib/classroom-remote/config.json
+
+          After editing config.json:
+             sudo systemctl restart classroom-remote
 
           Commands:
              sudo systemctl start classroom-remote
@@ -161,7 +198,7 @@ jobs:
           Group=classroom-remote
           WorkingDirectory=/opt/classroom-remote
           EnvironmentFile=-/etc/classroom-remote/classroom-remote.env
-          ExecStart=/opt/classroom-remote/classroom-server
+          ExecStart=/opt/classroom-remote/classroom-server -config /var/lib/classroom-remote/config.json
           Restart=on-failure
           RestartSec=3
           TimeoutStopSec=15
@@ -195,6 +232,10 @@ jobs:
           # Change these before exposing the server to the Internet.
           # TEACHER_TOKEN=
           # STUDENT_TOKEN=
+
+          # Optional numeric PIN overrides (4-10 digits)
+          # TEACHER_PIN=
+          # STUDENT_PIN=
 
           # Public deployment examples:
           # PUBLIC_IP=203.0.113.10
@@ -253,11 +294,22 @@ jobs:
           systemctl enable classroom-remote
           systemctl restart classroom-remote
 
+          CONFIG_JSON="$DATA_DIR/config.json"
+          for _ in $(seq 1 30); do
+            [[ -f "$CONFIG_JSON" ]] && break
+            sleep 0.2
+          done
+
           echo
           echo "Classroom Remote installed."
           echo "Status: systemctl status classroom-remote"
           echo "Logs:   journalctl -u classroom-remote -f"
-          echo "Config: $ETC_DIR/classroom-remote.env"
+          echo "Config: $CONFIG_JSON"
+          if [[ -f "$CONFIG_JSON" ]]; then
+            echo
+            echo "Numeric login PINs:"
+            grep -E '"(teacher_pin|student_pin)"' "$CONFIG_JSON" || true
+          fi
           EOF
 
           cat > linux-release/classroom-server-linux-amd64/uninstall.sh <<'EOF'
