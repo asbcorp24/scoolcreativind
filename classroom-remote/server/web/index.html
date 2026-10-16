@@ -43,6 +43,30 @@ label{display:block;margin:8px 0 5px}.small{font-size:13px}
 </div>
 
 <div class="card">
+<h3>Доступ к занятиям</h3>
+<p class="muted">Эти 6-значные PIN вводятся в приложениях преподавателя и ученика. Новый PIN начинает работать сразу; старый перестаёт приниматься.</p>
+<div class="grid">
+<div class="linkbox">
+  <b>Преподаватель</b>
+  <div class="row" style="margin-top:10px">
+    <input id="teacherPin" value="------" readonly style="max-width:160px;font-size:24px;font-weight:700;text-align:center;letter-spacing:4px">
+    <button onclick="copyPIN('teacher')">Копировать</button>
+    <button class="primary" onclick="regeneratePIN('teacher')">Новый PIN</button>
+  </div>
+</div>
+<div class="linkbox">
+  <b>Ученики</b>
+  <div class="row" style="margin-top:10px">
+    <input id="studentPin" value="------" readonly style="max-width:160px;font-size:24px;font-weight:700;text-align:center;letter-spacing:4px">
+    <button onclick="copyPIN('student')">Копировать</button>
+    <button class="student" onclick="regeneratePIN('student')">Новый PIN</button>
+  </div>
+</div>
+</div>
+<div id="pinStatus" class="muted small" style="margin-top:10px"></div>
+</div>
+
+<div class="card">
 <h3>Ссылки для подключения</h3>
 <p class="muted">Новая ссылка автоматически отзывает предыдущую ссылку той же роли для этого занятия.</p>
 <div class="row">
@@ -119,7 +143,7 @@ async function api(url, options={}){
 }
 async function init(){
   const r=await fetch('/api/admin/session',{credentials:'same-origin'});
-  if(r.ok){ showApp(); await loadStatus(); await loadLessons(); }
+  if(r.ok){ showApp(); await loadStatus(); await loadAccessPINs(); await loadLessons(); }
   else showLogin();
 }
 function showLogin(){ document.getElementById('loginCard').classList.remove('hidden'); document.getElementById('app').classList.add('hidden'); }
@@ -130,9 +154,41 @@ async function login(){
   if(!r.ok){ document.getElementById('loginError').textContent='Неверный пароль'; return; }
   document.getElementById('loginPassword').value='';
   document.getElementById('loginError').textContent='';
-  showApp(); await loadStatus(); await loadLessons();
+  showApp(); await loadStatus(); await loadAccessPINs(); await loadLessons();
 }
 async function logout(){ await fetch('/api/admin/logout',{method:'POST',credentials:'same-origin'}); showLogin(); }
+async function loadAccessPINs(){
+  const r=await api('/api/admin/access-pins'); if(!r.ok)return;
+  const d=await r.json();
+  document.getElementById('teacherPin').value=d.teacher_pin||'------';
+  document.getElementById('studentPin').value=d.student_pin||'------';
+}
+async function copyPIN(role){
+  const id=role==='teacher'?'teacherPin':'studentPin';
+  const value=document.getElementById(id).value;
+  try{
+    await navigator.clipboard.writeText(value);
+    document.getElementById('pinStatus').textContent='PIN скопирован';
+  }catch(e){
+    document.getElementById(id).select();
+    document.execCommand('copy');
+    document.getElementById('pinStatus').textContent='PIN скопирован';
+  }
+}
+async function regeneratePIN(role){
+  const name=role==='teacher'?'преподавателя':'учеников';
+  if(!confirm('Сгенерировать новый PIN для '+name+'? Старый PIN сразу перестанет работать.'))return;
+  const r=await api('/api/admin/access-pins/regenerate',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({role})
+  });
+  if(!r.ok){ document.getElementById('pinStatus').textContent=await r.text(); return; }
+  const d=await r.json();
+  document.getElementById('teacherPin').value=d.teacher_pin||'------';
+  document.getElementById('studentPin').value=d.student_pin||'------';
+  document.getElementById('pinStatus').textContent='Новый PIN для '+name+' сохранён и уже действует';
+}
 async function loadStatus(){
   const r=await api('/api/admin/status'); if(!r.ok)return;
   const d=await r.json(); maxUploadMB=d.max_upload_mb||50;
