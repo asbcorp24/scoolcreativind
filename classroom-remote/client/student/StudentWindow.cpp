@@ -128,6 +128,8 @@ StudentWindow::StudentWindow(QWidget* parent)
     annotationOverlay_->setEditable(false);
     liveStack->addWidget(lecture_);
     liveStack->addWidget(annotationOverlay_);
+    liveStack->setCurrentWidget(annotationOverlay_);
+    annotationOverlay_->raise();
     liveLayout->addWidget(liveStackHost, 1);
 
     hand_ = new QPushButton("✋ Поднять руку");
