@@ -1,6 +1,7 @@
 #include "AudioPipe.h"
 
 #include <QAudioFormat>
+#include <QAudioDevice>
 #include <QAudioSink>
 #include <QAudioSource>
 #include <QIODevice>
@@ -22,8 +23,11 @@ AudioPipe::~AudioPipe() {
 }
 
 bool AudioPipe::startCapture() {
+    return startCapture(QMediaDevices::defaultAudioInput());
+}
+
+bool AudioPipe::startCapture(const QAudioDevice& device) {
     stopCapture();
-    const auto device = QMediaDevices::defaultAudioInput();
     if (device.isNull())
         return false;
 
