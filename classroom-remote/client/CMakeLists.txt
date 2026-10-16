@@ -50,6 +50,8 @@ add_library(classroom_common
     common/AnnotationOverlay.h
     common/SciTheme.cpp
     common/SciTheme.h
+    common/ClientConfig.cpp
+    common/ClientConfig.h
 )
 target_link_libraries(classroom_common
     PUBLIC
