@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Config struct {
@@ -20,8 +22,11 @@ type Config struct {
 	PublicIP       string `json:"public_ip"`
 	StorageDir     string `json:"storage_dir"`
 	DBPath         string `json:"db_path"`
-	TeacherToken   string `json:"teacher_token"`
-	StudentToken   string `json:"student_token"`
+	TeacherToken           string `json:"teacher_token"`
+	StudentToken           string `json:"student_token"`
+	AdminPassword          string `json:"admin_password,omitempty"`
+	AdminPasswordHash      string `json:"admin_password_hash,omitempty"`
+	GeneratedAdminPassword string `json:"-"`
 	TeacherPIN     string `json:"teacher_pin"`
 	StudentPIN     string `json:"student_pin"`
 	RTCMinPort     int    `json:"rtc_min_port"`
@@ -75,6 +80,24 @@ func loadConfig(path string) (Config, bool, error) {
 	}
 	if cfg.StudentToken == "" {
 		cfg.StudentToken = randomSecret(32)
+		changed = true
+	}
+	if cfg.AdminPassword != "" {
+		hash, err := bcrypt.GenerateFromPassword([]byte(cfg.AdminPassword), bcrypt.DefaultCost)
+		if err != nil {
+			return Config{}, false, fmt.Errorf("hash admin password: %w", err)
+		}
+		cfg.AdminPasswordHash = string(hash)
+		cfg.AdminPassword = ""
+		changed = true
+	} else if cfg.AdminPasswordHash == "" {
+		password := randomAdminPassword()
+		hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			return Config{}, false, fmt.Errorf("hash generated admin password: %w", err)
+		}
+		cfg.AdminPasswordHash = string(hash)
+		cfg.GeneratedAdminPassword = password
 		changed = true
 	}
 	if cfg.TeacherPIN == "" {
@@ -195,9 +218,16 @@ func applyEnvOverrides(cfg *Config) {
 	setString("STUDENT_TOKEN", &cfg.StudentToken)
 	setString("TEACHER_PIN", &cfg.TeacherPIN)
 	setString("STUDENT_PIN", &cfg.StudentPIN)
+	setString("ADMIN_PASSWORD", &cfg.AdminPassword)
 	setInt("RTC_MIN_PORT", &cfg.RTCMinPort)
 	setInt("RTC_MAX_PORT", &cfg.RTCMaxPort)
 	setInt("MAX_UPLOAD_MB", &cfg.MaxUploadMB)
+	if cfg.AdminPassword != "" {
+		if hash, err := bcrypt.GenerateFromPassword([]byte(cfg.AdminPassword), bcrypt.DefaultCost); err == nil {
+			cfg.AdminPasswordHash = string(hash)
+			cfg.AdminPassword = ""
+		}
+	}
 }
 
 func randomSecret(bytes int) string {
@@ -206,6 +236,10 @@ func randomSecret(bytes int) string {
 		panic(err)
 	}
 	return hex.EncodeToString(buf)
+}
+
+func randomAdminPassword() string {
+	return "admin-" + randomSecret(8)
 }
 
 func randomNumericPIN(length int) string {
