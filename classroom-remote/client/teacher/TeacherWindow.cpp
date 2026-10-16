@@ -461,6 +461,13 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     connect(taskTimerStart, &QPushButton::clicked, this, [this] {
         taskRemainingSeconds_ = taskMinutes_->value() * 60;
         taskTimer_->start();
+        if (ws_->isConnected()) {
+            ws_->send(QJsonObject{
+                {"type", "task_timer"},
+                {"active", true},
+                {"seconds", taskRemainingSeconds_}
+            });
+        }
     });
     connect(taskTimer_, &QTimer::timeout, this, [this] {
         if (taskRemainingSeconds_ <= 0) {
@@ -1112,6 +1119,15 @@ void TeacherWindow::onMessage(const QJsonObject& obj) {
         }
     } else if (type == "hand_raise" || type == "hand_down") {
         // Актуальный статус руки приходит следом в presence и обновляет строку ученика.
+    } else if (type == "student_confused") {
+        const QString name = obj.value("student_name").toString();
+        const bool active = obj.value("active").toBool();
+        if (active) {
+            status_->setText("❓ " + (name.isEmpty() ? QString("Ученик") : name) + " не понял материал");
+            QApplication::beep();
+        } else {
+            status_->setText((name.isEmpty() ? QString("Ученик") : name) + " снял отметку «Не понял»");
+        }
     } else if (type == "poll_answer") {
         if (obj.value("poll_id").toString() == activePollId_) {
             const int answer = obj.value("answer").toInt(-1);
