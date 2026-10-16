@@ -1051,7 +1051,8 @@ void TeacherWindow::applySelectedQuality() {
     const int fps = qBound(1, m.captured(3).toInt(), 30);
     const int bitrate = width >= 1920 ? 3500000 : (width >= 1280 ? 1800000 : 900000);
     codec_->initialize(width, height, fps, bitrate, 64000);
-    screenTimer_->setInterval(qMax(33, 1000 / fps));
+    selectedFrameIntervalMs_ = qMax(33, 1000 / fps);
+    screenTimer_->setInterval(selectedFrameIntervalMs_);
     codec_->requestKeyframe();
 }
 
@@ -1093,8 +1094,13 @@ void TeacherWindow::startScreenLecture() {
         windowCaptureSink_ = new QVideoSink(this);
         windowCaptureSession_->setWindowCapture(windowCapture_);
         windowCaptureSession_->setVideoSink(windowCaptureSink_);
+        lastWindowSendMs_ = 0;
         connect(windowCaptureSink_, &QVideoSink::videoFrameChanged, this, [this](const QVideoFrame& frame) {
             if (!rtc_->isOpen()) return;
+            const qint64 now = QDateTime::currentMSecsSinceEpoch();
+            if (now - lastWindowSendMs_ < selectedFrameIntervalMs_)
+                return;
+            lastWindowSendMs_ = now;
             const QImage image=frame.toImage();
             if (!image.isNull())
                 sendLectureImage(image);
@@ -1162,7 +1168,7 @@ void TeacherWindow::startCameraLecture() {
         if (!rtc_->isOpen())
             return;
         const qint64 now = QDateTime::currentMSecsSinceEpoch();
-        if (now - lastCameraSendMs_ < 100)
+        if (now - lastCameraSendMs_ < selectedFrameIntervalMs_)
             return;
         lastCameraSendMs_ = now;
         const QImage image = frame.toImage();
@@ -1220,7 +1226,7 @@ void TeacherWindow::startFileLecture() {
             return;
 
         const qint64 now = QDateTime::currentMSecsSinceEpoch();
-        if (now - lastFileVideoSendMs_ < 90)
+        if (now - lastFileVideoSendMs_ < selectedFrameIntervalMs_)
             return;
         lastFileVideoSendMs_ = now;
 
@@ -1491,7 +1497,8 @@ void TeacherWindow::sendLectureImage(const QImage& source) {
     if (!rtc_->isOpen() || source.isNull())
         return;
 
-    const QImage image = source.scaled(1280, 720, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    const QImage image = source.scaled(codec_->width(), codec_->height(),
+                                       Qt::KeepAspectRatio, Qt::SmoothTransformation);
     showLocalPreview(image);
 
     const QByteArray h264 = codec_->encodeVideo(image);
