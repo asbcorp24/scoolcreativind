@@ -19,6 +19,7 @@ class AnnotationOverlay;
 class QPlainTextEdit;
 class QListWidget;
 class QTabWidget;
+class QDialog;
 
 class StudentWindow final : public QMainWindow {
     Q_OBJECT
@@ -63,6 +64,7 @@ private:
     StudentLessonsWidget* lessonsWidget_{};
     QPushButton* hand_{};
     QTabWidget* mainTabs_{};
+    QDialog* attentionDialog_{};
 
     QLabel* pollQuestion_{};
     QListWidget* pollOptions_{};
