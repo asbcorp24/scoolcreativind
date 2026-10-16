@@ -32,6 +32,10 @@ class QPlainTextEdit;
 class QButtonGroup;
 class QRadioButton;
 class QComboBox;
+class QSlider;
+class QProgressBar;
+class QSpinBox;
+class QWindowCapture;
 
 class TeacherWindow final : public QMainWindow {
     Q_OBJECT
@@ -70,6 +74,9 @@ private:
     void sendChat(bool privateMessage);
     QUrl httpBaseUrl() const;
     void updatePollStatus();
+    void launchQuickPoll(const QString& question, const QStringList& options);
+    void refreshCaptureSources();
+    void applySelectedQuality();
 
     WsClient* ws_{};
     RtcRelayClient* rtc_{};
@@ -92,8 +99,16 @@ private:
     QButtonGroup* studentButtons_{};
     QLabel* selectedStudentLabel_{};
     QPushButton* micButton_{};
+    QPushButton* muteButton_{};
     QComboBox* cameraCombo_{};
     QComboBox* micCombo_{};
+    QComboBox* sourceCombo_{};
+    QComboBox* qualityCombo_{};
+    QSlider* micVolume_{};
+    QProgressBar* micLevel_{};
+    QLabel* lessonTimerLabel_{};
+    QLabel* taskTimerLabel_{};
+    QSpinBox* taskMinutes_{};
 
     QPlainTextEdit* chatLog_{};
     QLineEdit* chatInput_{};
@@ -106,10 +121,15 @@ private:
     int pollResponses_{0};
 
     QTimer* screenTimer_{};
+    QTimer* lessonTimer_{};
+    QTimer* taskTimer_{};
     QNetworkAccessManager* network_{};
     QCamera* camera_{};
     QMediaCaptureSession* captureSession_{};
     QVideoSink* videoSink_{};
+    QWindowCapture* windowCapture_{};
+    QMediaCaptureSession* windowCaptureSession_{};
+    QVideoSink* windowCaptureSink_{};
 
     QMediaCaptureSession* recordingSession_{};
     QMediaRecorder* mediaRecorder_{};
@@ -128,6 +148,9 @@ private:
     QString activeStudent_;
     QString privateAudioTarget_;
     bool micOn_{false};
+    bool micMuted_{false};
+    int lessonElapsedSeconds_{0};
+    int taskRemainingSeconds_{0};
     qint64 lastCameraSendMs_{0};
     qint64 lastFileVideoSendMs_{0};
 };
