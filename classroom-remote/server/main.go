@@ -626,13 +626,16 @@ func main() {
 
 	r := chi.NewRouter()
 	pinAuthLimiter := newPINLimiter()
+	pinManager := newAdminPINManager(&cfg, *configPath)
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("ok")) })
-	r.Post("/api/client/login", pinLogin(cfg, pinAuthLimiter))
+	r.Post("/api/client/login", pinLogin(cfg, pinAuthLimiter, pinManager))
 	r.Get("/ws", wsHandler(hub, rtcRelay, auth, iceURLs, store, cfg.MaxUploadMB))
 
 	r.Get("/api/admin/session", adminSession(cfg))
 	r.Post("/api/admin/login", adminLogin(cfg))
 	r.Post("/api/admin/logout", adminLogout(cfg))
+	r.Get("/api/admin/access-pins", requireAdmin(cfg, pinManager.getHandler()))
+	r.Post("/api/admin/access-pins/regenerate", requireAdmin(cfg, pinManager.regenerateHandler()))
 	r.Post("/api/admin/invites",
 		requireAdmin(cfg, createInvitation(store, cfg)))
 	r.Get("/api/admin/status",
