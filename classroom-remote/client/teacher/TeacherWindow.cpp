@@ -228,6 +228,8 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     annotationOverlay_->setEditable(true);
     previewStack->addWidget(lecturePreview_);
     previewStack->addWidget(annotationOverlay_);
+    previewStack->setCurrentWidget(annotationOverlay_);
+    annotationOverlay_->raise();
     previewLayout->addWidget(previewStackHost, 1);
     tabs->addTab(previewPage, "Моя трансляция");
 
