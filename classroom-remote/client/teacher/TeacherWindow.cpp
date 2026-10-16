@@ -11,6 +11,10 @@
 #include <QBuffer>
 #include <QRadioButton>
 #include <QButtonGroup>
+#include <QComboBox>
+#include <QSettings>
+#include <QAudioDevice>
+#include <QCameraDevice>
 #include <QScreenCapture>
 #include <QMediaRecorder>
 #include <QMediaPlayer>
@@ -120,6 +124,45 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     auto* fileBtn = new QPushButton("▶ Видео-файл");
     auto* stopLectureBtn = new QPushButton("⏹ Остановить показ");
     micButton_ = new QPushButton("🎤 Микрофон");
+
+    cameraCombo_ = new QComboBox;
+    micCombo_ = new QComboBox;
+    cameraCombo_->setMinimumWidth(220);
+    micCombo_->setMinimumWidth(220);
+
+    QSettings deviceSettings("SHKI", "ClassroomRemoteTeacher");
+    const QByteArray savedCameraId = deviceSettings.value("devices/camera_id").toByteArray();
+    const QByteArray savedMicId = deviceSettings.value("devices/microphone_id").toByteArray();
+
+    int savedCameraIndex = -1;
+    const auto cameras = QMediaDevices::videoInputs();
+    for (int i = 0; i < cameras.size(); ++i) {
+        cameraCombo_->addItem(cameras[i].description(), cameras[i].id());
+        if (cameras[i].id() == savedCameraId)
+            savedCameraIndex = i;
+    }
+    if (savedCameraIndex >= 0)
+        cameraCombo_->setCurrentIndex(savedCameraIndex);
+
+    int savedMicIndex = -1;
+    const auto microphones = QMediaDevices::audioInputs();
+    for (int i = 0; i < microphones.size(); ++i) {
+        micCombo_->addItem(microphones[i].description(), microphones[i].id());
+        if (microphones[i].id() == savedMicId)
+            savedMicIndex = i;
+    }
+    if (savedMicIndex >= 0)
+        micCombo_->setCurrentIndex(savedMicIndex);
+
+    connect(cameraCombo_, &QComboBox::currentIndexChanged, this, [this](int) {
+        QSettings s("SHKI", "ClassroomRemoteTeacher");
+        s.setValue("devices/camera_id", cameraCombo_->currentData().toByteArray());
+    });
+    connect(micCombo_, &QComboBox::currentIndexChanged, this, [this](int) {
+        QSettings s("SHKI", "ClassroomRemoteTeacher");
+        s.setValue("devices/microphone_id", micCombo_->currentData().toByteArray());
+    });
+
     toolbar->addWidget(screenBtn);
     toolbar->addWidget(cameraBtn);
     toolbar->addWidget(fileBtn);
@@ -127,6 +170,13 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     toolbar->addWidget(micButton_);
     toolbar->addStretch();
     outer->addLayout(toolbar);
+
+    auto* devicesRow = new QHBoxLayout;
+    devicesRow->addWidget(new QLabel("Камера:"));
+    devicesRow->addWidget(cameraCombo_, 1);
+    devicesRow->addWidget(new QLabel("Микрофон:"));
+    devicesRow->addWidget(micCombo_, 1);
+    outer->addLayout(devicesRow);
 
     auto* recordToolbar = new QHBoxLayout;
     auto* recordCameraBtn = new QPushButton("⏺ Записать камеру");
@@ -322,9 +372,20 @@ TeacherWindow::TeacherWindow(QWidget* parent)
         }
         micOn_ = !micOn_;
         if (micOn_) {
-            if (!audio_->startCapture()) {
+            QAudioDevice selectedMic;
+            const QByteArray wanted = micCombo_->currentData().toByteArray();
+            for (const auto& d : QMediaDevices::audioInputs()) {
+                if (d.id() == wanted) {
+                    selectedMic = d;
+                    break;
+                }
+            }
+            if (selectedMic.isNull())
+                selectedMic = QMediaDevices::defaultAudioInput();
+
+            if (!audio_->startCapture(selectedMic)) {
                 micOn_ = false;
-                QMessageBox::warning(this, "Микрофон", "Не удалось открыть микрофон.");
+                QMessageBox::warning(this, "Микрофон", "Не удалось открыть выбранный микрофон.");
             }
         } else {
             audio_->stopCapture();
@@ -707,6 +768,23 @@ void TeacherWindow::sendToSelected(const QString& type) {
 
 void TeacherWindow::startScreenLecture() {
     stopLecture();
+
+    QAudioDevice selectedMic;
+    const QByteArray wantedMic = micCombo_->currentData().toByteArray();
+    for (const auto& d : QMediaDevices::audioInputs()) {
+        if (d.id() == wantedMic) {
+            selectedMic = d;
+            break;
+        }
+    }
+    if (selectedMic.isNull())
+        selectedMic = QMediaDevices::defaultAudioInput();
+
+    micOn_ = audio_->startCapture(selectedMic);
+    micButton_->setText(micOn_ ? "🎤 Микрофон: ВКЛ" : "🎤 Микрофон");
+    if (!micOn_)
+        QMessageBox::warning(this, "Микрофон", "Трансляция экрана запущена без звука: микрофон открыть не удалось.");
+
     screenTimer_->start();
     ws_->send(QJsonObject{{"type", "lecture_state"}, {"mode", "screen"}, {"active", true}});
 }
@@ -714,11 +792,37 @@ void TeacherWindow::startScreenLecture() {
 void TeacherWindow::startCameraLecture() {
     stopLecture();
 
-    const auto device = QMediaDevices::defaultVideoInput();
+    QCameraDevice device;
+    const QByteArray wantedCamera = cameraCombo_->currentData().toByteArray();
+    for (const auto& d : QMediaDevices::videoInputs()) {
+        if (d.id() == wantedCamera) {
+            device = d;
+            break;
+        }
+    }
+    if (device.isNull())
+        device = QMediaDevices::defaultVideoInput();
+
     if (device.isNull()) {
         QMessageBox::warning(this, "Камера", "Камера не найдена.");
         return;
     }
+
+    QAudioDevice selectedMic;
+    const QByteArray wantedMic = micCombo_->currentData().toByteArray();
+    for (const auto& d : QMediaDevices::audioInputs()) {
+        if (d.id() == wantedMic) {
+            selectedMic = d;
+            break;
+        }
+    }
+    if (selectedMic.isNull())
+        selectedMic = QMediaDevices::defaultAudioInput();
+
+    micOn_ = audio_->startCapture(selectedMic);
+    micButton_->setText(micOn_ ? "🎤 Микрофон: ВКЛ" : "🎤 Микрофон");
+    if (!micOn_)
+        QMessageBox::warning(this, "Микрофон", "Трансляция камеры запущена без звука: микрофон открыть не удалось.");
 
     camera_ = new QCamera(device, this);
     captureSession_ = new QMediaCaptureSession(this);
@@ -870,6 +974,15 @@ void TeacherWindow::startRecording(bool screen) {
     recordingSession_ = new QMediaCaptureSession(this);
     mediaRecorder_ = new QMediaRecorder(this);
     recordingAudio_ = new QAudioInput(this);
+    {
+        const QByteArray wantedMic = micCombo_->currentData().toByteArray();
+        for (const auto& d : QMediaDevices::audioInputs()) {
+            if (d.id() == wantedMic) {
+                recordingAudio_->setDevice(d);
+                break;
+            }
+        }
+    }
     recordingPreviewSink_ = new QVideoSink(this);
 
     recordingSession_->setRecorder(mediaRecorder_);
@@ -889,7 +1002,16 @@ void TeacherWindow::startRecording(bool screen) {
         recordingSession_->setScreenCapture(recordingScreen_);
         recordingScreen_->start();
     } else {
-        const auto device = QMediaDevices::defaultVideoInput();
+        QCameraDevice device;
+        const QByteArray wantedCamera = cameraCombo_->currentData().toByteArray();
+        for (const auto& d : QMediaDevices::videoInputs()) {
+            if (d.id() == wantedCamera) {
+                device = d;
+                break;
+            }
+        }
+        if (device.isNull())
+            device = QMediaDevices::defaultVideoInput();
         if (device.isNull()) {
             QMessageBox::warning(this, "Запись", "Камера не найдена.");
             stopRecording();
@@ -1007,6 +1129,13 @@ void TeacherWindow::stopLecture() {
     if (videoSink_) {
         videoSink_->deleteLater();
         videoSink_ = nullptr;
+    }
+
+    if (privateAudioTarget_.isEmpty()) {
+        audio_->stopCapture();
+        micOn_ = false;
+        if (micButton_)
+            micButton_->setText("🎤 Микрофон");
     }
 
     if (ws_->isConnected())
