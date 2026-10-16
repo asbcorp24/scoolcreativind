@@ -3,6 +3,7 @@
 #include <QMainWindow>
 #include <QHash>
 #include <QJsonObject>
+#include "../common/ClientConfig.h"
 
 class QListWidget;
 class QLabel;
@@ -39,6 +40,8 @@ public:
     void openInviteUrl(const QUrl& url);
 
 private:
+    void loginWithPIN();
+    void editConnectionSettings();
     void connectServer();
     void onMessage(const QJsonObject& obj);
     QString selectedStudentId() const;
@@ -72,6 +75,8 @@ private:
     AudioPipe* audio_{};
     MediaCodec* codec_{};
 
+    ClientConfig config_;
+    QLineEdit* pin_{};
     QLineEdit* invite_{};
     QLineEdit* server_{};
     QLineEdit* lesson_{};
