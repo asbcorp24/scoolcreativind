@@ -24,8 +24,11 @@ ClientConfig ClientConfig::load(const QString& defaultName) {
     cfg.displayName = defaultName;
 
     QFile f(filePath());
-    if (!f.open(QIODevice::ReadOnly))
+    if (!f.open(QIODevice::ReadOnly)) {
+        QString ignored;
+        cfg.save(&ignored);
         return cfg;
+    }
 
     const auto doc = QJsonDocument::fromJson(f.readAll());
     const auto obj = doc.object();
