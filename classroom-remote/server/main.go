@@ -579,6 +579,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if cfg.GeneratedAdminPassword != "" {
+		log.Printf("ADMIN_PASSWORD=%s", cfg.GeneratedAdminPassword)
+		log.Printf("save this password now; only its bcrypt hash is stored in config.json")
+	}
 	if created {
 		log.Printf("created %s", *configPath)
 		log.Printf("TEACHER_PIN=%s", cfg.TeacherPIN)
