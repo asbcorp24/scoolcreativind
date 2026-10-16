@@ -1,5 +1,8 @@
 name: Classroom Remote Windows Clients
 
+permissions:
+  contents: write
+
 concurrency:
   group: classroom-remote-windows-${{ github.ref }}
   cancel-in-progress: true
@@ -112,3 +115,64 @@ jobs:
           name: classroom-remote-windows
           path: classroom-remote/client/dist
           if-no-files-found: error
+
+      - name: Replace Windows package in release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $tag = "classroom-remote-v1.0.0"
+          $asset = "ClassroomRemote-Windows-Full-Interactive-GUI.zip"
+          $shaAsset = "$asset.sha256"
+          $work = Join-Path $env:RUNNER_TEMP "classroom-release-refresh"
+
+          Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $work | Out-Null
+
+          Push-Location $work
+
+          # Берём текущий полный пакет, чтобы сохранить Windows Server и служебные файлы.
+          gh release download $tag --repo "${{ github.repository }}" --pattern $asset
+
+          Expand-Archive -Path $asset -DestinationPath extracted -Force
+          $root = Join-Path $work "extracted\ClassroomRemote-Windows-Full-Interactive-GUI"
+          if (-not (Test-Path $root)) {
+            throw "Release archive has unexpected structure"
+          }
+
+          # Полностью заменяем только свежие Teacher и Student.
+          Remove-Item "$root\Teacher" -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item "$root\Student" -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path "$root\Teacher" | Out-Null
+          New-Item -ItemType Directory -Force -Path "$root\Student" | Out-Null
+
+          Copy-Item "D:\a\${{ github.event.repository.name }}\${{ github.event.repository.name }}\classroom-remote\client\dist\teacher\*" "$root\Teacher\" -Recurse -Force
+          Copy-Item "D:\a\${{ github.event.repository.name }}\${{ github.event.repository.name }}\classroom-remote\client\dist\student\*" "$root\Student\" -Recurse -Force
+
+          @'
+          {
+            "server_url": "http://200.165.236.80:8080",
+            "lesson_id": "101",
+            "display_name": "Преподаватель"
+          }
+          '@ | Set-Content -Path "$root\Teacher\config.json" -Encoding UTF8
+
+          @'
+          {
+            "server_url": "http://200.165.236.80:8080",
+            "lesson_id": "101",
+            "display_name": "Ученик"
+          }
+          '@ | Set-Content -Path "$root\Student\config.json" -Encoding UTF8
+
+          Remove-Item $asset -Force
+          Compress-Archive -Path "$root" -DestinationPath $asset -CompressionLevel Optimal
+
+          $hash = (Get-FileHash -Algorithm SHA256 $asset).Hash.ToLower()
+          "$hash  $asset" | Set-Content -Path $shaAsset -Encoding ASCII
+
+          gh release upload $tag $asset $shaAsset --repo "${{ github.repository }}" --clobber
+
+          Pop-Location
