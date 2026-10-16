@@ -4,8 +4,8 @@
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:statusBarColor">@color/bg</item>
         <item name="android:navigationBarColor">@color/bg</item>
-        <item name="colorPrimary">@color:cyan</item>
-        <item name="colorSecondary">@color:violet</item>
-        <item name="android:windowBackground">@color:bg</item>
+        <item name="colorPrimary">@color/cyan</item>
+        <item name="colorSecondary">@color/violet</item>
+        <item name="android:windowBackground">@color/bg</item>
     </style>
 </resources>
