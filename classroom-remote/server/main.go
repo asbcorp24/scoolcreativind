@@ -581,9 +581,9 @@ func main() {
 	}
 	if created {
 		log.Printf("created %s", *configPath)
-		log.Printf("TEACHER_TOKEN=%s", cfg.TeacherToken)
-		log.Printf("STUDENT_TOKEN=%s", cfg.StudentToken)
-		log.Printf("edit public_ip/domain in config before Internet deployment")
+		log.Printf("TEACHER_PIN=%s", cfg.TeacherPIN)
+		log.Printf("STUDENT_PIN=%s", cfg.StudentPIN)
+		log.Printf("edit public_ip/domain and PINs in config before Internet deployment")
 	}
 
 	store, err := OpenStore(cfg.DBPath)
@@ -621,7 +621,9 @@ func main() {
 	}
 
 	r := chi.NewRouter()
+	pinAuthLimiter := newPINLimiter()
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("ok")) })
+	r.Post("/api/client/login", pinLogin(cfg, pinAuthLimiter))
 	r.Get("/ws", wsHandler(hub, rtcRelay, auth, iceURLs, store, cfg.MaxUploadMB))
 
 	r.Get("/api/admin/session", adminSession(cfg))
