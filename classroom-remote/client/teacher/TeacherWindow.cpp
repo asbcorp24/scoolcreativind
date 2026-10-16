@@ -12,6 +12,11 @@
 #include <QRadioButton>
 #include <QButtonGroup>
 #include <QComboBox>
+#include <QSlider>
+#include <QProgressBar>
+#include <QSpinBox>
+#include <QWindowCapture>
+#include <QCapturableWindow>
 #include <QSettings>
 #include <QAudioDevice>
 #include <QCameraDevice>
@@ -70,6 +75,8 @@ TeacherWindow::TeacherWindow(QWidget* parent)
       audio_(new AudioPipe(this)),
       codec_(new MediaCodec),
       screenTimer_(new QTimer(this)),
+      lessonTimer_(new QTimer(this)),
+      taskTimer_(new QTimer(this)),
       network_(new QNetworkAccessManager(this)) {
 
     auto* root = new QWidget;
@@ -177,6 +184,148 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     devicesRow->addWidget(new QLabel("Микрофон:"));
     devicesRow->addWidget(micCombo_, 1);
     outer->addLayout(devicesRow);
+
+    auto* broadcastRow = new QHBoxLayout;
+    sourceCombo_ = new QComboBox;
+    qualityCombo_ = new QComboBox;
+    auto* refreshSourcesBtn = new QPushButton("↻");
+    sourceCombo_->setMinimumWidth(280);
+    qualityCombo_->addItem("Авто / 720p · 10 FPS", "1280x720@10");
+    qualityCombo_->addItem("480p · 10 FPS", "854x480@10");
+    qualityCombo_->addItem("720p · 5 FPS", "1280x720@5");
+    qualityCombo_->addItem("720p · 15 FPS", "1280x720@15");
+    qualityCombo_->addItem("1080p · 15 FPS", "1920x1080@15");
+    qualityCombo_->addItem("1080p · 30 FPS", "1920x1080@30");
+
+    micVolume_ = new QSlider(Qt::Horizontal);
+    micVolume_->setRange(0, 200);
+    micVolume_->setValue(deviceSettings.value("audio/mic_volume", 100).toInt());
+    micVolume_->setMaximumWidth(150);
+    micLevel_ = new QProgressBar;
+    micLevel_->setRange(0, 100);
+    micLevel_->setValue(0);
+    micLevel_->setTextVisible(false);
+    micLevel_->setMaximumWidth(120);
+    muteButton_ = new QPushButton("🔊 Mute");
+    muteButton_->setCheckable(true);
+
+    refreshCaptureSources();
+    connect(refreshSourcesBtn, &QPushButton::clicked, this, &TeacherWindow::refreshCaptureSources);
+    connect(qualityCombo_, &QComboBox::currentIndexChanged, this, [this](int) {
+        applySelectedQuality();
+    });
+    connect(micVolume_, &QSlider::valueChanged, this, [](int value) {
+        QSettings s("SHKI", "ClassroomRemoteTeacher");
+        s.setValue("audio/mic_volume", value);
+    });
+    connect(muteButton_, &QPushButton::toggled, this, [this](bool checked) {
+        micMuted_ = checked;
+        muteButton_->setText(checked ? "🔇 Muted" : "🔊 Mute");
+    });
+    connect(audio_, &AudioPipe::levelChanged, this, [this](int level) {
+        if (micLevel_)
+            micLevel_->setValue(level);
+    });
+
+    broadcastRow->addWidget(new QLabel("Источник:"));
+    broadcastRow->addWidget(sourceCombo_, 1);
+    broadcastRow->addWidget(refreshSourcesBtn);
+    broadcastRow->addWidget(new QLabel("Качество:"));
+    broadcastRow->addWidget(qualityCombo_);
+    broadcastRow->addWidget(new QLabel("Громкость:"));
+    broadcastRow->addWidget(micVolume_);
+    broadcastRow->addWidget(muteButton_);
+    broadcastRow->addWidget(new QLabel("Уровень:"));
+    broadcastRow->addWidget(micLevel_);
+    outer->addLayout(broadcastRow);
+
+    auto* lessonTools = new QHBoxLayout;
+    lessonTimerLabel_ = new QLabel("Урок: 00:00:00");
+    auto* lessonTimerStart = new QPushButton("▶ Таймер урока");
+    auto* lessonTimerReset = new QPushButton("↺ Сброс");
+    taskMinutes_ = new QSpinBox;
+    taskMinutes_->setRange(1, 180);
+    taskMinutes_->setValue(10);
+    taskTimerLabel_ = new QLabel("Задание: --:--");
+    auto* taskTimerStart = new QPushButton("⏱ Старт задания");
+    auto* attentionBtn = new QPushButton("⚠ Внимание");
+    auto* pollYesNoBtn = new QPushButton("Да / Нет");
+    auto* pollUnderstandBtn = new QPushButton("Понятно?");
+    auto* pollABCD = new QPushButton("A/B/C/D");
+
+    lessonTools->addWidget(lessonTimerLabel_);
+    lessonTools->addWidget(lessonTimerStart);
+    lessonTools->addWidget(lessonTimerReset);
+    lessonTools->addSpacing(12);
+    lessonTools->addWidget(new QLabel("Мин:"));
+    lessonTools->addWidget(taskMinutes_);
+    lessonTools->addWidget(taskTimerStart);
+    lessonTools->addWidget(taskTimerLabel_);
+    lessonTools->addSpacing(12);
+    lessonTools->addWidget(attentionBtn);
+    lessonTools->addWidget(new QLabel("Опрос:"));
+    lessonTools->addWidget(pollYesNoBtn);
+    lessonTools->addWidget(pollUnderstandBtn);
+    lessonTools->addWidget(pollABCD);
+    lessonTools->addStretch();
+    outer->addLayout(lessonTools);
+
+    lessonTimer_->setInterval(1000);
+    taskTimer_->setInterval(1000);
+    connect(lessonTimerStart, &QPushButton::clicked, this, [this, lessonTimerStart] {
+        if (lessonTimer_->isActive()) {
+            lessonTimer_->stop();
+            lessonTimerStart->setText("▶ Продолжить");
+        } else {
+            lessonTimer_->start();
+            lessonTimerStart->setText("⏸ Пауза");
+        }
+    });
+    connect(lessonTimerReset, &QPushButton::clicked, this, [this] {
+        lessonElapsedSeconds_ = 0;
+        lessonTimerLabel_->setText("Урок: 00:00:00");
+    });
+    connect(lessonTimer_, &QTimer::timeout, this, [this] {
+        ++lessonElapsedSeconds_;
+        const int h = lessonElapsedSeconds_ / 3600;
+        const int m = (lessonElapsedSeconds_ % 3600) / 60;
+        const int s = lessonElapsedSeconds_ % 60;
+        lessonTimerLabel_->setText(QString("Урок: %1:%2:%3")
+            .arg(h,2,10,QChar('0')).arg(m,2,10,QChar('0')).arg(s,2,10,QChar('0')));
+    });
+    connect(taskTimerStart, &QPushButton::clicked, this, [this] {
+        taskRemainingSeconds_ = taskMinutes_->value() * 60;
+        taskTimer_->start();
+    });
+    connect(taskTimer_, &QTimer::timeout, this, [this] {
+        if (taskRemainingSeconds_ <= 0) {
+            taskTimer_->stop();
+            taskTimerLabel_->setText("Задание: время вышло");
+            QApplication::beep();
+            return;
+        }
+        --taskRemainingSeconds_;
+        taskTimerLabel_->setText(QString("Задание: %1:%2")
+            .arg(taskRemainingSeconds_/60,2,10,QChar('0'))
+            .arg(taskRemainingSeconds_%60,2,10,QChar('0')));
+    });
+
+    connect(attentionBtn, &QPushButton::clicked, this, [this] {
+        bool ok=false;
+        const QString text=QInputDialog::getText(this, "Внимание всем",
+            "Сообщение:", QLineEdit::Normal, "Смотрим на экран преподавателя", &ok).trimmed();
+        if(ok && !text.isEmpty())
+            ws_->send(QJsonObject{{"type","attention"},{"active",true},{"text",text}});
+    });
+    connect(pollYesNoBtn, &QPushButton::clicked, this, [this] {
+        launchQuickPoll("Ваш ответ?", {"Да","Нет"});
+    });
+    connect(pollUnderstandBtn, &QPushButton::clicked, this, [this] {
+        launchQuickPoll("Материал понятен?", {"Понятно","Не понятно"});
+    });
+    connect(pollABCD, &QPushButton::clicked, this, [this] {
+        launchQuickPoll("Выберите вариант", {"A","B","C","D"});
+    });
 
     auto* recordToolbar = new QHBoxLayout;
     auto* recordCameraBtn = new QPushButton("⏺ Записать камеру");
@@ -396,23 +545,38 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     });
 
     connect(audio_, &AudioPipe::captured, this, [this](const QByteArray& pcm) {
-        const QString track = !privateAudioTarget_.isEmpty()
-            ? RtcRelayClient::PrivateAudioTrack
-            : RtcRelayClient::LectureAudioTrack;
-        const auto packets = codec_->encodeAudio(pcm, track);
-
         if (privateAudioTarget_.isEmpty() && !micOn_)
             return;
 
+        QByteArray adjusted = pcm;
+        auto* samples = reinterpret_cast<qint16*>(adjusted.data());
+        const int count = adjusted.size() / int(sizeof(qint16));
+        const double gain = micMuted_ ? 0.0 : (micVolume_ ? micVolume_->value() / 100.0 : 1.0);
+        for (int i = 0; i < count; ++i) {
+            const int scaled = qRound(double(samples[i]) * gain);
+            samples[i] = qBound(-32768, scaled, 32767);
+        }
+
+        const QString track = !privateAudioTarget_.isEmpty()
+            ? RtcRelayClient::PrivateAudioTrack
+            : RtcRelayClient::LectureAudioTrack;
+        const auto packets = codec_->encodeAudio(adjusted, track);
         for (const auto& packet : packets)
             rtc_->sendAudio(track, packet, 20);
     });
 
     connect(screenTimer_, &QTimer::timeout, this, [this] {
-        auto* screen = QGuiApplication::primaryScreen();
-        if (!screen || !rtc_->isOpen())
+        if (!rtc_->isOpen() || !sourceCombo_)
             return;
-        sendLectureImage(screen->grabWindow(0).toImage());
+        const QString data = sourceCombo_->currentData().toString();
+        if (!data.startsWith("screen:"))
+            return;
+        bool ok=false;
+        const int index=data.mid(7).toInt(&ok);
+        const auto screens=QGuiApplication::screens();
+        if (!ok || index < 0 || index >= screens.size())
+            return;
+        sendLectureImage(screens[index]->grabWindow(0).toImage());
     });
 
     connect(viewBtn, &QPushButton::clicked, this, [this] {
