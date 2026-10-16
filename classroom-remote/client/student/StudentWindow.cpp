@@ -30,6 +30,7 @@
 #include <QNetworkRequest>
 #include <QPixmap>
 #include <QPushButton>
+#include <QRegularExpressionValidator>
 #include <QScreen>
 #include <QSettings>
 #include <QTabWidget>
@@ -58,49 +59,50 @@ StudentWindow::StudentWindow(QWidget* parent)
 
     auto* root = new QWidget;
     auto* outer = new QVBoxLayout(root);
-    invite_ = new QLineEdit;
-    invite_->setPlaceholderText("Вставьте ссылку ученика");
-    name_ = new QLineEdit(qEnvironmentVariable("USERNAME", "Ученик"));
-    auto* inviteBtn = new QPushButton("Войти по ссылке");
-    auto* advancedBtn = new QPushButton("Ручная настройка");
+    config_ = ClientConfig::load(qEnvironmentVariable("USERNAME", "Ученик"));
 
-    auto* inviteRow = new QHBoxLayout;
-    inviteRow->addWidget(new QLabel("Ссылка:"));
-    inviteRow->addWidget(invite_, 3);
-    inviteRow->addWidget(new QLabel("Имя:"));
-    inviteRow->addWidget(name_);
-    inviteRow->addWidget(inviteBtn);
-    inviteRow->addWidget(advancedBtn);
-    outer->addLayout(inviteRow);
+    invite_ = new QLineEdit(this);
+    invite_->hide();
+    wsUrl_ = new QLineEdit(this);
+    wsUrl_->hide();
+    httpUrl_ = new QLineEdit(this);
+    httpUrl_->hide();
+    lesson_ = new QLineEdit(config_.lessonId, this);
+    lesson_->hide();
+    token_ = new QLineEdit(this);
+    token_->hide();
+    name_ = new QLineEdit(config_.displayName, this);
+    name_->hide();
 
-    auto* advanced = new QWidget;
-    auto* form = new QHBoxLayout(advanced);
-    form->setContentsMargins(0, 0, 0, 0);
-    wsUrl_ = new QLineEdit("ws://127.0.0.1:8080/ws");
-    httpUrl_ = new QLineEdit("http://127.0.0.1:8080");
-    lesson_ = new QLineEdit("101");
-    token_ = new QLineEdit;
-    token_->setPlaceholderText("Ключ доступа");
-    token_->setEchoMode(QLineEdit::Password);
-    auto* connectBtn = new QPushButton("Подключиться вручную");
+    auto* loginCard = new QWidget;
+    loginCard->setObjectName("sciCard");
+    auto* loginLayout = new QHBoxLayout(loginCard);
+    loginLayout->setContentsMargins(18, 14, 18, 14);
 
-    form->addWidget(new QLabel("WS:")); form->addWidget(wsUrl_, 2);
-    form->addWidget(new QLabel("HTTP:")); form->addWidget(httpUrl_, 2);
-    form->addWidget(new QLabel("Занятие:")); form->addWidget(lesson_);
-    form->addWidget(new QLabel("Ключ:")); form->addWidget(token_);
-    form->addWidget(connectBtn);
-    advanced->setVisible(false);
-    outer->addWidget(advanced);
+    auto* loginTitle = new QLabel("<b>CLASSROOM / STUDENT</b>");
+    loginTitle->setObjectName("sciEyebrow");
+    pin_ = new QLineEdit;
+    pin_->setPlaceholderText("Числовой пароль");
+    pin_->setEchoMode(QLineEdit::Password);
+    pin_->setMaxLength(10);
+    pin_->setMinimumWidth(180);
+    pin_->setValidator(new QRegularExpressionValidator(QRegularExpression("\\d{0,10}"), pin_));
 
-    connect(inviteBtn, &QPushButton::clicked, this, [this] {
-        openInviteUrl(QUrl::fromUserInput(invite_->text()));
-    });
-    connect(invite_, &QLineEdit::returnPressed, this, [this] {
-        openInviteUrl(QUrl::fromUserInput(invite_->text()));
-    });
-    connect(advancedBtn, &QPushButton::clicked, this, [advanced] {
-        advanced->setVisible(!advanced->isVisible());
-    });
+    auto* loginBtn = new QPushButton("Войти");
+    loginBtn->setProperty("accent", "primary");
+    auto* settingsBtn = new QPushButton("⚙ Настройки");
+
+    loginLayout->addWidget(loginTitle);
+    loginLayout->addStretch();
+    loginLayout->addWidget(new QLabel("Пароль:"));
+    loginLayout->addWidget(pin_);
+    loginLayout->addWidget(loginBtn);
+    loginLayout->addWidget(settingsBtn);
+    outer->addWidget(loginCard);
+
+    connect(loginBtn, &QPushButton::clicked, this, &StudentWindow::loginWithPIN);
+    connect(pin_, &QLineEdit::returnPressed, this, &StudentWindow::loginWithPIN);
+    connect(settingsBtn, &QPushButton::clicked, this, &StudentWindow::editConnectionSettings);
 
     status_ = new QLabel("Не подключено");
     outer->addWidget(status_);
@@ -191,7 +193,6 @@ StudentWindow::StudentWindow(QWidget* parent)
     remoteScreenTimer_->setInterval(100);
     statusTimer_->setInterval(5000);
 
-    connect(connectBtn, &QPushButton::clicked, this, &StudentWindow::connectServer);
 
     connect(hand_, &QPushButton::clicked, this, [this] {
         handRaised_ = !handRaised_;
