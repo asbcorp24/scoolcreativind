@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -21,6 +22,8 @@ type Config struct {
 	DBPath         string `json:"db_path"`
 	TeacherToken   string `json:"teacher_token"`
 	StudentToken   string `json:"student_token"`
+	TeacherPIN     string `json:"teacher_pin"`
+	StudentPIN     string `json:"student_pin"`
 	RTCMinPort     int    `json:"rtc_min_port"`
 	RTCMaxPort     int    `json:"rtc_max_port"`
 	TURNEnabled    bool   `json:"turn_enabled"`
@@ -72,6 +75,14 @@ func loadConfig(path string) (Config, bool, error) {
 	}
 	if cfg.StudentToken == "" {
 		cfg.StudentToken = randomSecret(32)
+		changed = true
+	}
+	if cfg.TeacherPIN == "" {
+		cfg.TeacherPIN = randomNumericPIN(6)
+		changed = true
+	}
+	if cfg.StudentPIN == "" {
+		cfg.StudentPIN = randomNumericPIN(6)
 		changed = true
 	}
 	if cfg.TURNPassword == "" {
@@ -136,6 +147,9 @@ func normalizeConfig(cfg *Config) error {
 	if cfg.TeacherToken == "" || cfg.StudentToken == "" {
 		return fmt.Errorf("teacher_token and student_token are required")
 	}
+	if !validPIN(cfg.TeacherPIN) || !validPIN(cfg.StudentPIN) {
+		return fmt.Errorf("teacher_pin and student_pin must contain 4-10 digits")
+	}
 
 	for _, p := range []string{cfg.StorageDir, filepath.Dir(cfg.DBPath)} {
 		if p != "" && p != "." {
@@ -179,6 +193,8 @@ func applyEnvOverrides(cfg *Config) {
 	setString("STORAGE_DIR", &cfg.StorageDir)
 	setString("TEACHER_TOKEN", &cfg.TeacherToken)
 	setString("STUDENT_TOKEN", &cfg.StudentToken)
+	setString("TEACHER_PIN", &cfg.TeacherPIN)
+	setString("STUDENT_PIN", &cfg.StudentPIN)
 	setInt("RTC_MIN_PORT", &cfg.RTCMinPort)
 	setInt("RTC_MAX_PORT", &cfg.RTCMaxPort)
 	setInt("MAX_UPLOAD_MB", &cfg.MaxUploadMB)
@@ -190,4 +206,31 @@ func randomSecret(bytes int) string {
 		panic(err)
 	}
 	return hex.EncodeToString(buf)
+}
+
+func randomNumericPIN(length int) string {
+	if length < 4 {
+		length = 6
+	}
+	out := make([]byte, length)
+	for i := range out {
+		n, err := rand.Int(rand.Reader, big.NewInt(10))
+		if err != nil {
+			panic(err)
+		}
+		out[i] = byte('0' + n.Int64())
+	}
+	return string(out)
+}
+
+func validPIN(pin string) bool {
+	if len(pin) < 4 || len(pin) > 10 {
+		return false
+	}
+	for _, r := range pin {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }
