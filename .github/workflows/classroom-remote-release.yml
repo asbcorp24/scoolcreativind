@@ -29,7 +29,7 @@ jobs:
           path: staging/server
           github-token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
-          run-id: 38933721699
+          run-id: 38941235700
 
       - name: Download Linux server
         uses: actions/download-artifact@v4
@@ -38,7 +38,7 @@ jobs:
           path: staging/linux-server
           github-token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
-          run-id: 38933721699
+          run-id: 38941235700
 
       - name: Assemble full Windows package
         shell: bash
@@ -161,6 +161,10 @@ jobs:
              teacher_pin
              student_pin
              TURN password
+             web admin password (stored only as bcrypt hash)
+
+          The generated web admin password is printed once in the service log on first start.
+          You may also set "admin_password" in config.json before restart; it will be replaced by a bcrypt hash.
 
           Show the current numeric PINs:
              sudo grep -E '"(teacher_pin|student_pin)"' /var/lib/classroom-remote/config.json
