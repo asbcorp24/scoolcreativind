@@ -290,6 +290,18 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, st
 					h.sendLesson(lessonID, m, func(x *Client) bool { return x.Role == "teacher" })
 					h.broadcastPresence(lessonID)
 				}
+
+			case "student_confused":
+				if c.Role != "student" || !jsonMessageSizeOK(m, 4*1024) {
+					continue
+				}
+				active, _ := m["active"].(bool)
+				h.sendLesson(lessonID, map[string]any{
+					"type": "student_confused",
+					"active": active,
+					"student_id": c.ID,
+					"student_name": c.Name,
+				}, func(x *Client) bool { return x.Role == "teacher" })
 			case "rtc_offer":
 				sdp, _ := m["sdp"].(string)
 				if sdp == "" {
@@ -405,6 +417,29 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, st
 				active, _ := m["active"].(bool)
 				h.sendLesson(lessonID, map[string]any{
 					"type": "attention", "active": active, "text": text,
+				}, func(x *Client) bool { return x.Role == "student" })
+
+			case "task_timer":
+				if c.Role != "teacher" || !jsonMessageSizeOK(m, 4*1024) {
+					continue
+				}
+				active, _ := m["active"].(bool)
+				seconds := 0
+				if v, ok := m["seconds"].(float64); ok {
+					seconds = int(v)
+				}
+				if seconds < 0 {
+					seconds = 0
+				}
+				if seconds > 6*60*60 {
+					seconds = 6 * 60 * 60
+				}
+				endAt := time.Now().UTC().UnixMilli() + int64(seconds)*1000
+				h.sendLesson(lessonID, map[string]any{
+					"type": "task_timer",
+					"active": active,
+					"seconds": seconds,
+					"end_at": endAt,
 				}, func(x *Client) bool { return x.Role == "student" })
 
 			case "poll_start":
