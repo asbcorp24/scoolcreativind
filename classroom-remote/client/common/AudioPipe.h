@@ -24,6 +24,7 @@ public:
 
 signals:
     void captured(const QByteArray& pcm);
+    void levelChanged(int percent);
 
 private:
     std::unique_ptr<QAudioSource> source_;
