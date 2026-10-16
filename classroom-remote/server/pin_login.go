@@ -64,7 +64,7 @@ func sameSecret(a, b string) bool {
         subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }
 
-func pinLogin(cfg Config, limiter *pinLimiter) http.HandlerFunc {
+func pinLogin(cfg Config, limiter *pinLimiter, pins *adminPINManager) http.HandlerFunc {
     type request struct {
         Role     string `json:"role"`
         PIN      string `json:"pin"`
@@ -94,10 +94,10 @@ func pinLogin(cfg Config, limiter *pinLimiter) http.HandlerFunc {
         valid := false
         switch in.Role {
         case "teacher":
-            valid = sameSecret(in.PIN, cfg.TeacherPIN)
+            valid = sameSecret(in.PIN, pins.teacherPIN())
             token = cfg.TeacherToken
         case "student":
-            valid = sameSecret(in.PIN, cfg.StudentPIN)
+            valid = sameSecret(in.PIN, pins.studentPIN())
             token = cfg.StudentToken
         default:
             http.Error(w, "bad role", http.StatusBadRequest)
