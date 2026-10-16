@@ -2,6 +2,7 @@
 
 #include <QMainWindow>
 #include <QHash>
+#include <QByteArray>
 #include <QJsonObject>
 #include "../common/ClientConfig.h"
 
@@ -36,6 +37,8 @@ class QSlider;
 class QProgressBar;
 class QSpinBox;
 class QWindowCapture;
+class QCheckBox;
+class SystemAudioCapture;
 
 class TeacherWindow final : public QMainWindow {
     Q_OBJECT
@@ -81,6 +84,7 @@ private:
     WsClient* ws_{};
     RtcRelayClient* rtc_{};
     AudioPipe* audio_{};
+    SystemAudioCapture* systemAudio_{};
     MediaCodec* codec_{};
 
     ClientConfig config_;
@@ -106,6 +110,7 @@ private:
     QComboBox* qualityCombo_{};
     QSlider* micVolume_{};
     QProgressBar* micLevel_{};
+    QCheckBox* systemAudioCheck_{};
     QLabel* lessonTimerLabel_{};
     QLabel* taskTimerLabel_{};
     QSpinBox* taskMinutes_{};
@@ -151,6 +156,7 @@ private:
     bool micMuted_{false};
     int lessonElapsedSeconds_{0};
     int taskRemainingSeconds_{0};
+    QByteArray systemAudioBuffer_;
     qint64 lastCameraSendMs_{0};
     qint64 lastFileVideoSendMs_{0};
 };
