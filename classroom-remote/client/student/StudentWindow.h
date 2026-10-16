@@ -2,6 +2,7 @@
 
 #include <QMainWindow>
 #include <QJsonObject>
+#include "../common/ClientConfig.h"
 
 class QLabel;
 class QLineEdit;
@@ -27,6 +28,8 @@ public:
     void openInviteUrl(const QUrl& url);
 
 private:
+    void loginWithPIN();
+    void editConnectionSettings();
     void connectServer();
     void onMessage(const QJsonObject& obj);
     void uploadSnapshot();
@@ -45,6 +48,8 @@ private:
     AudioPipe* audio_{};
     MediaCodec* codec_{};
 
+    ClientConfig config_;
+    QLineEdit* pin_{};
     QLineEdit* invite_{};
     QLineEdit* wsUrl_{};
     QLineEdit* httpUrl_{};
