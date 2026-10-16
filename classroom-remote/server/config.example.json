@@ -8,6 +8,7 @@
   "db_path": "./data/classroom.db",
   "teacher_token": "",
   "student_token": "",
+  "admin_password": "CHANGE_ME_ON_FIRST_START",
   "rtc_min_port": 50000,
   "rtc_max_port": 50100,
   "turn_enabled": true,
