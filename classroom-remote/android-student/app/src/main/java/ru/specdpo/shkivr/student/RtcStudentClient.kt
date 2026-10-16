@@ -40,6 +40,7 @@ class RtcStudentClient(
     private var peerConnection: PeerConnection? = null
     private var dataChannel: DataChannel? = null
     private var remoteVideoTrack: VideoTrack? = null
+    private val remoteAudioTracks = mutableListOf<AudioTrack>()
     private val offerSent = AtomicBoolean(false)
 
     init {
@@ -136,9 +137,24 @@ class RtcStudentClient(
         )
     }
 
+    fun setVideoEnabled(enabled: Boolean) {
+        remoteVideoTrack?.setEnabled(enabled)
+        if (!enabled) renderer.clearImage()
+    }
+
+    fun setAudioMuted(muted: Boolean) {
+        remoteAudioTracks.forEach { it.setEnabled(!muted) }
+    }
+
+    fun setAudioVolume(volume: Double) {
+        val v = volume.coerceIn(0.0, 2.0)
+        remoteAudioTracks.forEach { it.setVolume(v) }
+    }
+
     fun stopPeer() {
         remoteVideoTrack?.removeSink(renderer)
         remoteVideoTrack = null
+        remoteAudioTracks.clear()
         dataChannel?.close()
         dataChannel?.dispose()
         dataChannel = null
@@ -212,7 +228,11 @@ class RtcStudentClient(
                 track.addSink(renderer)
                 listener.onVideoAvailable()
             }
-            is AudioTrack -> track.setEnabled(true)
+            is AudioTrack -> {
+                track.setEnabled(true)
+                if (!remoteAudioTracks.contains(track))
+                    remoteAudioTracks += track
+            }
         }
     }
 
