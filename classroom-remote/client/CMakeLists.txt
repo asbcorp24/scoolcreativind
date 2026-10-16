@@ -80,6 +80,8 @@ add_executable(ClassroomTeacher WIN32
     teacher/RemoteView.h
     teacher/TeacherLessonsWidget.cpp
     teacher/TeacherLessonsWidget.h
+    teacher/RegionSelector.cpp
+    teacher/RegionSelector.h
 )
 target_link_libraries(ClassroomTeacher PRIVATE classroom_common Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Multimedia)
 
