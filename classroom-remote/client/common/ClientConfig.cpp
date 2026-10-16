@@ -19,7 +19,7 @@ QString ClientConfig::filePath() {
 
 ClientConfig ClientConfig::load(const QString& defaultName) {
     ClientConfig cfg;
-    cfg.serverUrl = "http://127.0.0.1:8080";
+    cfg.serverUrl = "http://200.165.236.80:8080";
     cfg.lessonId = "101";
     cfg.displayName = defaultName;
 
@@ -67,7 +67,7 @@ bool ClientConfig::edit(QWidget* parent, const QString& title, QString* error) {
     auto* layout = new QVBoxLayout(&dlg);
     auto* form = new QFormLayout;
     auto* server = new QLineEdit(serverUrl);
-    server->setPlaceholderText("https://classroom.example.ru");
+    server->setPlaceholderText("http://200.165.236.80:8080");
     auto* lesson = new QLineEdit(lessonId);
     auto* name = new QLineEdit(displayName);
 
