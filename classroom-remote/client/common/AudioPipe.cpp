@@ -6,6 +6,8 @@
 #include <QAudioSource>
 #include <QIODevice>
 #include <QMediaDevices>
+#include <QtGlobal>
+#include <cmath>
 
 static QAudioFormat classroomAudioFormat() {
     QAudioFormat f;
@@ -40,8 +42,15 @@ bool AudioPipe::startCapture(const QAudioDevice& device) {
         if (!input_)
             return;
         const QByteArray data = input_->readAll();
-        if (!data.isEmpty())
+        if (!data.isEmpty()) {
+            const auto* samples = reinterpret_cast<const qint16*>(data.constData());
+            const int count = data.size() / int(sizeof(qint16));
+            int peak = 0;
+            for (int i = 0; i < count; ++i)
+                peak = qMax(peak, std::abs(int(samples[i])));
+            emit levelChanged(qBound(0, int((peak * 100.0) / 32767.0), 100));
             emit captured(data);
+        }
     });
     return true;
 }
