@@ -6,6 +6,7 @@
 
 class QAudioSource;
 class QAudioSink;
+class QAudioDevice;
 class QIODevice;
 
 class AudioPipe final : public QObject {
@@ -15,6 +16,7 @@ public:
     ~AudioPipe() override;
 
     bool startCapture();
+    bool startCapture(const QAudioDevice& device);
     void stopCapture();
     bool startPlayback();
     void stopPlayback();
