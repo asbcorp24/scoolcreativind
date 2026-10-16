@@ -48,6 +48,7 @@
 #include <QMessageBox>
 #include <QPixmap>
 #include <QPushButton>
+#include <QRegularExpressionValidator>
 #include <QScreen>
 #include <QSplitter>
 #include <QTabWidget>
@@ -70,49 +71,48 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     auto* root = new QWidget;
     auto* outer = new QVBoxLayout(root);
 
-    invite_ = new QLineEdit;
-    invite_->setPlaceholderText("Вставьте ссылку преподавателя");
-    teacherName_ = new QLineEdit("Преподаватель");
-    auto* inviteBtn = new QPushButton("Войти по ссылке");
-    auto* advancedBtn = new QPushButton("Ручная настройка");
+    config_ = ClientConfig::load("Преподаватель");
 
-    auto* inviteRow = new QHBoxLayout;
-    inviteRow->addWidget(new QLabel("Ссылка:"));
-    inviteRow->addWidget(invite_, 3);
-    inviteRow->addWidget(new QLabel("Имя:"));
-    inviteRow->addWidget(teacherName_);
-    inviteRow->addWidget(inviteBtn);
-    inviteRow->addWidget(advancedBtn);
-    outer->addLayout(inviteRow);
+    invite_ = new QLineEdit(this);
+    invite_->hide();
+    server_ = new QLineEdit(this);
+    server_->hide();
+    lesson_ = new QLineEdit(config_.lessonId, this);
+    lesson_->hide();
+    token_ = new QLineEdit(this);
+    token_->hide();
+    teacherName_ = new QLineEdit(config_.displayName, this);
+    teacherName_->hide();
 
-    auto* advanced = new QWidget;
-    auto* form = new QHBoxLayout(advanced);
-    form->setContentsMargins(0, 0, 0, 0);
-    server_ = new QLineEdit("ws://127.0.0.1:8080/ws");
-    lesson_ = new QLineEdit("101");
-    token_ = new QLineEdit;
-    token_->setPlaceholderText("Ключ доступа");
-    token_->setEchoMode(QLineEdit::Password);
-    auto* connectBtn = new QPushButton("Подключиться вручную");
-    form->addWidget(new QLabel("Сервер:"));
-    form->addWidget(server_, 2);
-    form->addWidget(new QLabel("Занятие:"));
-    form->addWidget(lesson_);
-    form->addWidget(new QLabel("Ключ:"));
-    form->addWidget(token_);
-    form->addWidget(connectBtn);
-    advanced->setVisible(false);
-    outer->addWidget(advanced);
+    auto* loginCard = new QWidget;
+    loginCard->setObjectName("sciCard");
+    auto* loginLayout = new QHBoxLayout(loginCard);
+    loginLayout->setContentsMargins(18, 14, 18, 14);
 
-    connect(inviteBtn, &QPushButton::clicked, this, [this] {
-        openInviteUrl(QUrl::fromUserInput(invite_->text()));
-    });
-    connect(invite_, &QLineEdit::returnPressed, this, [this] {
-        openInviteUrl(QUrl::fromUserInput(invite_->text()));
-    });
-    connect(advancedBtn, &QPushButton::clicked, this, [advanced] {
-        advanced->setVisible(!advanced->isVisible());
-    });
+    auto* loginTitle = new QLabel("<b>CLASSROOM / TEACHER</b>");
+    loginTitle->setObjectName("sciEyebrow");
+    pin_ = new QLineEdit;
+    pin_->setPlaceholderText("Числовой пароль");
+    pin_->setEchoMode(QLineEdit::Password);
+    pin_->setMaxLength(10);
+    pin_->setMinimumWidth(180);
+    pin_->setValidator(new QRegularExpressionValidator(QRegularExpression("\\d{0,10}"), pin_));
+
+    auto* loginBtn = new QPushButton("Войти");
+    loginBtn->setProperty("accent", "primary");
+    auto* settingsBtn = new QPushButton("⚙ Настройки");
+
+    loginLayout->addWidget(loginTitle);
+    loginLayout->addStretch();
+    loginLayout->addWidget(new QLabel("Пароль:"));
+    loginLayout->addWidget(pin_);
+    loginLayout->addWidget(loginBtn);
+    loginLayout->addWidget(settingsBtn);
+    outer->addWidget(loginCard);
+
+    connect(loginBtn, &QPushButton::clicked, this, &TeacherWindow::loginWithPIN);
+    connect(pin_, &QLineEdit::returnPressed, this, &TeacherWindow::loginWithPIN);
+    connect(settingsBtn, &QPushButton::clicked, this, &TeacherWindow::editConnectionSettings);
 
     auto* toolbar = new QHBoxLayout;
     auto* screenBtn = new QPushButton("🖥 Экран");
@@ -281,7 +281,6 @@ TeacherWindow::TeacherWindow(QWidget* parent)
 
     screenTimer_->setInterval(100);
 
-    connect(connectBtn, &QPushButton::clicked, this, &TeacherWindow::connectServer);
     connect(screenBtn, &QPushButton::clicked, this, &TeacherWindow::startScreenLecture);
     connect(cameraBtn, &QPushButton::clicked, this, &TeacherWindow::startCameraLecture);
     connect(fileBtn, &QPushButton::clicked, this, &TeacherWindow::startFileLecture);
