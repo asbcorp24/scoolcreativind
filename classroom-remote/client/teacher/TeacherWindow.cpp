@@ -4,6 +4,7 @@
 #include "../common/WsClient.h"
 #include "../common/RtcRelayClient.h"
 #include "../common/AudioPipe.h"
+#include "../common/SystemAudioCapture.h"
 #include "../common/MediaCodec.h"
 #include "../common/InviteLink.h"
 #include "../common/AnnotationOverlay.h"
@@ -12,6 +13,7 @@
 #include <QRadioButton>
 #include <QButtonGroup>
 #include <QComboBox>
+#include <QCheckBox>
 #include <QSlider>
 #include <QProgressBar>
 #include <QSpinBox>
@@ -73,6 +75,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
       ws_(new WsClient(this)),
       rtc_(new RtcRelayClient(ws_, this)),
       audio_(new AudioPipe(this)),
+      systemAudio_(new SystemAudioCapture(this)),
       codec_(new MediaCodec),
       screenTimer_(new QTimer(this)),
       lessonTimer_(new QTimer(this)),
@@ -209,6 +212,12 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     micLevel_->setMaximumWidth(120);
     muteButton_ = new QPushButton("🔊 Mute");
     muteButton_->setCheckable(true);
+    systemAudioCheck_ = new QCheckBox("Звук компьютера");
+    systemAudioCheck_->setChecked(deviceSettings.value("audio/system_sound", false).toBool());
+    connect(systemAudioCheck_, &QCheckBox::toggled, this, [](bool checked) {
+        QSettings s("SHKI", "ClassroomRemoteTeacher");
+        s.setValue("audio/system_sound", checked);
+    });
 
     refreshCaptureSources();
     connect(refreshSourcesBtn, &QPushButton::clicked, this, &TeacherWindow::refreshCaptureSources);
@@ -272,6 +281,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     broadcastRow->addWidget(new QLabel("Громкость:"));
     broadcastRow->addWidget(micVolume_);
     broadcastRow->addWidget(muteButton_);
+    broadcastRow->addWidget(systemAudioCheck_);
     broadcastRow->addWidget(new QLabel("Уровень:"));
     broadcastRow->addWidget(micLevel_);
     outer->addLayout(broadcastRow);
@@ -581,6 +591,28 @@ TeacherWindow::TeacherWindow(QWidget* parent)
         micButton_->setText(micOn_ ? "🎤 Микрофон: ВКЛ" : "🎤 Микрофон");
     });
 
+    connect(systemAudio_, &SystemAudioCapture::captured, this, [this](const QByteArray& pcm) {
+        if (privateAudioTarget_.isEmpty() && micOn_) {
+            systemAudioBuffer_.append(pcm);
+            const int maxBytes = 48000 * 2 * 2;
+            if (systemAudioBuffer_.size() > maxBytes)
+                systemAudioBuffer_.remove(0, systemAudioBuffer_.size() - maxBytes);
+            return;
+        }
+
+        if (!privateAudioTarget_.isEmpty() || !systemAudioCheck_ || !systemAudioCheck_->isChecked() || !rtc_->isOpen())
+            return;
+
+        const auto packets = codec_->encodeAudio(pcm, "lecture-system");
+        for (const auto& packet : packets)
+            rtc_->sendAudio(RtcRelayClient::LectureAudioTrack, packet, 20);
+    });
+    connect(systemAudio_, &SystemAudioCapture::errorText, this, [this](const QString& error) {
+        status_->setText(error);
+        if (systemAudioCheck_)
+            systemAudioCheck_->setChecked(false);
+    });
+
     connect(audio_, &AudioPipe::captured, this, [this](const QByteArray& pcm) {
         if (privateAudioTarget_.isEmpty() && !micOn_)
             return;
@@ -592,6 +624,17 @@ TeacherWindow::TeacherWindow(QWidget* parent)
         for (int i = 0; i < count; ++i) {
             const int scaled = qRound(double(samples[i]) * gain);
             samples[i] = qBound(-32768, scaled, 32767);
+        }
+
+        if (privateAudioTarget_.isEmpty() && systemAudioCheck_ && systemAudioCheck_->isChecked() &&
+            systemAudioBuffer_.size() >= adjusted.size()) {
+            QByteArray sys = systemAudioBuffer_.left(adjusted.size());
+            systemAudioBuffer_.remove(0, adjusted.size());
+            auto* sysSamples = reinterpret_cast<const qint16*>(sys.constData());
+            for (int i = 0; i < count; ++i) {
+                const int mixed = int(samples[i]) + int(sysSamples[i]);
+                samples[i] = qBound(-32768, mixed, 32767);
+            }
         }
 
         const QString track = !privateAudioTarget_.isEmpty()
@@ -1030,7 +1073,10 @@ void TeacherWindow::startScreenLecture() {
     micOn_ = audio_->startCapture(selectedMic);
     micButton_->setText(micOn_ ? "🎤 Микрофон: ВКЛ" : "🎤 Микрофон");
     if (!micOn_)
-        QMessageBox::warning(this, "Микрофон", "Трансляция экрана запущена без звука: микрофон открыть не удалось.");
+        QMessageBox::warning(this, "Микрофон", "Микрофон открыть не удалось.");
+    systemAudioBuffer_.clear();
+    if (systemAudioCheck_ && systemAudioCheck_->isChecked())
+        systemAudio_->start();
 
     const QString source = sourceCombo_ ? sourceCombo_->currentData().toString() : QString("screen:0");
     if (source.startsWith("window:")) {
@@ -1101,7 +1147,10 @@ void TeacherWindow::startCameraLecture() {
     micOn_ = audio_->startCapture(selectedMic);
     micButton_->setText(micOn_ ? "🎤 Микрофон: ВКЛ" : "🎤 Микрофон");
     if (!micOn_)
-        QMessageBox::warning(this, "Микрофон", "Трансляция камеры запущена без звука: микрофон открыть не удалось.");
+        QMessageBox::warning(this, "Микрофон", "Микрофон открыть не удалось.");
+    systemAudioBuffer_.clear();
+    if (systemAudioCheck_ && systemAudioCheck_->isChecked())
+        systemAudio_->start();
 
     camera_ = new QCamera(device, this);
     captureSession_ = new QMediaCaptureSession(this);
@@ -1141,6 +1190,8 @@ void TeacherWindow::startFileLecture() {
         return;
 
     stopLecture();
+    systemAudio_->stop();
+    systemAudioBuffer_.clear();
 
     if (micOn_) {
         micOn_ = false;
@@ -1429,6 +1480,8 @@ void TeacherWindow::stopLecture() {
         if (micButton_)
             micButton_->setText("🎤 Микрофон");
     }
+    systemAudio_->stop();
+    systemAudioBuffer_.clear();
 
     if (ws_->isConnected())
         ws_->send(QJsonObject{{"type", "lecture_state"}, {"active", false}});
