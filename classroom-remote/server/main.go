@@ -394,6 +394,19 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, st
 				}
 				h.sendLesson(lessonID, m, func(x *Client) bool { return x.Role == "student" })
 
+			case "attention":
+				if c.Role != "teacher" || !jsonMessageSizeOK(m, 8*1024) {
+					continue
+				}
+				text := strings.TrimSpace(fmt.Sprint(m["text"]))
+				if len([]rune(text)) > 500 {
+					text = string([]rune(text)[:500])
+				}
+				active, _ := m["active"].(bool)
+				h.sendLesson(lessonID, map[string]any{
+					"type": "attention", "active": active, "text": text,
+				}, func(x *Client) bool { return x.Role == "student" })
+
 			case "poll_start":
 				if c.Role != "teacher" {
 					continue
