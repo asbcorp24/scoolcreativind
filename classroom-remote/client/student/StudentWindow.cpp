@@ -12,6 +12,7 @@
 #include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QApplication>
+#include <QDialog>
 #include <QFileInfo>
 #include <QFileDialog>
 #include <QFile>
@@ -438,6 +439,57 @@ void StudentWindow::onMessage(const QJsonObject& obj) {
 
     if (type == "annotation" || type == "annotation_clear") {
         annotationOverlay_->applyRemote(obj);
+        annotationOverlay_->raise();
+        return;
+    }
+
+    if (type == "attention") {
+        const bool active = obj.value("active").toBool();
+        const QString text = obj.value("text").toString().trimmed();
+        if (!active) {
+            if (attentionDialog_) {
+                attentionDialog_->close();
+                attentionDialog_->deleteLater();
+                attentionDialog_ = nullptr;
+            }
+            return;
+        }
+
+        if (attentionDialog_) {
+            attentionDialog_->close();
+            attentionDialog_->deleteLater();
+        }
+        attentionDialog_ = new QDialog(this);
+        attentionDialog_->setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+        attentionDialog_->setModal(false);
+        attentionDialog_->setStyleSheet(
+            "QDialog{background:#07111f;} QLabel{color:white;} QPushButton{font-size:20px;padding:14px 28px;}");
+        auto* layout = new QVBoxLayout(attentionDialog_);
+        layout->setContentsMargins(60,60,60,60);
+        auto* title = new QLabel("⚠ ВНИМАНИЕ");
+        title->setAlignment(Qt::AlignCenter);
+        title->setStyleSheet("font-size:42px;font-weight:800;color:#fbbf24;");
+        auto* message = new QLabel(text.isEmpty() ? "Смотрим на экран преподавателя" : text);
+        message->setAlignment(Qt::AlignCenter);
+        message->setWordWrap(true);
+        message->setStyleSheet("font-size:34px;font-weight:650;");
+        auto* okBtn = new QPushButton("Понятно");
+        okBtn->setProperty("accent","primary");
+        layout->addStretch();
+        layout->addWidget(title);
+        layout->addSpacing(30);
+        layout->addWidget(message);
+        layout->addSpacing(30);
+        layout->addWidget(okBtn, 0, Qt::AlignCenter);
+        layout->addStretch();
+        connect(okBtn, &QPushButton::clicked, attentionDialog_, &QDialog::accept);
+        connect(attentionDialog_, &QDialog::finished, this, [this] {
+            if (attentionDialog_) {
+                attentionDialog_->deleteLater();
+                attentionDialog_ = nullptr;
+            }
+        });
+        attentionDialog_->showFullScreen();
         return;
     }
 
