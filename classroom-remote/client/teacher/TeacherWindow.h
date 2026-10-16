@@ -31,6 +31,7 @@ class AnnotationOverlay;
 class QPlainTextEdit;
 class QButtonGroup;
 class QRadioButton;
+class QComboBox;
 
 class TeacherWindow final : public QMainWindow {
     Q_OBJECT
@@ -91,6 +92,8 @@ private:
     QButtonGroup* studentButtons_{};
     QLabel* selectedStudentLabel_{};
     QPushButton* micButton_{};
+    QComboBox* cameraCombo_{};
+    QComboBox* micCombo_{};
 
     QPlainTextEdit* chatLog_{};
     QLineEdit* chatInput_{};
