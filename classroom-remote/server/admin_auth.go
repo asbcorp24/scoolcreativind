@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 const adminCookieName = "classroom_admin"
@@ -101,13 +103,15 @@ func adminSession(cfg Config) http.HandlerFunc {
 func adminLogin(cfg Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			Token string `json:"token"`
+			Password string `json:"password"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "bad json", 400)
 			return
 		}
-		if !constantTokenEqual(strings.TrimSpace(req.Token), cfg.TeacherToken) {
+		password := strings.TrimSpace(req.Password)
+		if password == "" || cfg.AdminPasswordHash == "" ||
+			bcrypt.CompareHashAndPassword([]byte(cfg.AdminPasswordHash), []byte(password)) != nil {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
