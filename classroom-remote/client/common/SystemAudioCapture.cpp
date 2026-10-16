@@ -12,7 +12,6 @@
 #include <windows.h>
 #include <audioclient.h>
 #include <mmdeviceapi.h>
-#include <ksmedia.h>
 #include <wrl/client.h>
 
 using Microsoft::WRL::ComPtr;
@@ -25,7 +24,7 @@ bool isFloatFormat(const WAVEFORMATEX* f) {
         return true;
     if (f->wFormatTag == WAVE_FORMAT_EXTENSIBLE && f->cbSize >= 22) {
         const auto* ex = reinterpret_cast<const WAVEFORMATEXTENSIBLE*>(f);
-        return ex->SubFormat == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT;
+        return ex->SubFormat.Data1 == WAVE_FORMAT_IEEE_FLOAT;
     }
     return false;
 }
@@ -36,7 +35,7 @@ bool isPCMFormat(const WAVEFORMATEX* f) {
         return true;
     if (f->wFormatTag == WAVE_FORMAT_EXTENSIBLE && f->cbSize >= 22) {
         const auto* ex = reinterpret_cast<const WAVEFORMATEXTENSIBLE*>(f);
-        return ex->SubFormat == KSDATAFORMAT_SUBTYPE_PCM;
+        return ex->SubFormat.Data1 == WAVE_FORMAT_PCM;
     }
     return false;
 }
