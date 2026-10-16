@@ -158,5 +158,7 @@ private:
     int taskRemainingSeconds_{0};
     QByteArray systemAudioBuffer_;
     qint64 lastCameraSendMs_{0};
+    qint64 lastWindowSendMs_{0};
     qint64 lastFileVideoSendMs_{0};
+    int selectedFrameIntervalMs_{100};
 };
