@@ -148,8 +148,8 @@ jobs:
           New-Item -ItemType Directory -Force -Path "$root\Teacher" | Out-Null
           New-Item -ItemType Directory -Force -Path "$root\Student" | Out-Null
 
-          Copy-Item "D:\a\${{ github.event.repository.name }}\${{ github.event.repository.name }}\classroom-remote\client\dist\teacher\*" "$root\Teacher\" -Recurse -Force
-          Copy-Item "D:\a\${{ github.event.repository.name }}\${{ github.event.repository.name }}\classroom-remote\client\dist\student\*" "$root\Student\" -Recurse -Force
+          Copy-Item "$env:GITHUB_WORKSPACE\classroom-remote\client\dist\teacher\*" "$root\Teacher\" -Recurse -Force
+          Copy-Item "$env:GITHUB_WORKSPACE\classroom-remote\client\dist\student\*" "$root\Student\" -Recurse -Force
 
           @'
           {
