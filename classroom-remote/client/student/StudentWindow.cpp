@@ -336,6 +336,75 @@ void StudentWindow::openInviteUrl(const QUrl& rawUrl) {
     });
 }
 
+void StudentWindow::editConnectionSettings() {
+    QString error;
+    if (!config_.edit(this, "Настройки подключения", &error)) {
+        if (!error.isEmpty())
+            QMessageBox::warning(this, "Настройки", error);
+        return;
+    }
+    lesson_->setText(config_.lessonId);
+    name_->setText(config_.displayName);
+    status_->setText("Настройки сохранены: " + ClientConfig::filePath());
+}
+
+void StudentWindow::loginWithPIN() {
+    const QString pin = pin_->text().trimmed();
+    if (pin.size() < 4) {
+        QMessageBox::information(this, "Вход", "Введите числовой пароль.");
+        pin_->setFocus();
+        return;
+    }
+
+    QUrl url(config_.serverUrl);
+    url.setPath("/api/client/login");
+    url.setQuery(QString());
+    url.setFragment(QString());
+
+    QNetworkRequest req(url);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+    const QByteArray body = QJsonDocument(QJsonObject{
+        {"role", "student"},
+        {"pin", pin},
+        {"lesson_id", config_.lessonId}
+    }).toJson(QJsonDocument::Compact);
+
+    status_->setText("Проверяю пароль...");
+    auto* reply = network_->post(req, body);
+    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+        const QByteArray data = reply->readAll();
+        if (reply->error() != QNetworkReply::NoError) {
+            if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 429)
+                QMessageBox::warning(this, "Вход", "Слишком много попыток. Повторите через минуту.");
+            else
+                QMessageBox::warning(this, "Вход", "Неверный пароль или сервер недоступен.");
+            status_->setText("Не удалось войти");
+            pin_->selectAll();
+            pin_->setFocus();
+            reply->deleteLater();
+            return;
+        }
+
+        const QJsonDocument doc = QJsonDocument::fromJson(data);
+        if (!doc.isObject()) {
+            QMessageBox::warning(this, "Вход", "Сервер вернул некорректный ответ.");
+            reply->deleteLater();
+            return;
+        }
+        const QJsonObject obj = doc.object();
+        token_->setText(obj.value("access_token").toString());
+        lesson_->setText(obj.value("lesson_id").toString(config_.lessonId));
+        wsUrl_->setText(obj.value("ws_url").toString());
+        httpUrl_->setText(obj.value("http_url").toString());
+        name_->setText(config_.displayName);
+        pin_->clear();
+        status_->setText("Пароль принят, подключаюсь...");
+        reply->deleteLater();
+        connectServer();
+    });
+}
+
 void StudentWindow::connectServer() {
     lessonsWidget_->setSession(QUrl(httpUrl_->text()), lesson_->text(), token_->text(),
                                studentId_, name_->text());
