@@ -189,6 +189,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     sourceCombo_ = new QComboBox;
     qualityCombo_ = new QComboBox;
     auto* refreshSourcesBtn = new QPushButton("↻");
+    auto* previewSourceBtn = new QPushButton("👁 Предпросмотр");
     sourceCombo_->setMinimumWidth(280);
     qualityCombo_->addItem("Авто / 720p · 10 FPS", "1280x720@10");
     qualityCombo_->addItem("480p · 10 FPS", "854x480@10");
@@ -211,6 +212,41 @@ TeacherWindow::TeacherWindow(QWidget* parent)
 
     refreshCaptureSources();
     connect(refreshSourcesBtn, &QPushButton::clicked, this, &TeacherWindow::refreshCaptureSources);
+    connect(previewSourceBtn, &QPushButton::clicked, this, [this] {
+        if (!sourceCombo_) return;
+        const QString data = sourceCombo_->currentData().toString();
+        if (data.startsWith("screen:")) {
+            bool ok=false;
+            const int index=data.mid(7).toInt(&ok);
+            const auto screens=QGuiApplication::screens();
+            if (ok && index>=0 && index<screens.size())
+                showLocalPreview(screens[index]->grabWindow(0).toImage());
+            return;
+        }
+        if (data.startsWith("window:")) {
+            bool ok=false;
+            const int index=data.mid(7).toInt(&ok);
+            const auto windows=QWindowCapture::capturableWindows();
+            if (!ok || index<0 || index>=windows.size()) return;
+            auto* wc = new QWindowCapture(this);
+            auto* session = new QMediaCaptureSession(this);
+            auto* sink = new QVideoSink(this);
+            session->setWindowCapture(wc);
+            session->setVideoSink(sink);
+            connect(sink, &QVideoSink::videoFrameChanged, this,
+                    [this, wc, session, sink](const QVideoFrame& frame) {
+                const QImage image=frame.toImage();
+                if(image.isNull()) return;
+                showLocalPreview(image);
+                wc->stop();
+                sink->deleteLater();
+                session->deleteLater();
+                wc->deleteLater();
+            });
+            wc->setWindow(windows[index]);
+            wc->start();
+        }
+    });
     connect(qualityCombo_, &QComboBox::currentIndexChanged, this, [this](int) {
         applySelectedQuality();
     });
@@ -230,6 +266,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     broadcastRow->addWidget(new QLabel("Источник:"));
     broadcastRow->addWidget(sourceCombo_, 1);
     broadcastRow->addWidget(refreshSourcesBtn);
+    broadcastRow->addWidget(previewSourceBtn);
     broadcastRow->addWidget(new QLabel("Качество:"));
     broadcastRow->addWidget(qualityCombo_);
     broadcastRow->addWidget(new QLabel("Громкость:"));
@@ -932,8 +969,52 @@ void TeacherWindow::sendToSelected(const QString& type) {
     ws_->send(QJsonObject{{"type", type}, {"target", id}});
 }
 
+void TeacherWindow::refreshCaptureSources() {
+    if (!sourceCombo_) return;
+
+    const QString previous = sourceCombo_->currentData().toString();
+    sourceCombo_->clear();
+
+    const auto screens = QGuiApplication::screens();
+    for (int i = 0; i < screens.size(); ++i) {
+        QString label = screens[i]->name().trimmed();
+        if (label.isEmpty())
+            label = QString("Монитор %1").arg(i + 1);
+        sourceCombo_->addItem(QString("🖥 %1").arg(label), QString("screen:%1").arg(i));
+    }
+
+    const auto windows = QWindowCapture::capturableWindows();
+    for (int i = 0; i < windows.size(); ++i) {
+        const QString title = windows[i].description().trimmed();
+        if (!title.isEmpty())
+            sourceCombo_->addItem(QString("▣ Окно: %1").arg(title), QString("window:%1").arg(i));
+    }
+
+    const int restore = sourceCombo_->findData(previous);
+    if (restore >= 0)
+        sourceCombo_->setCurrentIndex(restore);
+}
+
+void TeacherWindow::applySelectedQuality() {
+    if (!qualityCombo_) return;
+
+    const QString preset = qualityCombo_->currentData().toString();
+    QRegularExpression re("^(\\d+)x(\\d+)@(\\d+)$");
+    const auto m = re.match(preset);
+    if (!m.hasMatch()) return;
+
+    const int width = m.captured(1).toInt();
+    const int height = m.captured(2).toInt();
+    const int fps = qBound(1, m.captured(3).toInt(), 30);
+    const int bitrate = width >= 1920 ? 3500000 : (width >= 1280 ? 1800000 : 900000);
+    codec_->initialize(width, height, fps, bitrate, 64000);
+    screenTimer_->setInterval(qMax(33, 1000 / fps));
+    codec_->requestKeyframe();
+}
+
 void TeacherWindow::startScreenLecture() {
     stopLecture();
+    applySelectedQuality();
 
     QAudioDevice selectedMic;
     const QByteArray wantedMic = micCombo_->currentData().toByteArray();
@@ -951,12 +1032,44 @@ void TeacherWindow::startScreenLecture() {
     if (!micOn_)
         QMessageBox::warning(this, "Микрофон", "Трансляция экрана запущена без звука: микрофон открыть не удалось.");
 
+    const QString source = sourceCombo_ ? sourceCombo_->currentData().toString() : QString("screen:0");
+    if (source.startsWith("window:")) {
+        bool ok=false;
+        const int index=source.mid(7).toInt(&ok);
+        const auto windows=QWindowCapture::capturableWindows();
+        if (!ok || index<0 || index>=windows.size()) {
+            QMessageBox::warning(this, "Источник", "Выбранное окно больше недоступно. Обновите список источников.");
+            return;
+        }
+
+        windowCapture_ = new QWindowCapture(this);
+        windowCaptureSession_ = new QMediaCaptureSession(this);
+        windowCaptureSink_ = new QVideoSink(this);
+        windowCaptureSession_->setWindowCapture(windowCapture_);
+        windowCaptureSession_->setVideoSink(windowCaptureSink_);
+        connect(windowCaptureSink_, &QVideoSink::videoFrameChanged, this, [this](const QVideoFrame& frame) {
+            if (!rtc_->isOpen()) return;
+            const QImage image=frame.toImage();
+            if (!image.isNull())
+                sendLectureImage(image);
+        });
+        connect(windowCapture_, &QWindowCapture::errorOccurred, this,
+                [this](QWindowCapture::Error, const QString& error) {
+            status_->setText("Ошибка захвата окна: " + error);
+        });
+        windowCapture_->setWindow(windows[index]);
+        windowCapture_->start();
+        ws_->send(QJsonObject{{"type","lecture_state"},{"mode","window"},{"active",true}});
+        return;
+    }
+
     screenTimer_->start();
     ws_->send(QJsonObject{{"type", "lecture_state"}, {"mode", "screen"}, {"active", true}});
 }
 
 void TeacherWindow::startCameraLecture() {
     stopLecture();
+    applySelectedQuality();
 
     QCameraDevice device;
     const QByteArray wantedCamera = cameraCombo_->currentData().toByteArray();
@@ -1296,6 +1409,19 @@ void TeacherWindow::stopLecture() {
         videoSink_->deleteLater();
         videoSink_ = nullptr;
     }
+    if (windowCapture_) {
+        windowCapture_->stop();
+        windowCapture_->deleteLater();
+        windowCapture_ = nullptr;
+    }
+    if (windowCaptureSink_) {
+        windowCaptureSink_->deleteLater();
+        windowCaptureSink_ = nullptr;
+    }
+    if (windowCaptureSession_) {
+        windowCaptureSession_->deleteLater();
+        windowCaptureSession_ = nullptr;
+    }
 
     if (privateAudioTarget_.isEmpty()) {
         audio_->stopCapture();
@@ -1353,6 +1479,37 @@ QUrl TeacherWindow::httpBaseUrl() const {
     url.setPath("");
     url.setQuery(QString());
     return url;
+}
+
+void TeacherWindow::launchQuickPoll(const QString& question, const QStringList& options) {
+    if (question.trimmed().isEmpty() || options.size() < 2 || !ws_->isConnected())
+        return;
+
+    activePollId_ = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    activePollQuestion_ = question.trimmed();
+    pollCounts_.clear();
+    pollResponses_ = 0;
+
+    QJsonArray arr;
+    QStringList clean;
+    for (const QString& option : options) {
+        const QString v = option.trimmed();
+        if (!v.isEmpty()) {
+            clean << v;
+            arr.append(v);
+        }
+    }
+    if (clean.size() < 2)
+        return;
+
+    ws_->send(QJsonObject{
+        {"type", "poll_start"},
+        {"poll_id", activePollId_},
+        {"question", activePollQuestion_},
+        {"options", arr}
+    });
+    pollStatus_->setProperty("options", clean);
+    updatePollStatus();
 }
 
 void TeacherWindow::startPoll() {
