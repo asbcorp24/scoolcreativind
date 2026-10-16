@@ -4,6 +4,8 @@
 #include <QtGlobal>
 #include <algorithm>
 #include <cmath>
+#include <cstring>
+#include <cstdint>
 
 #ifdef Q_OS_WIN
 #define NOMINMAX
