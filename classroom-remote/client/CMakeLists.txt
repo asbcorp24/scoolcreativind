@@ -40,6 +40,8 @@ add_library(classroom_common
     common/RtcRelayClient.h
     common/AudioPipe.cpp
     common/AudioPipe.h
+    common/SystemAudioCapture.cpp
+    common/SystemAudioCapture.h
     common/MediaCodec.cpp
     common/MediaCodec.h
     common/InviteLink.cpp
@@ -94,6 +96,7 @@ add_executable(ClassroomStudent WIN32
 )
 target_link_libraries(ClassroomStudent PRIVATE classroom_common Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Multimedia)
 if(WIN32)
+    target_link_libraries(classroom_common PUBLIC ole32)
     target_link_libraries(ClassroomStudent PRIVATE user32)
 endif()
 
