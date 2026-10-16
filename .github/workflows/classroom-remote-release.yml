@@ -53,7 +53,7 @@ jobs:
 
           cat > release/ClassroomRemote-Windows-Full-Interactive-GUI/Teacher/config.json <<'EOF'
           {
-            "server_url": "http://127.0.0.1:8080",
+            "server_url": "http://200.165.236.80:8080",
             "lesson_id": "101",
             "display_name": "Преподаватель"
           }
@@ -61,7 +61,7 @@ jobs:
 
           cat > release/ClassroomRemote-Windows-Full-Interactive-GUI/Student/config.json <<'EOF'
           {
-            "server_url": "http://127.0.0.1:8080",
+            "server_url": "http://200.165.236.80:8080",
             "lesson_id": "101",
             "display_name": "Ученик"
           }
