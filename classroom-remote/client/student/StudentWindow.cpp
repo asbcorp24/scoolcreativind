@@ -586,7 +586,7 @@ void StudentWindow::onMessage(const QJsonObject& obj) {
         for (const auto& v : obj.value("options").toArray())
             pollOptions_->addItem(v.toString());
         pollAnswerButton_->setEnabled(pollOptions_->count() > 0);
-        mainTabs_->setCurrentIndex(2);
+        mainTabs_->setCurrentIndex(3);
         return;
     }
 
@@ -617,7 +617,7 @@ void StudentWindow::onMessage(const QJsonObject& obj) {
 
     if (type == "quick_file") {
         loadQuickFiles();
-        mainTabs_->setCurrentIndex(2);
+        mainTabs_->setCurrentIndex(3);
         status_->setText("Преподаватель отправил файл: " + obj.value("name").toString());
         return;
     }
