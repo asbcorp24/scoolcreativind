@@ -80,6 +80,7 @@ private:
     void sendChat(bool privateMessage);
     QUrl httpBaseUrl() const;
     void updatePollStatus();
+    void showPollResults();
     void launchQuickPoll(const QString& question, const QStringList& options);
     void refreshCaptureSources();
     void applySelectedQuality();
@@ -140,6 +141,8 @@ private:
     QString activePollId_;
     QString activePollQuestion_;
     QHash<int, int> pollCounts_;
+    QHash<QString, int> pollStudentAnswers_;
+    QHash<QString, QString> pollStudentNames_;
     int pollResponses_{0};
 
     QTimer* screenTimer_{};
