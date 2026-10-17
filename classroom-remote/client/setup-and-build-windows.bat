@@ -238,13 +238,38 @@ cmake --build build --config Release --parallel 2
 if errorlevel 1 goto :build_error
 
 rem ---------- Inno Setup ----------
-set "ISCC=C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-if not exist "%ISCC%" (
+set "ISCC="
+
+where ISCC.exe >nul 2>&1
+if not errorlevel 1 (
+    for /f "delims=" %%I in ('where ISCC.exe') do (
+        if not defined ISCC set "ISCC=%%I"
+    )
+)
+
+if not defined ISCC if exist "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" set "ISCC=C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+if not defined ISCC if exist "C:\Program Files\Inno Setup 6\ISCC.exe" set "ISCC=C:\Program Files\Inno Setup 6\ISCC.exe"
+if not defined ISCC if exist "%LocalAppData%\Programs\Inno Setup 6\ISCC.exe" set "ISCC=%LocalAppData%\Programs\Inno Setup 6\ISCC.exe"
+if not defined ISCC if exist "%LocalAppData%\Inno Setup 6\ISCC.exe" set "ISCC=%LocalAppData%\Inno Setup 6\ISCC.exe"
+
+if not defined ISCC (
     echo [INSTALL] Inno Setup...
     winget install --id JRSoftware.InnoSetup -e --silent --accept-package-agreements --accept-source-agreements
+
+    where ISCC.exe >nul 2>&1
+    if not errorlevel 1 (
+        for /f "delims=" %%I in ('where ISCC.exe') do (
+            if not defined ISCC set "ISCC=%%I"
+        )
+    )
+    if not defined ISCC if exist "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" set "ISCC=C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+    if not defined ISCC if exist "C:\Program Files\Inno Setup 6\ISCC.exe" set "ISCC=C:\Program Files\Inno Setup 6\ISCC.exe"
+    if not defined ISCC if exist "%LocalAppData%\Programs\Inno Setup 6\ISCC.exe" set "ISCC=%LocalAppData%\Programs\Inno Setup 6\ISCC.exe"
+    if not defined ISCC if exist "%LocalAppData%\Inno Setup 6\ISCC.exe" set "ISCC=%LocalAppData%\Inno Setup 6\ISCC.exe"
 )
-if not exist "%ISCC%" goto :inno_error
-echo [OK] Inno Setup found.
+
+if not defined ISCC goto :inno_error
+echo [OK] Inno Setup found: %ISCC%
 
 rem ---------- deploy ----------
 echo.
