@@ -9,6 +9,7 @@ use App\Models\JournalEntry;
 use App\Models\JournalLesson;
 use App\Models\StudyGroup;
 use App\Models\StudentProfile;
+use App\Models\ScheduleLesson;
 use App\Models\Studio;
 use App\Models\Subject;
 use App\Models\SubjectLesson;
