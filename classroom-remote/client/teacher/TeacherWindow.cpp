@@ -2168,6 +2168,8 @@ void TeacherWindow::advertiseLocalServer() {
 }
 
 void TeacherWindow::stopLocalServer() {
+    // Mark the shutdown as intentional before QProcess::finished is emitted.
+    localServerPort_ = 0;
     if (lanDiscovery_) {
         lanDiscovery_->close();
         lanDiscovery_->deleteLater();
