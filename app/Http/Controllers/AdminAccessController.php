@@ -24,7 +24,7 @@ class AdminAccessController extends Controller
         'homework'=>'Домашние задания',
         'applications'=>'Заявки на поступление',
         'settings'=>'Главная / SEO / хранилище',
-        'documents'=>'Официальные документы',
+        'documents'=>'Документы, файлы и ссылки',
         'questions'=>'Вопросы и обращения',
         'contacts'=>'Контакты и карта',
         'music'=>'Музыка сайта',
