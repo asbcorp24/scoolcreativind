@@ -820,7 +820,7 @@ class AdminAcademicController extends Controller
                 $studentId=0;
             }
 
-            $lessonBuilder=JournalLesson::with(['entries','planLesson','homeworkAssignment'])
+            $lessonBuilder=JournalLesson::with(['entries','planLesson','homeworkAssignment.submissions'])
                 ->where('study_group_id',$group->id)
                 ->where('subject_id',$subject->id);
 
