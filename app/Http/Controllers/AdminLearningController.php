@@ -30,12 +30,17 @@ class AdminLearningController extends Controller
         $lessonsQuery=ScheduleLesson::with(['studio','group','teacher','substituteTeacher','subject','planLesson','journalLesson']);
 
         if (!auth()->user()->is_admin) {
-            $groupIds=auth()->user()->teacherGroups()->pluck('study_groups.id');
-            $groupsQuery->whereIn('id',$groupIds)
-                ->whereHas('subjects',fn($q)=>$q->where('group_subjects.teacher_id',auth()->id()));
+            $directGroupIds=auth()->user()->teacherGroups()->pluck('study_groups.id');
+            $substituteGroupIds=ScheduleLesson::where('substitute_teacher_id',auth()->id())
+                ->whereNotNull('study_group_id')
+                ->pluck('study_group_id');
+            $groupIds=$directGroupIds->merge($substituteGroupIds)->filter()->unique()->values();
+
+            $groupsQuery->whereIn('id',$groupIds);
             $lessonsQuery->whereIn('study_group_id',$groupIds)
                 ->where(function($q){
                     $q->where('teacher_id',auth()->id())
+                      ->orWhere('substitute_teacher_id',auth()->id())
                       ->orWhere(function($legacy){
                           $legacy->whereNull('teacher_id')
                               ->where('teacher_name',auth()->user()->name);
@@ -127,7 +132,8 @@ class AdminLearningController extends Controller
                         ->subjects()
                         ->where('subjects.id',$data['subject_id'])
                         ->wherePivot('teacher_id',auth()->id())
-                        ->exists(),
+                        ->exists()
+                    || ($lesson && (int)$lesson->substitute_teacher_id===auth()->id()),
                     403
                 );
             }
@@ -262,7 +268,11 @@ class AdminLearningController extends Controller
         $user=auth()->user();
 
         if(!$user->is_admin){
-            abort_unless((int)$lesson->teacher_id===$user->id,403);
+            abort_unless(
+                (int)$lesson->teacher_id===$user->id ||
+                (int)$lesson->substitute_teacher_id===$user->id,
+                403
+            );
         }
 
         if(!$lesson->study_group_id || !$lesson->subject_id || !$lesson->subject_lesson_id){
@@ -293,7 +303,7 @@ class AdminLearningController extends Controller
                 'study_group_id'=>$group->id,
                 'subject_id'=>$lesson->subject_id,
                 'subject_lesson_id'=>$planLesson->id,
-                'teacher_id'=>$lesson->teacher_id ?: $user->id,
+                'teacher_id'=>$lesson->substitute_teacher_id ?: ($lesson->teacher_id ?: $user->id),
                 'lesson_date'=>$lesson->lesson_date,
                 'topic'=>$planLesson->title,
                 'notes'=>$lesson->description,
@@ -317,7 +327,7 @@ class AdminLearningController extends Controller
                         'study_group_id'=>$group->id,
                         'subject_id'=>$lesson->subject_id,
                         'subject_lesson_id'=>$planLesson->id,
-                        'teacher_id'=>$lesson->teacher_id ?: $user->id,
+                        'teacher_id'=>$lesson->substitute_teacher_id ?: ($lesson->teacher_id ?: $user->id),
                         'title'=>'Домашнее задание: '.$planLesson->title,
                         'description'=>$planLesson->homework_description,
                         'due_at'=>$dueAt,
