@@ -51,7 +51,10 @@ class LearningController extends Controller
 
         if($activeStudio!=='') $query->where('studio_id',$activeStudio);
         if($activeTeacherId!==''){
-            $query->where('teacher_id',$activeTeacherId);
+            $query->where(function($q) use($activeTeacherId){
+                $q->where('teacher_id',$activeTeacherId)
+                  ->orWhere('substitute_teacher_id',$activeTeacherId);
+            });
         }elseif($activeTeacher!==''){
             $query->where('teacher_name',$activeTeacher);
         }
@@ -79,7 +82,16 @@ class LearningController extends Controller
         $teacherIds=(clone $published)
             ->whereNotNull('teacher_id')
             ->distinct()
-            ->pluck('teacher_id');
+            ->pluck('teacher_id')
+            ->merge(
+                (clone $published)
+                    ->whereNotNull('substitute_teacher_id')
+                    ->distinct()
+                    ->pluck('substitute_teacher_id')
+            )
+            ->filter()
+            ->unique()
+            ->values();
 
         $teachers=User::whereIn('id',$teacherIds)
             ->orderBy('name')
@@ -133,7 +145,11 @@ class LearningController extends Controller
             if($request->filled($param)) $query->where($column,$request->input($param));
         }
         if($request->filled('teacher_id')){
-            $query->where('teacher_id',$request->input('teacher_id'));
+            $teacherId=$request->input('teacher_id');
+            $query->where(function($q) use($teacherId){
+                $q->where('teacher_id',$teacherId)
+                  ->orWhere('substitute_teacher_id',$teacherId);
+            });
         }elseif($request->filled('teacher')){
             $query->where('teacher_name',$request->input('teacher'));
         }
