@@ -99,7 +99,10 @@ $groupScheduleData=$groups->mapWithKeys(function($group){
       <div class="col-md-7">
        <label class="form-label">Преподаватель</label>
        @if(auth()->user()->is_admin)
-        <input class="form-control" name="teacher_name" value="{{ old('teacher_name') }}">
+        <select class="form-select" name="teacher_id">
+         <option value="">Без привязки к аккаунту</option>
+         @foreach($teachers as $teacher)<option value="{{ $teacher->id }}" @selected((int)old('teacher_id')===$teacher->id)>{{ $teacher->name }}</option>@endforeach
+        </select>
        @else
         <input class="form-control" value="{{ auth()->user()->name }}" readonly>
         <div class="form-text text-white-50">Занятие автоматически закрепляется за вашим аккаунтом.</div>
@@ -142,7 +145,7 @@ $groupScheduleData=$groups->mapWithKeys(function($group){
       <div class="col-md-4"><label class="form-label">Аудитория</label><input class="form-control" name="room"></div>
 
       @if(auth()->user()->is_admin)
-       <div class="col-md-7"><label class="form-label">Преподаватель</label><input class="form-control" name="teacher_name"></div>
+       <div class="col-md-7"><label class="form-label">Преподаватель</label><select class="form-select" name="teacher_id"><option value="">Без привязки</option>@foreach($teachers as $teacher)<option value="{{ $teacher->id }}">{{ $teacher->name }}</option>@endforeach</select></div>
       @else
        <div class="col-md-7"><label class="form-label">Преподаватель</label><input class="form-control" value="{{ auth()->user()->name }}" readonly></div>
       @endif
