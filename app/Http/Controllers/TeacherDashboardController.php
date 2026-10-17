@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\Announcement;
+use App\Models\HomeworkAssignment;
 use App\Models\HomeworkSubmission;
 use App\Models\JournalLesson;
 use App\Models\User;
@@ -355,6 +356,12 @@ class TeacherDashboardController extends Controller
             'avg_grade'=>$graded->count() ? round((float)$graded->avg('grade'),2) : null,
         ];
 
+        $homeworkAssignments=HomeworkAssignment::whereIn('study_group_id',$groupIds)
+            ->whereIn('subject_id',$subjectIds)
+            ->when(!$user->is_admin,fn($q)=>$q->where('teacher_id',$user->id))
+            ->where('is_published',true)
+            ->count();
+
         $homework=HomeworkSubmission::with(['assignment.subject','assignment.group'])
             ->where('student_id',$student->id)
             ->whereHas('assignment',function($q) use($groupIds,$subjectIds,$user){
@@ -372,6 +379,10 @@ class TeacherDashboardController extends Controller
         $portfolio=$profile
             ? $profile->portfolio()->with(['lesson.subject','media'])->take(20)->get()
             : collect();
+
+        $summary['homework_total']=$homeworkAssignments;
+        $summary['homework_submitted']=$homework->count();
+        $summary['portfolio_count']=$portfolio->count();
 
         return view('admin.teacher-student',compact(
             'student','studentGroups','entries','summary','homework','profile','portfolio'
