@@ -140,12 +140,16 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     connect(settingsBtn, &QPushButton::clicked, this, &TeacherWindow::editConnectionSettings);
 
     auto* toolbar = new QHBoxLayout;
-    auto* screenBtn = new QPushButton("🖥 Экран");
-    auto* cameraBtn = new QPushButton("🎥 Камера");
-    auto* fileBtn = new QPushButton("▶ Видео");
+    auto* screenBtn = new QPushButton("🖥 Источник: экран");
+    auto* cameraBtn = new QPushButton("🎥 Источник: камера");
+    auto* fileBtn = new QPushButton("▶ Источник: видео");
     auto* presentationBtn = new QPushButton("📊 PPT/PDF");
     auto* regionBtn = new QPushButton("▱ Область");
     auto* stopLectureBtn = new QPushButton("⏹ СТОП");
+    stopLectureBtn->hide();
+    broadcastToggleButton_ = new QPushButton("▶ НАЧАТЬ ТРАНСЛЯЦИЮ");
+    broadcastToggleButton_->setMinimumHeight(38);
+    broadcastToggleButton_->setStyleSheet("QPushButton{font-weight:900;padding:8px 16px;border-radius:10px;background:#16a34a;color:white;border:1px solid #22c55e;} QPushButton:hover{background:#15803d;}");
     micButton_ = new QPushButton("🎤 Микрофон");
 
     cameraCombo_ = new QComboBox;
@@ -230,8 +234,8 @@ TeacherWindow::TeacherWindow(QWidget* parent)
 
             if (match >= 0) {
                 sourceCombo_->setCurrentIndex(match);
-                startScreenLecture();
-                status_->setText("Транслируется презентация");
+                selectedBroadcastMode_ = "screen";
+                status_->setText("Презентация выбрана как источник. Нажмите «НАЧАТЬ ТРАНСЛЯЦИЮ».");
             } else {
                 status_->setText("Презентация открыта. Выберите её окно в списке «Источник» и нажмите «Экран».");
             }
@@ -274,7 +278,8 @@ TeacherWindow::TeacherWindow(QWidget* parent)
             QSettings s("SHKI", "ClassroomRemoteTeacher");
             s.setValue("capture/area_source", data);
             s.setValue("capture/area_label", label);
-            status_->setText("Область экрана выбрана");
+            selectedBroadcastMode_ = "screen";
+            status_->setText("Область экрана выбрана. Нажмите «НАЧАТЬ ТРАНСЛЯЦИЮ».");
         }, this);
     });
 
@@ -286,6 +291,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     broadcastStatus_->setMinimumWidth(230);
     broadcastStatus_->setStyleSheet("QLabel{background:#311217;color:#ff8a98;font-weight:800;padding:7px 12px;border:1px solid #7f1d2d;border-radius:9px;}");
     toolbar->addWidget(broadcastStatus_);
+    toolbar->addWidget(broadcastToggleButton_);
     toolbar->addWidget(screenBtn);
     toolbar->addWidget(cameraBtn);
     toolbar->addWidget(fileBtn);
@@ -337,6 +343,9 @@ TeacherWindow::TeacherWindow(QWidget* parent)
 
     refreshCaptureSources();
     connect(refreshSourcesBtn, &QPushButton::clicked, this, &TeacherWindow::refreshCaptureSources);
+    connect(sourceCombo_, &QComboBox::currentIndexChanged, this, [this](int) {
+        selectedBroadcastMode_ = "screen";
+    });
     connect(previewSourceBtn, &QPushButton::clicked, this, [this] {
         if (!sourceCombo_) return;
         const QString data = sourceCombo_->currentData().toString();
@@ -671,9 +680,30 @@ TeacherWindow::TeacherWindow(QWidget* parent)
 
     screenTimer_->setInterval(100);
 
-    connect(screenBtn, &QPushButton::clicked, this, &TeacherWindow::startScreenLecture);
-    connect(cameraBtn, &QPushButton::clicked, this, &TeacherWindow::startCameraLecture);
-    connect(fileBtn, &QPushButton::clicked, this, &TeacherWindow::startFileLecture);
+    connect(screenBtn, &QPushButton::clicked, this, [this] {
+        selectedBroadcastMode_ = "screen";
+        status_->setText("Источник выбран: экран/окно/область. Нажмите «НАЧАТЬ ТРАНСЛЯЦИЮ».");
+    });
+    connect(cameraBtn, &QPushButton::clicked, this, [this] {
+        selectedBroadcastMode_ = "camera";
+        status_->setText("Источник выбран: камера. Нажмите «НАЧАТЬ ТРАНСЛЯЦИЮ».");
+    });
+    connect(fileBtn, &QPushButton::clicked, this, [this] {
+        selectedBroadcastMode_ = "file";
+        status_->setText("Источник выбран: видеофайл. Нажмите «НАЧАТЬ ТРАНСЛЯЦИЮ».");
+    });
+    connect(broadcastToggleButton_, &QPushButton::clicked, this, [this] {
+        if (broadcastActive_) {
+            stopLecture();
+            return;
+        }
+        if (selectedBroadcastMode_ == "camera")
+            startCameraLecture();
+        else if (selectedBroadcastMode_ == "file")
+            startFileLecture();
+        else
+            startScreenLecture();
+    });
     connect(stopLectureBtn, &QPushButton::clicked, this, &TeacherWindow::stopLecture);
     connect(recordCameraBtn, &QPushButton::clicked, this, &TeacherWindow::startCameraRecording);
     connect(recordScreenBtn, &QPushButton::clicked, this, &TeacherWindow::startScreenRecording);
@@ -1676,6 +1706,16 @@ void TeacherWindow::stopLecture() {
 void TeacherWindow::setBroadcastState(bool active, const QString& mode) {
     broadcastActive_ = active;
     broadcastMode_ = active ? mode : QString();
+
+    if (broadcastToggleButton_) {
+        if (active) {
+            broadcastToggleButton_->setText("⏹ ОСТАНОВИТЬ ТРАНСЛЯЦИЮ");
+            broadcastToggleButton_->setStyleSheet("QPushButton{font-weight:900;padding:8px 16px;border-radius:10px;background:#b91c1c;color:white;border:1px solid #ef4444;} QPushButton:hover{background:#991b1b;}");
+        } else {
+            broadcastToggleButton_->setText("▶ НАЧАТЬ ТРАНСЛЯЦИЮ");
+            broadcastToggleButton_->setStyleSheet("QPushButton{font-weight:900;padding:8px 16px;border-radius:10px;background:#16a34a;color:white;border:1px solid #22c55e;} QPushButton:hover{background:#15803d;}");
+        }
+    }
 
     if (!broadcastStatus_)
         return;
