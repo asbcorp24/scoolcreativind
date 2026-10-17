@@ -528,7 +528,7 @@ class AdminLearningController extends Controller
         }
 
         $user=User::findOrFail($data['user_id']);
-        $data['portfolio_slug']=$data['portfolio_slug'] ?: Str::slug($user->name).'-'.$user->id;
+        $data['portfolio_slug']=($data['portfolio_slug'] ?? null) ?: Str::slug($user->name).'-'.$user->id;
         $data['is_public']=$request->boolean('is_public');
         $profile->fill($data)->save();
 
