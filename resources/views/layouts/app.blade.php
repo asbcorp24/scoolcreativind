@@ -99,7 +99,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
          <div class="px-3 py-2"><strong>Уведомления</strong></div>
          <div class="dropdown-divider"></div>
          @foreach($userAnnouncements as $notice)
-          <a class="dropdown-item text-wrap" href="{{ auth()->user()->isTeacherRole() ? route('admin.teacher-dashboard') : route('academic.dashboard') }}">
+          <a class="dropdown-item text-wrap" href="{{ route('notifications.index') }}">
            <strong>{{ $notice->title }}</strong>
            <div class="small text-white-50">{{ $notice->group->name ?? 'ШКИ' }}</div>
           </a>
@@ -178,7 +178,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
     <div class="mobile-more-grid">
       @auth
        @if(isset($userAnnouncements) && $userAnnouncements->count())
-        <a href="{{ auth()->user()->isTeacherRole() ? route('admin.teacher-dashboard') : route('academic.dashboard') }}"><span>🔔</span><strong>Уведомления ({{ $userAnnouncements->count() }})</strong></a>
+        <a href="{{ route('notifications.index') }}"><span>🔔</span><strong>Уведомления ({{ $userAnnouncements->count() }})</strong></a>
        @endif
       @endauth
       <a href="{{ route('search') }}"><span>⌕</span><strong>Поиск</strong></a>
