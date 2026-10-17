@@ -1,0 +1,52 @@
+name: Laravel Check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "routes/**"
+      - "database/**"
+      - "resources/views/**"
+      - "composer.json"
+      - "composer.lock"
+      - ".github/workflows/laravel-check.yml"
+  workflow_dispatch:
+
+jobs:
+  laravel-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: mbstring, sqlite3, pdo_sqlite, gd, zip
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare Laravel
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          mkdir -p database
+          touch database/database.sqlite
+          sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env
+          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=database\/database.sqlite/' .env
+          php artisan optimize:clear
+
+      - name: PHP syntax
+        run: find app routes database -name "*.php" -print0 | xargs -0 -n1 php -l
+
+      - name: Routes
+        run: php artisan route:list
+
+      - name: Fresh migration
+        run: php artisan migrate:fresh --force
