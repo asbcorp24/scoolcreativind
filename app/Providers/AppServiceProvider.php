@@ -1,6 +1,7 @@
 <?php
 namespace App\Providers;
 
+use App\Models\Announcement;
 use App\Models\SiteSetting;
 use App\Models\MusicTrack;
 use App\Models\CustomPage;
@@ -53,5 +54,42 @@ class AppServiceProvider extends ServiceProvider
         }
 
         View::share('customMenuPages',$customMenuPages);
+
+        View::composer('layouts.app',function($view){
+            $userAnnouncements=collect();
+
+            try {
+                if(auth()->check() && Schema::hasTable('announcements')){
+                    $user=auth()->user();
+                    $query=Announcement::with('group')
+                        ->where('is_published',true)
+                        ->where(function($q){
+                            $q->whereNull('published_at')->orWhere('published_at','<=',now());
+                        })
+                        ->where(function($q){
+                            $q->whereNull('expires_at')->orWhere('expires_at','>=',now());
+                        });
+
+                    if(!$user->is_admin){
+                        $isTeacher=$user->isTeacherRole();
+                        $groupIds=$isTeacher
+                            ? $user->teacherGroups()->pluck('study_groups.id')
+                            : $user->studentGroups()->pluck('study_groups.id');
+
+                        $query->whereIn('audience',$isTeacher ? ['all','teachers'] : ['all','students'])
+                            ->where(function($q) use($groupIds){
+                                $q->whereNull('study_group_id')
+                                  ->orWhereIn('study_group_id',$groupIds);
+                            });
+                    }
+
+                    $userAnnouncements=$query->latest('published_at')->take(8)->get();
+                }
+            } catch (\Throwable $e) {
+                $userAnnouncements=collect();
+            }
+
+            $view->with('userAnnouncements',$userAnnouncements);
+        });
     }
 }
