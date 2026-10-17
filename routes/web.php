@@ -41,6 +41,7 @@ use App\Http\Controllers\AdminTeacherController;
 use App\Http\Controllers\AdminRegistrationController;
 use App\Http\Controllers\ParentReportController;
 use App\Http\Controllers\TeacherDashboardController;
+use App\Http\Controllers\TeacherPortfolioController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class,'home'])->name('home');
@@ -110,6 +111,10 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::middleware('admin')->group(function(){
     Route::get('/',[AdminController::class,'dashboard'])->name('dashboard');
     Route::get('/teacher-dashboard',[TeacherDashboardController::class,'index'])->name('teacher-dashboard');
+    Route::get('/teacher-portfolio/{teacher?}',[TeacherPortfolioController::class,'edit'])->name('teacher-portfolio.edit');
+    Route::post('/teacher-portfolio/{teacher?}',[TeacherPortfolioController::class,'saveProfile'])->name('teacher-portfolio.save');
+    Route::post('/teacher-portfolio/{profile}/projects/{item?}',[TeacherPortfolioController::class,'saveProject'])->name('teacher-portfolio.projects.save');
+    Route::delete('/teacher-portfolio/{profile}/projects/{item}',[TeacherPortfolioController::class,'deleteProject'])->name('teacher-portfolio.projects.delete');
     Route::get('/teacher-groups',[TeacherDashboardController::class,'groups'])->name('teacher-groups');
     Route::get('/teacher-students/{student}',[TeacherDashboardController::class,'student'])->name('teacher-students.show');
     Route::post('/teacher-dashboard/announcements',[TeacherDashboardController::class,'saveAnnouncement'])->name('teacher-dashboard.announcements.save');
