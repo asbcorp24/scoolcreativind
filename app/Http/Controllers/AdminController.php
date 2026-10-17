@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AdmissionApplication;
+use App\Models\ActivityLog;
 use App\Models\MediaLibraryItem;
 use App\Models\NewsPost;
 use App\Models\Studio;
@@ -193,19 +194,17 @@ class AdminController extends Controller
 
     public function deleteNews(NewsPost $post)
     {
-        foreach($post->media as $media){
-            if($media->url && !preg_match('~^(https?:)?//~i',$media->url)){
-                Storage::disk('public')->delete($media->url);
-            }
-            $media->delete();
-        }
-
-        if($post->cover && !preg_match('~^(https?:)?//~i',$post->cover)){
-            Storage::disk('public')->delete($post->cover);
-        }
+        ActivityLog::record(
+            'news.trashed',
+            $post,
+            'Новость перемещена в корзину: '.$post->title,
+            $post->toArray(),
+            null
+        );
 
         $post->delete();
-        return redirect()->route('admin.news.index')->with('success','Новость удалена.');
+
+        return redirect()->route('admin.news.index')->with('success','Новость перемещена в корзину.');
     }
 
     public function newsForm(?NewsPost $post=null)
