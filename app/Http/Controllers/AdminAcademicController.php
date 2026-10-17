@@ -196,11 +196,35 @@ class AdminAcademicController extends Controller
 
     public function subjects()
     {
+        $subjectsQuery=Subject::with('studio')->withCount('lessons');
+
+        if(!auth()->user()->is_admin){
+            $teacherId=auth()->id();
+            $subjectsQuery->whereHas('groups',function($q) use($teacherId){
+                $q->where('group_subjects.teacher_id',$teacherId);
+            });
+        }
+
+        $groups=StudyGroup::with(['subjects'])
+            ->where('is_active',true)
+            ->whereIn('id',$this->allowedGroupIds())
+            ->orderBy('name')
+            ->get();
+
+        $groups=$this->restrictGroupSubjectsForTeacher($groups);
+
         return view('admin.academic.subjects',[
-            'subjects'=>Subject::with('studio')->withCount('lessons')->orderBy('title')->get(),
-            'groups'=>StudyGroup::with(['subjects'])->where('is_active',true)->whereIn('id',$this->allowedGroupIds())->orderBy('name')->get(),
-            'teachers'=>User::whereHas('studyGroups',fn($q)=>$q->where('role','teacher'))->orderBy('name')->get(),
-            'studios'=>Studio::where('is_active',true)->orderBy('sort_order')->get(),
+            'subjects'=>$subjectsQuery->orderBy('title')->get(),
+            'groups'=>$groups,
+            'teachers'=>auth()->user()->is_admin
+                ? User::where(function($q){
+                    $q->where('is_teacher',true)
+                      ->orWhereHas('studyGroups',fn($g)=>$g->where('role','teacher'));
+                })->orderBy('name')->get()
+                : collect([auth()->user()]),
+            'studios'=>auth()->user()->is_admin
+                ? Studio::where('is_active',true)->orderBy('sort_order')->get()
+                : collect(),
         ]);
     }
 
