@@ -68,6 +68,7 @@ Route::get('/projects',[LearningController::class,'projects'])->name('projects.i
 Route::get('/projects/{project}',[LearningController::class,'project'])->name('projects.show');
 Route::get('/portfolio/{profile}',[LearningController::class,'portfolio'])->name('portfolio.show');
 Route::get('/my-portfolio',[LearningController::class,'myPortfolio'])->middleware('auth')->name('portfolio.mine');
+Route::post('/my-portfolio/profile',[LearningController::class,'saveMyPortfolioProfile'])->middleware('auth')->name('portfolio.mine.profile');
 Route::middleware('auth')->group(function(){
     Route::get('/notifications',[NotificationController::class,'index'])->name('notifications.index');
     Route::post('/notifications/read-all',[NotificationController::class,'readAll'])->name('notifications.read-all');
