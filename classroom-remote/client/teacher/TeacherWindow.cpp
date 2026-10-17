@@ -67,6 +67,7 @@
 #include <QUdpSocket>
 #include <QNetworkDatagram>
 #include <QHostAddress>
+#include <QTcpServer>
 #include <QUrl>
 #include <QMessageBox>
 #include <QPixmap>
@@ -1974,7 +1975,7 @@ void TeacherWindow::startLocalServer() {
     const QString configPath = QDir(localDir).filePath("config.json");
 
     QJsonObject cfg{
-        {"http_addr", ":8080"},
+        {"http_addr", ":" + QString::number(localServerPort_)},
         {"https_addr", ":443"},
         {"domain", ""},
         {"acme_email", ""},
@@ -2005,60 +2006,165 @@ void TeacherWindow::startLocalServer() {
     configFile.write(QJsonDocument(cfg).toJson(QJsonDocument::Indented));
     configFile.close();
 
+    localStudentPin_ = studentPin;
+    localTeacherPin_ = teacherPin;
+    localServerPort_ = findAvailableLocalPort();
+    if (localServerPort_ <= 0) {
+        QMessageBox::warning(this, "Локальный сервер", "Не удалось найти свободный TCP-порт для локального класса.");
+        return;
+    }
+
+    // Перезаписываем конфигурацию уже с выбранным свободным портом.
+    cfg["http_addr"] = ":" + QString::number(localServerPort_);
+    if (!configFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        QMessageBox::warning(this, "Локальный сервер", "Не удалось обновить локальный config.json.");
+        return;
+    }
+    configFile.write(QJsonDocument(cfg).toJson(QJsonDocument::Indented));
+    configFile.close();
+
     localServerProcess_ = new QProcess(this);
     localServerProcess_->setWorkingDirectory(localDir);
     localServerProcess_->setProgram(exe);
     localServerProcess_->setArguments({"-config", configPath});
     localServerProcess_->setProcessChannelMode(QProcess::MergedChannels);
-    localServerProcess_->start();
 
+    connect(localServerProcess_, &QProcess::finished, this,
+            [this](int exitCode, QProcess::ExitStatus) {
+        if (!localServerProcess_)
+            return;
+        const QString log = QString::fromUtf8(localServerProcess_->readAll()).trimmed();
+        if (localServerPort_ > 0) {
+            status_->setText(QString("Локальный сервер остановлен (код %1)").arg(exitCode));
+            if (!log.isEmpty())
+                QMessageBox::warning(this, "Локальный сервер остановлен", log);
+        }
+    });
+
+    localServerProcess_->start();
     if (!localServerProcess_->waitForStarted(3000)) {
-        QMessageBox::warning(this, "Локальный сервер", "Не удалось запустить classroom-server.");
+        QMessageBox::warning(this, "Локальный сервер",
+            "Не удалось запустить classroom-server.\n" + localServerProcess_->errorString());
         localServerProcess_->deleteLater();
         localServerProcess_ = nullptr;
+        localServerPort_ = 0;
         return;
     }
 
-    localStudentPin_ = studentPin;
+    status_->setText(QString("Запускаю локальный сервер на порту %1...").arg(localServerPort_));
+    checkLocalServerReady(1);
+}
+
+int TeacherWindow::findAvailableLocalPort() const {
+    for (int port = 18080; port <= 18120; ++port) {
+        QTcpServer probe;
+        if (probe.listen(QHostAddress::LocalHost, quint16(port))) {
+            probe.close();
+            return port;
+        }
+    }
+    return 0;
+}
+
+void TeacherWindow::checkLocalServerReady(int attempt) {
+    if (!localServerProcess_ || localServerProcess_->state() == QProcess::NotRunning) {
+        QString log;
+        if (localServerProcess_)
+            log = QString::fromUtf8(localServerProcess_->readAll()).trimmed();
+        QMessageBox::warning(this, "Локальный сервер",
+            log.isEmpty() ? "classroom-server завершился до запуска HTTP-сервера." : log);
+        stopLocalServer();
+        return;
+    }
+
+    QUrl health(QString("http://127.0.0.1:%1/health").arg(localServerPort_));
+    auto* reply = network_->get(QNetworkRequest(health));
+    auto* timeout = new QTimer(reply);
+    timeout->setSingleShot(true);
+    timeout->setInterval(1200);
+    connect(timeout, &QTimer::timeout, reply, [reply] {
+        if (reply->isRunning())
+            reply->abort();
+    });
+    timeout->start();
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply, attempt] {
+        const bool ok = reply->error() == QNetworkReply::NoError &&
+                        reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200;
+        reply->deleteLater();
+
+        if (ok) {
+            advertiseLocalServer();
+            return;
+        }
+
+        if (attempt >= 8) {
+            QString log;
+            if (localServerProcess_)
+                log = QString::fromUtf8(localServerProcess_->readAll()).trimmed();
+            QMessageBox::warning(this, "Локальный сервер не готов",
+                QString("Сервер не ответил на /health после 8 попыток.\nПорт: %1\n\n%2")
+                    .arg(localServerPort_)
+                    .arg(log.isEmpty() ? "Проверьте, не блокирует ли запуск защитное ПО." : log));
+            stopLocalServer();
+            return;
+        }
+
+        status_->setText(QString("Жду локальный сервер... %1/8").arg(attempt));
+        QTimer::singleShot(500, this, [this, attempt] {
+            checkLocalServerReady(attempt + 1);
+        });
+    });
+}
+
+void TeacherWindow::advertiseLocalServer() {
     if (!lanDiscovery_)
         lanDiscovery_ = new QUdpSocket(this);
     lanDiscovery_->abort();
+
     if (!lanDiscovery_->bind(QHostAddress::AnyIPv4, 45454,
                              QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint)) {
-        status_->setText("LAN-сервер запущен, но UDP-автопоиск недоступен");
+        status_->setText("Локальный сервер готов, но UDP-автопоиск недоступен");
     } else {
+        disconnect(lanDiscovery_, nullptr, this, nullptr);
         connect(lanDiscovery_, &QUdpSocket::readyRead, this, [this] {
             while (lanDiscovery_->hasPendingDatagrams()) {
                 const QNetworkDatagram request = lanDiscovery_->receiveDatagram();
                 if (request.data().trimmed() != "SHKI_DISCOVER")
                     continue;
-                const QByteArray response = QString("SHKI_CLASSROOM|%1|8080|%2|%3")
-                    .arg(localIPv4Address(), lesson_->text(), localStudentPin_)
+                const QByteArray response = QString("SHKI_CLASSROOM|%1|%2|%3|%4")
+                    .arg(localIPv4Address())
+                    .arg(localServerPort_)
+                    .arg(lesson_->text())
+                    .arg(localStudentPin_)
                     .toUtf8();
                 lanDiscovery_->writeDatagram(response, request.senderAddress(), request.senderPort());
             }
         });
     }
 
-    config_.serverUrl = "http://127.0.0.1:8080";
+    config_.serverUrl = QString("http://127.0.0.1:%1").arg(localServerPort_);
     QString ignored;
     config_.save(&ignored);
-    pin_->setText(teacherPin);
+    pin_->setText(localTeacherPin_);
 
     const QString ip = localIPv4Address();
-    status_->setText(QString("📡 Локальный класс: http://%1:8080 · PIN учеников: %2")
-                     .arg(ip, studentPin));
+    status_->setText(QString("📡 Локальный класс: http://%1:%2 · PIN учеников: %3")
+                     .arg(ip)
+                     .arg(localServerPort_)
+                     .arg(localStudentPin_));
 
-    QMessageBox::information(this, "Локальный класс запущен",
-        QString("Интернет не требуется.\n\n"
-                "Адрес преподавателя: http://%1:8080\n"
-                "PIN учеников: %2\n"
-                "Занятие: %3\n\n"
-                "У ученика: Настройки → «Работа в локальной сети», затем ввести PIN.\n"
-                "Если Windows спросит доступ к сети — разрешите для частных сетей.")
-            .arg(ip, studentPin, lesson_->text()));
+    QMessageBox::information(this, "Локальный класс готов",
+        QString("Сервер проверен и отвечает. Интернет не требуется.\n\n"
+                "Адрес: http://%1:%2\n"
+                "PIN учеников: %3\n"
+                "Занятие: %4")
+            .arg(ip)
+            .arg(localServerPort_)
+            .arg(localStudentPin_)
+            .arg(lesson_->text()));
 
-    QTimer::singleShot(700, this, &TeacherWindow::loginWithPIN);
+    loginWithPIN();
 }
 
 void TeacherWindow::stopLocalServer() {
@@ -2077,6 +2183,8 @@ void TeacherWindow::stopLocalServer() {
     localServerProcess_->deleteLater();
     localServerProcess_ = nullptr;
     localStudentPin_.clear();
+    localTeacherPin_.clear();
+    localServerPort_ = 0;
 }
 
 void TeacherWindow::sendLectureImage(const QImage& source) {
