@@ -30,7 +30,13 @@ jobs:
           coverage: none
 
       - name: Install dependencies
+        env:
+          COMPOSER_NO_BLOCKING: "1"
         run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Security audit
+        continue-on-error: true
+        run: composer audit
 
       - name: Prepare Laravel
         run: |
