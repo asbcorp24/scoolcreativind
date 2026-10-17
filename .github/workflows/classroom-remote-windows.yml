@@ -11,6 +11,7 @@ on:
   push:
     paths:
       - "classroom-remote/client/**"
+      - "classroom-remote/server/**"
       - ".github/workflows/classroom-remote-windows.yml"
   pull_request:
     paths:
@@ -22,9 +23,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Qt downloader
+      - name: Install Python build helpers
         shell: pwsh
-        run: python -m pip install --upgrade aqtinstall
+        run: python -m pip install --upgrade aqtinstall pillow
+
+      - name: Generate Windows icons
+        shell: pwsh
+        working-directory: classroom-remote/client
+        run: python tools/generate_icons.py
 
       - name: Install Qt 6
         shell: pwsh
@@ -63,6 +69,22 @@ jobs:
           $env:PATH = "$qtBin;$vcpkgBin;$env:PATH"
           ctest -C Release --output-on-failure
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.x"
+
+      - name: Build bundled LAN server
+        shell: pwsh
+        working-directory: classroom-remote/server
+        run: |
+          go mod tidy
+          go mod download
+          $env:CGO_ENABLED = "0"
+          $env:GOOS = "windows"
+          $env:GOARCH = "amd64"
+          go build -mod=mod -trimpath -ldflags="-s -w" -o "..\client\build\classroom-server.exe" .
+
       - name: Deploy Qt runtime
         shell: pwsh
         working-directory: classroom-remote/client
@@ -72,6 +94,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path "$dist\student" | Out-Null
           Copy-Item "build\Release\ClassroomTeacher.exe" "$dist\teacher\"
           Copy-Item "build\Release\ClassroomStudent.exe" "$dist\student\"
+          Copy-Item "build\classroom-server.exe" "$dist\teacher\"
           & "C:\Qt\6.8.3\msvc2022_64\bin\windeployqt.exe" --release "$dist\teacher\ClassroomTeacher.exe"
           & "C:\Qt\6.8.3\msvc2022_64\bin\windeployqt.exe" --release "$dist\student\ClassroomStudent.exe"
           $vcpkgBins = @(
@@ -108,6 +131,22 @@ jobs:
           Get-ChildItem "$dist\teacher" -File | Select-Object -ExpandProperty Name
           Write-Host "Student top-level runtime:"
           Get-ChildItem "$dist\student" -File | Select-Object -ExpandProperty Name
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Build separate Windows installers
+        shell: pwsh
+        working-directory: classroom-remote/client
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found" }
+          New-Item -ItemType Directory -Force -Path "dist\installers" | Out-Null
+          & $iscc "installer\teacher.iss"
+          & $iscc "installer\student.iss"
+          if (-not (Test-Path "dist\installers\ClassroomTeacher-Setup.exe")) { throw "Teacher installer missing" }
+          if (-not (Test-Path "dist\installers\ClassroomStudent-Setup.exe")) { throw "Student installer missing" }
 
       - name: Upload Windows clients
         uses: actions/upload-artifact@v4
@@ -174,5 +213,9 @@ jobs:
           "$hash  $asset" | Set-Content -Path $shaAsset -Encoding ASCII
 
           gh release upload $tag $asset $shaAsset --repo "${{ github.repository }}" --clobber
+
+          $teacherSetup = "$env:GITHUB_WORKSPACE\classroom-remote\client\dist\installers\ClassroomTeacher-Setup.exe"
+          $studentSetup = "$env:GITHUB_WORKSPACE\classroom-remote\client\dist\installers\ClassroomStudent-Setup.exe"
+          gh release upload $tag $teacherSetup $studentSetup --repo "${{ github.repository }}" --clobber
 
           Pop-Location
