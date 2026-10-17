@@ -245,7 +245,7 @@ $musicPlaylist=$musicTracks->map(function($track){
 <div class="global-music-player" data-global-music-player>
   <script type="application/json" data-music-playlist>{!! json_encode($musicPlaylist, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) !!}</script>
   <div class="music-player-glow"></div>
-  <button type="button" class="music-player-collapse" data-music-collapse aria-label="Свернуть плеер">⌄</button>
+  <button type="button" class="music-player-collapse" data-music-collapse aria-label="Свернуть плеер" aria-expanded="true" title="Свернуть плеер">⌄</button>
   <div class="music-player-top">
     <div class="music-eq" data-music-eq><i></i><i></i><i></i><i></i></div>
     <div class="music-player-label">ШКИ / AUDIO</div>
