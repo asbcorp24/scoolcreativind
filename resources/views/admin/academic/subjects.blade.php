@@ -5,7 +5,11 @@
  <div class="container">
   <div class="eyebrow">Админ / предметы</div>
   <h1 class="display-3 fw-bold">Предметы</h1>
-  <p class="text-white-50 mb-0">Сначала создайте предмет в справочнике, затем закрепите его за группой и назначьте преподавателя.</p>
+  <p class="text-white-50 mb-0">
+   {{ auth()->user()->is_admin
+      ? 'Сначала создайте предмет в справочнике, затем закрепите его за группой и назначьте преподавателя.'
+      : 'Здесь показаны только ваши назначенные предметы. Открывайте КТП, добавляйте уроки, материалы и домашние задания.' }}
+  </p>
  </div>
 </section>
 
@@ -18,6 +22,7 @@
   @endif
 
   <div class="row g-4 mb-5">
+   @if(auth()->user()->is_admin)
    <div class="col-lg-5">
     <form class="form-shell h-100" method="post" action="{{ route('admin.subjects.save') }}">
      @csrf
@@ -41,8 +46,9 @@
      <div class="text-end"><button class="btn btn-neon">Добавить предмет</button></div>
     </form>
    </div>
+   @endif
 
-   <div class="col-lg-7">
+   <div class="{{ auth()->user()->is_admin ? 'col-lg-7' : 'col-12' }}">
     <div class="glass-card p-4 h-100">
      <div class="d-flex justify-content-between align-items-center mb-3">
       <div>
@@ -72,10 +78,12 @@
             </a>
            </td>
            <td class="text-end">
-            <form method="post" action="{{ route('admin.subjects.delete',$subject) }}" onsubmit="return confirm('Удалить предмет?')">
-             @csrf @method('DELETE')
-             <button class="btn btn-sm btn-outline-danger">Удалить</button>
-            </form>
+            @if(auth()->user()->is_admin)
+             <form method="post" action="{{ route('admin.subjects.delete',$subject) }}" onsubmit="return confirm('Удалить предмет?')">
+              @csrf @method('DELETE')
+              <button class="btn btn-sm btn-outline-danger">Удалить</button>
+             </form>
+            @endif
            </td>
           </tr>
          @endforeach
@@ -92,7 +100,7 @@
     <div class="eyebrow">Привязка</div>
     <h2>Предметы по группам</h2>
    </div>
-   <p>Для каждой группы выберите предмет из справочника и преподавателя.</p>
+   <p>{{ auth()->user()->is_admin ? 'Для каждой группы выберите предмет из справочника и преподавателя.' : 'Ваши предметы в назначенных вам учебных группах.' }}</p>
   </div>
 
   @if($subjects->isEmpty())
@@ -128,28 +136,30 @@
       </div>
      @endif
 
-     <form class="row g-3 align-items-end" method="post" action="{{ route('admin.groups.subjects.attach',$g) }}">
-      @csrf
-      <div class="col-md-5">
-       <label class="form-label">Предмет</label>
-       <select class="form-select" name="subject_id" required data-subject-select>
-        @foreach($subjects as $s)
-         @php
-          $attached = $g->subjects->firstWhere('id',$s->id);
-         @endphp
-         <option value="{{ $s->id }}" data-teacher-id="{{ $attached?->pivot?->teacher_id ?? '' }}">{{ $s->title }}</option>
-        @endforeach
-       </select>
-      </div>
-      <div class="col-md-5">
-       <label class="form-label">Преподаватель</label>
-       <select class="form-select" name="teacher_id" data-teacher-select>
-        <option value="">Без преподавателя</option>
-        @foreach($teachers as $t)<option value="{{ $t->id }}">{{ $t->name }}</option>@endforeach
-       </select>
-      </div>
-      <div class="col-md-2 d-grid"><button class="btn btn-neon">Сохранить</button></div>
-     </form>
+     @if(auth()->user()->is_admin)
+      <form class="row g-3 align-items-end" method="post" action="{{ route('admin.groups.subjects.attach',$g) }}">
+       @csrf
+       <div class="col-md-5">
+        <label class="form-label">Предмет</label>
+        <select class="form-select" name="subject_id" required data-subject-select>
+         @foreach($subjects as $s)
+          @php
+           $attached = $g->subjects->firstWhere('id',$s->id);
+          @endphp
+          <option value="{{ $s->id }}" data-teacher-id="{{ $attached?->pivot?->teacher_id ?? '' }}">{{ $s->title }}</option>
+         @endforeach
+        </select>
+       </div>
+       <div class="col-md-5">
+        <label class="form-label">Преподаватель</label>
+        <select class="form-select" name="teacher_id" data-teacher-select>
+         <option value="">Без преподавателя</option>
+         @foreach($teachers as $t)<option value="{{ $t->id }}">{{ $t->name }}</option>@endforeach
+        </select>
+       </div>
+       <div class="col-md-2 d-grid"><button class="btn btn-neon">Сохранить</button></div>
+      </form>
+     @endif
     </div>
    @endforeach
   @endif
