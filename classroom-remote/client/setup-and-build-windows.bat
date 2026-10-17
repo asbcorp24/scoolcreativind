@@ -158,6 +158,15 @@ if not defined PY_CMD (
 if not defined PY_CMD goto :python_error
 echo [OK] Python found.
 
+rem ---------- icon generator ----------
+echo [INSTALL] Pillow for Windows icon generation...
+call %PY_CMD% -m pip install --upgrade pillow
+if errorlevel 1 goto :python_error
+
+echo [BUILD] Generating Teacher/Student icons...
+call %PY_CMD% tools\generate_icons.py
+if errorlevel 1 goto :icon_error
+
 rem ---------- Qt ----------
 if not exist "%QT_ROOT%\bin\qmake.exe" (
     echo [INSTALL] aqtinstall...
@@ -228,6 +237,15 @@ echo [BUILD] Compiling Release...
 cmake --build build --config Release --parallel 2
 if errorlevel 1 goto :build_error
 
+rem ---------- Inno Setup ----------
+set "ISCC=C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+if not exist "%ISCC%" (
+    echo [INSTALL] Inno Setup...
+    winget install --id JRSoftware.InnoSetup -e --silent --accept-package-agreements --accept-source-agreements
+)
+if not exist "%ISCC%" goto :inno_error
+echo [OK] Inno Setup found.
+
 rem ---------- deploy ----------
 echo.
 echo [DEPLOY] Preparing portable folders...
@@ -281,6 +299,14 @@ for %%D in (
     )
 )
 
+rem ---------- separate installers ----------
+echo [INSTALLER] Building separate Teacher/Student installers...
+if not exist "%DIST%\installers" mkdir "%DIST%\installers"
+"%ISCC%" "installer\teacher.iss"
+if errorlevel 1 goto :installer_error
+"%ISCC%" "installer\student.iss"
+if errorlevel 1 goto :installer_error
+
 rem ---------- zip packages ----------
 where powershell >nul 2>&1
 if not errorlevel 1 (
@@ -308,6 +334,10 @@ echo.
 echo Local server bundled with Teacher:
 echo   %DIST%\teacher\classroom-server.exe
 echo.
+echo INSTALLERS:
+echo   %DIST%\installers\ClassroomTeacher-Setup.exe
+echo   %DIST%\installers\ClassroomStudent-Setup.exe
+echo.
 echo ZIP:
 echo   %DIST%\ClassroomTeacher-Windows.zip
 echo   %DIST%\ClassroomStudent-Windows.zip
@@ -316,6 +346,18 @@ echo You can copy the whole teacher/student folder to another PC.
 echo.
 pause
 exit /b 0
+
+:icon_error
+echo [ERROR] Failed to generate application icons.
+goto :fail
+
+:inno_error
+echo [ERROR] Inno Setup installation was not detected.
+goto :fail
+
+:installer_error
+echo [ERROR] Windows installer build failed.
+goto :fail
 
 :git_error
 echo [ERROR] Git installation failed.
