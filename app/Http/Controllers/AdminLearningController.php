@@ -43,10 +43,24 @@ class AdminLearningController extends Controller
                 });
         }
 
+        $groups=$groupsQuery->orderBy('study_year')->orderBy('name')->get();
+
+        if(!auth()->user()->is_admin){
+            $teacherId=auth()->id();
+            $groups->each(function($group) use($teacherId){
+                $group->setRelation(
+                    'subjects',
+                    $group->subjects
+                        ->filter(fn($subject)=>(int)($subject->pivot->teacher_id ?? 0)===$teacherId)
+                        ->values()
+                );
+            });
+        }
+
         return view('admin.schedule', [
             'lessons'=>$lessonsQuery->orderByDesc('lesson_date')->orderBy('starts_at')->get(),
             'studios'=>Studio::orderBy('sort_order')->get(),
-            'groups'=>$groupsQuery->orderBy('study_year')->orderBy('name')->get(),
+            'groups'=>$groups,
         ]);
     }
 
