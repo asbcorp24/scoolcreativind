@@ -245,7 +245,21 @@ pushd "..\server"
 set "CGO_ENABLED=0"
 set "GOOS=windows"
 set "GOARCH=amd64"
-go build -trimpath -ldflags="-s -w" -o "%DIST%\teacher\classroom-server.exe" .
+
+echo [BUILD] Resolving Go modules...
+go mod tidy
+if errorlevel 1 (
+    popd
+    goto :server_deps_error
+)
+
+go mod download
+if errorlevel 1 (
+    popd
+    goto :server_deps_error
+)
+
+go build -mod=mod -trimpath -ldflags="-s -w" -o "%DIST%\teacher\classroom-server.exe" .
 if errorlevel 1 (
     popd
     goto :server_build_error
@@ -313,6 +327,11 @@ goto :fail
 
 :go_error
 echo [ERROR] Go installation failed.
+goto :fail
+
+:server_deps_error
+echo [ERROR] Go module dependencies could not be resolved.
+echo Check Internet access for the first build, then run this BAT again.
 goto :fail
 
 :server_build_error
