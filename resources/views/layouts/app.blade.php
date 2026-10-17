@@ -96,7 +96,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
           <a class="dropdown-item" href="{{ route('equipment') }}">Оборудование</a>
           <a class="dropdown-item" href="{{ route('news.index') }}">Новости</a>
           <a class="dropdown-item" href="{{ route('clips.index') }}">Клипы</a>
-          <a class="dropdown-item" href="{{ route('documents.index') }}">Документы</a>
+          <a class="dropdown-item" href="{{ route('documents.index') }}">Документы и файлы</a>
           <a class="dropdown-item" href="{{ route('questions.create') }}">Задать вопрос</a>
           <a class="dropdown-item" href="{{ route('contacts.index') }}">Контакты</a>
           <a class="dropdown-item" href="{{ route('cooperation.index') }}">Сотрудничество</a>
@@ -162,7 +162,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
       <a href="{{ route('equipment') }}"><span>⌘</span><strong>Оборудование</strong></a>
       <a href="{{ route('news.index') }}"><span>▤</span><strong>Новости</strong></a>
       <a href="{{ route('clips.index') }}"><span>▶</span><strong>Клипы</strong></a>
-      <a href="{{ route('documents.index') }}"><span>▣</span><strong>Документы</strong></a>
+      <a href="{{ route('documents.index') }}"><span>▣</span><strong>Документы и файлы</strong></a>
       <a href="{{ route('questions.create') }}"><span>?</span><strong>Задать вопрос</strong></a>
       <a href="{{ route('contacts.index') }}"><span>⌖</span><strong>Контакты</strong></a>
       <a href="{{ route('cooperation.index') }}"><span>∞</span><strong>Сотрудничество</strong></a>
