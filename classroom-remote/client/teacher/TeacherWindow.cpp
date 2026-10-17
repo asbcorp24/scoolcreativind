@@ -1896,15 +1896,26 @@ void TeacherWindow::sendScreenshotTask() {
 }
 
 QString TeacherWindow::localIPv4Address() const {
+    QString fallback;
     for (const QHostAddress& address : QNetworkInterface::allAddresses()) {
         if (address.protocol() != QAbstractSocket::IPv4Protocol || address.isLoopback())
             continue;
         const QString value = address.toString();
         if (value.startsWith("169.254."))
             continue;
-        return value;
+
+        const QStringList octets = value.split('.');
+        const int second = octets.size() > 1 ? octets[1].toInt() : -1;
+        const bool privateAddress =
+            value.startsWith("10.") ||
+            value.startsWith("192.168.") ||
+            (value.startsWith("172.") && second >= 16 && second <= 31);
+        if (privateAddress)
+            return value;
+        if (fallback.isEmpty())
+            fallback = value;
     }
-    return "127.0.0.1";
+    return fallback.isEmpty() ? QString("127.0.0.1") : fallback;
 }
 
 QString TeacherWindow::localServerExecutable() const {
