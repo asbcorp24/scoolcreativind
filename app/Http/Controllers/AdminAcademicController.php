@@ -1074,6 +1074,62 @@ class AdminAcademicController extends Controller
         ));
     }
 
+    public function printGroupProgressReport(Request $request)
+    {
+        $data=$request->validate([
+            'group_id'=>'required|exists:study_groups,id',
+            'date_from'=>'nullable|date',
+            'date_to'=>'nullable|date',
+        ]);
+
+        $groupId=(int)$data['group_id'];
+        $this->ensureGroupAllowed($groupId);
+
+        $dateFrom=$data['date_from'] ?? now()->startOfMonth()->toDateString();
+        $dateTo=$data['date_to'] ?? now()->toDateString();
+
+        $group=StudyGroup::with(['students','studio','academicYear','subjects'])->findOrFail($groupId);
+        $allowedSubjectIds=auth()->user()->is_admin
+            ? $group->subjects->pluck('id')
+            : $this->allowedSubjectIdsForGroup($groupId);
+
+        $entries=JournalEntry::with(['lesson.subject','student'])
+            ->whereHas('lesson',function($q) use($groupId,$allowedSubjectIds,$dateFrom,$dateTo){
+                $q->where('study_group_id',$groupId)
+                    ->whereIn('subject_id',$allowedSubjectIds)
+                    ->whereBetween('lesson_date',[$dateFrom,$dateTo]);
+            })
+            ->get();
+
+        $rows=$group->students->sortBy('name')->values()->map(function($student) use($entries){
+            $items=$entries->where('student_id',$student->id);
+            $total=$items->count();
+            $present=$items->where('attendance','present')->count();
+            $late=$items->where('attendance','late')->count();
+            $absent=$items->where('attendance','absent')->count();
+            $excused=$items->where('attendance','excused')->count();
+            $grades=$items->whereNotNull('grade')->pluck('grade')->map(fn($v)=>(float)$v);
+
+            return [
+                'student'=>$student,
+                'lessons'=>$total,
+                'present'=>$present,
+                'late'=>$late,
+                'absent'=>$absent,
+                'excused'=>$excused,
+                'attendance'=>$total ? round((($present+$late)/$total)*100,1) : null,
+                'average'=>$grades->count() ? round($grades->avg(),2) : null,
+                'grades_count'=>$grades->count(),
+            ];
+        });
+
+        $subjects=$group->subjects->whereIn('id',$allowedSubjectIds)->values();
+
+        return view('admin.academic.print-group-progress',compact(
+            'group','rows','subjects','dateFrom','dateTo'
+        ));
+    }
+
     public function printJournalReport(Request $request)
     {
         $data=$request->validate([
