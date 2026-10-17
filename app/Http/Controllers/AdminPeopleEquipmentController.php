@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\EquipmentItem;
 use App\Models\Studio;
 use App\Models\TeamMember;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -14,12 +15,17 @@ class AdminPeopleEquipmentController extends Controller
         return view('admin.team', [
             'members'=>TeamMember::with('studio')->orderBy('sort_order')->get(),
             'studios'=>Studio::orderBy('sort_order')->get(),
+            'teachers'=>User::where(function($q){
+                $q->where('is_teacher',true)
+                  ->orWhereHas('studyGroups',fn($g)=>$g->where('role','teacher'));
+            })->orderBy('name')->get(),
         ]);
     }
 
     public function saveTeam(Request $request, ?TeamMember $member=null)
     {
         $data=$request->validate([
+            'user_id'=>'nullable|exists:users,id',
             'studio_id'=>'nullable|exists:studios,id',
             'name'=>'required|string|max:180',
             'role'=>'nullable|string|max:180',
