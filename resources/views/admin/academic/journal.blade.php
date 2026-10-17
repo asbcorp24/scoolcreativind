@@ -251,6 +251,16 @@
                <button class="btn btn-sm btn-ghost journal-save-btn" type="submit">Сохранить</button>
                <span class="small ms-2 journal-save-status text-white-50"></span>
               </div>
+              <div class="col-12">
+               <details class="mt-1" @if($entry->attendance==='excused' || $entry->absence_reason || $entry->absence_document) open @endif>
+                <summary class="small text-white-50">Уважительная причина / подтверждение</summary>
+                <div class="row g-2 mt-1">
+                 <div class="col-xl-7"><input class="form-control form-control-sm" name="absence_reason" value="{{ $entry->absence_reason }}" placeholder="Причина отсутствия"></div>
+                 <div class="col-xl-5"><input type="file" class="form-control form-control-sm" name="absence_document" accept=".pdf,.jpg,.jpeg,.png,.webp"></div>
+                 @if($entry->absence_document_url)<div class="col-12"><a class="small" href="{{ $entry->absence_document_url }}" target="_blank">Открыть подтверждающий документ ↗</a></div>@endif
+                </div>
+               </details>
+              </div>
              </form>
             </td>
            </tr>
@@ -292,6 +302,12 @@
            </div>
           </div>
 
+          <details class="mt-3" @if($entry->attendance==='excused' || $entry->absence_reason || $entry->absence_document) open @endif>
+           <summary class="small text-white-50">Уважительная причина / документ</summary>
+           <input class="form-control mt-2" name="absence_reason" value="{{ $entry->absence_reason }}" placeholder="Причина отсутствия">
+           <input type="file" class="form-control mt-2" name="absence_document" accept=".pdf,.jpg,.jpeg,.png,.webp">
+           @if($entry->absence_document_url)<a class="small d-block mt-2" href="{{ $entry->absence_document_url }}" target="_blank">Открыть документ ↗</a>@endif
+          </details>
           <button class="btn btn-ghost w-100 mt-3 journal-save-btn" type="submit">Сохранить</button>
          </form>
         @endif
@@ -424,7 +440,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   form.querySelector('[name="attendance"]')?.addEventListener('change',save);
 
-  form.querySelectorAll('[name="grade"], [name="comment"]').forEach(field=>{
+  form.querySelectorAll('[name="grade"], [name="comment"], [name="absence_reason"]').forEach(field=>{
    field.addEventListener('input',()=>{
     window.clearTimeout(saveTimer);
     saveTimer=window.setTimeout(save,700);
@@ -434,6 +450,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     save();
    });
   });
+
+  form.querySelector('[name="absence_document"]')?.addEventListener('change',save);
  });
 });
 </script>
