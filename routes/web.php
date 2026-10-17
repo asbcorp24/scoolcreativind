@@ -12,6 +12,7 @@ use App\Http\Controllers\AdminAcademicYearController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SeoController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\AdminQuizController;
 use App\Http\Controllers\CompetitionParticipationController;
@@ -41,6 +42,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class,'home'])->name('home');
 Route::get('/sitemap.xml',[SeoController::class,'sitemap'])->name('sitemap');
+Route::get('/search',[SearchController::class,'index'])->name('search');
 Route::get('/robots.txt',[SeoController::class,'robots'])->name('robots');
 Route::get('/studios/{studio}', [PublicController::class,'studio'])->name('studios.show');
 Route::get('/team', [PublicController::class,'team'])->name('team');
