@@ -25,6 +25,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QDesktopServices>
+#include <QDialog>
 #include <QProcess>
 #include <QStandardPaths>
 #include <QAudioDevice>
@@ -2036,7 +2037,7 @@ void TeacherWindow::startLocalServer() {
                     .toUtf8();
                 lanDiscovery_->writeDatagram(response, request.senderAddress(), request.senderPort());
             }
-        }, Qt::UniqueConnection);
+        });
     }
 
     config_.serverUrl = "http://127.0.0.1:8080";
