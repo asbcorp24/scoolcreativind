@@ -198,3 +198,42 @@ func safePollOptions(v any) []string {
 	}
 	return out
 }
+
+
+type ScreenshotTask struct {
+	ID           int64  `json:"id"`
+	FileID       int64  `json:"file_id"`
+	Title        string `json:"title"`
+	Text         string `json:"text"`
+	OriginalName string `json:"name"`
+	CreatedAt    int64  `json:"created_at"`
+}
+
+func listScreenshotTasks(store *Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		classroomID := chi.URLParam(r, "lesson")
+		rows, err := store.db.Query(`
+SELECT id,file_id,title,task_text,original_name,created_at
+FROM screenshot_tasks
+WHERE classroom_id=?
+ORDER BY created_at DESC, id DESC
+LIMIT 500`, classroomID)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		defer rows.Close()
+
+		out := make([]ScreenshotTask, 0)
+		for rows.Next() {
+			var item ScreenshotTask
+			if err := rows.Scan(&item.ID, &item.FileID, &item.Title, &item.Text,
+				&item.OriginalName, &item.CreatedAt); err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			out = append(out, item)
+		}
+		writeJSON(w, out)
+	}
+}
