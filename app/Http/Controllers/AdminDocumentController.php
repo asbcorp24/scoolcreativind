@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\OfficialDocument;
 use App\Services\StorageQuota;
 use Illuminate\Http\Request;
@@ -87,12 +88,16 @@ class AdminDocumentController extends Controller
 
     public function delete(OfficialDocument $document)
     {
-        if($document->file_path){
-            Storage::disk('public')->delete($document->file_path);
-        }
+        ActivityLog::record(
+            'document.trashed',
+            $document,
+            'Материал перемещён в корзину: '.$document->title,
+            $document->toArray(),
+            null
+        );
 
         $document->delete();
 
-        return back()->with('success','Материал удалён.');
+        return back()->with('success','Материал перемещён в корзину.');
     }
 }
