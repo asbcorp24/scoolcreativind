@@ -43,7 +43,7 @@ class AdminMiddleware
                 ->withErrors(['access'=>'У вас нет доступа к этому разделу админки.']);
         }
 
-        $isTeacher=(bool)$user->is_teacher || $user->teacherGroups()->exists();
+        $isTeacher=$user->isTeacherRole();
         $teacherAllowed=$request->is(
             'admin/journal',
             'admin/journal/*',
