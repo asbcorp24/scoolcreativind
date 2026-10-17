@@ -13,7 +13,7 @@ class AdminPeopleEquipmentController extends Controller
     public function team()
     {
         return view('admin.team', [
-            'members'=>TeamMember::with('studio')->orderBy('sort_order')->get(),
+            'members'=>TeamMember::with(['studio','user.teacherProfile'])->orderBy('sort_order')->get(),
             'studios'=>Studio::orderBy('sort_order')->get(),
             'teachers'=>User::where(function($q){
                 $q->where('is_teacher',true)
