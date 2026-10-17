@@ -94,6 +94,21 @@ where cmake >nul 2>&1
 if errorlevel 1 goto :cmake_error
 echo [OK] CMake found.
 
+rem ---------- Go (for embedded LAN server) ----------
+where go >nul 2>&1
+if errorlevel 1 (
+    if exist "C:\Program Files\Go\bin\go.exe" set "PATH=C:\Program Files\Go\bin;%PATH%"
+)
+where go >nul 2>&1
+if errorlevel 1 (
+    echo [INSTALL] Go...
+    winget install --id GoLang.Go -e --silent --accept-package-agreements --accept-source-agreements
+    if exist "C:\Program Files\Go\bin\go.exe" set "PATH=C:\Program Files\Go\bin;%PATH%"
+)
+where go >nul 2>&1
+if errorlevel 1 goto :go_error
+echo [OK] Go found.
+
 rem ---------- Visual Studio Build Tools / MSVC ----------
 set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 set "VS_INSTALL="
@@ -225,6 +240,18 @@ mkdir "%DIST%\student"
 copy /Y "build\Release\ClassroomTeacher.exe" "%DIST%\teacher\" >nul
 copy /Y "build\Release\ClassroomStudent.exe" "%DIST%\student\" >nul
 
+echo [BUILD] Building local classroom-server.exe...
+pushd "..\server"
+set "CGO_ENABLED=0"
+set "GOOS=windows"
+set "GOARCH=amd64"
+go build -trimpath -ldflags="-s -w" -o "%DIST%\teacher\classroom-server.exe" .
+if errorlevel 1 (
+    popd
+    goto :server_build_error
+)
+popd
+
 "%QT_ROOT%\bin\windeployqt.exe" --release --no-translations "%DIST%\teacher\ClassroomTeacher.exe"
 if errorlevel 1 goto :deploy_error
 "%QT_ROOT%\bin\windeployqt.exe" --release --no-translations "%DIST%\student\ClassroomStudent.exe"
@@ -264,6 +291,9 @@ echo.
 echo Student:
 echo   %DIST%\student\ClassroomStudent.exe
 echo.
+echo Local server bundled with Teacher:
+echo   %DIST%\teacher\classroom-server.exe
+echo.
 echo ZIP:
 echo   %DIST%\ClassroomTeacher-Windows.zip
 echo   %DIST%\ClassroomStudent-Windows.zip
@@ -279,6 +309,14 @@ goto :fail
 
 :cmake_error
 echo [ERROR] CMake installation failed.
+goto :fail
+
+:go_error
+echo [ERROR] Go installation failed.
+goto :fail
+
+:server_build_error
+echo [ERROR] classroom-server.exe build failed.
 goto :fail
 
 :vs_error
