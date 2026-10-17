@@ -221,6 +221,8 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::get('/schedule',[AdminLearningController::class,'schedule'])->name('schedule');
     Route::post('/schedule/save/{lesson?}',[AdminLearningController::class,'saveLesson'])->name('schedule.save');
     Route::post('/schedule/generate',[AdminLearningController::class,'generateSchedule'])->name('schedule.generate');
+    Route::post('/schedule/{lesson}/conduct',[AdminLearningController::class,'conductLesson'])->name('schedule.conduct');
+    Route::patch('/schedule/{lesson}/status',[AdminLearningController::class,'updateLessonStatus'])->name('schedule.status');
     Route::delete('/schedule/{lesson}',[AdminLearningController::class,'deleteLesson'])->name('schedule.delete');
 
     Route::get('/students',[AdminLearningController::class,'students'])->name('students');
