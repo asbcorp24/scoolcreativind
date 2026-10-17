@@ -50,6 +50,7 @@ class User extends Authenticatable
     public function adminLandingRoute(): string
     {
         if ($this->is_admin) return 'admin.dashboard';
+        if ($this->is_teacher) return 'admin.journal';
 
         $map=[
             'studios'=>'admin.dashboard',
