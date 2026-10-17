@@ -2,13 +2,35 @@
 @section('title','Личный кабинет · ШКИ')
 @section('content')
 <section class="page-top"><div class="container"><div class="eyebrow">Личный кабинет</div><div class="d-flex justify-content-between align-items-end gap-3 flex-wrap"><div><h1 class="display-2 fw-bold mt-2">{{ auth()->user()->name }}</h1><p class="text-white-50 mb-0">{{ auth()->user()->email }}</p></div><form method="post" action="{{ route('logout') }}">@csrf<button class="btn btn-ghost">Выйти</button></form></div></div></section>
+@if(auth()->user()->is_teacher)
+<section class="pb-4">
+ <div class="container">
+  <div class="section-head mb-3">
+   <div>
+    <div class="eyebrow">Teacher workspace</div>
+    <h2>Кабинет преподавателя</h2>
+   </div>
+   <p>Только назначенные вам группы, предметы и занятия.</p>
+  </div>
+  <div class="cabinet-links">
+   <a href="{{ route('admin.subjects') }}" class="cabinet-link"><span>01</span><strong>Мои предметы и КТП</strong><small>Планы уроков, содержание, файлы и ссылки</small></a>
+   <a href="{{ route('admin.schedule') }}" class="cabinet-link"><span>02</span><strong>Моё расписание</strong><small>Создание и изменение занятий своих групп</small></a>
+   <a href="{{ route('admin.journal') }}" class="cabinet-link"><span>03</span><strong>Журнал</strong><small>Проведённые уроки, оценки и отметки</small></a>
+   <a href="{{ route('admin.attendance') }}" class="cabinet-link"><span>04</span><strong>Посещаемость</strong><small>Посещения учеников по своим группам</small></a>
+   <a href="{{ route('admin.homework') }}" class="cabinet-link"><span>05</span><strong>Домашние задания</strong><small>Выдать, проверить и оценить работу</small></a>
+   <a href="{{ route('admin.reports') }}" class="cabinet-link"><span>06</span><strong>Отчёты</strong><small>Журнал, КТП и печатные формы</small></a>
+  </div>
+ </div>
+</section>
+@endif
+
 <section class="pb-4"><div class="container"><div class="cabinet-links">
 <a href="{{ route('schedule') }}" class="cabinet-link"><span>01</span><strong>Расписание</strong><small>Календарь занятий</small></a>
 <a href="{{ route('portfolio.mine') }}" class="cabinet-link"><span>02</span><strong>Моё портфолио</strong><small>Работы и награды</small></a>
 <a href="{{ route('competitions') }}" class="cabinet-link"><span>03</span><strong>Конкурсы</strong><small>Запись и мои конкурсные работы</small></a>
 <a href="{{ route('quizzes.index') }}" class="cabinet-link"><span>04</span><strong>Викторины</strong><small>Тесты и онлайн-сертификаты</small></a>
 <a href="{{ route('academic.dashboard') }}" class="cabinet-link"><span>05</span><strong>Моя учёба</strong><small>Оценки, посещаемость и домашние задания</small></a>
-@if(auth()->user()->teacherGroups()->exists())<a href="{{ route('admin.journal') }}" class="cabinet-link"><span>06</span><strong>Кабинет преподавателя</strong><small>Журнал, ДЗ и расписание</small></a>@endif
+@if(auth()->user()->is_teacher)<a href="{{ route('admin.journal') }}" class="cabinet-link"><span>06</span><strong>Рабочая панель</strong><small>Открыть журнал преподавателя</small></a>@endif
 </div></div></section>
 
 <section class="pb-5">
