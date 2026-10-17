@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\Announcement;
 use App\Models\HomeworkAssignment;
 use App\Models\HomeworkSubmission;
 use App\Models\JournalEntry;
@@ -66,6 +67,23 @@ class AcademicController extends Controller
             ->where('student_id',$user->id)
             ->latest()->take(30)->get();
 
+        $announcements=Announcement::with(['author','group'])
+            ->where('is_published',true)
+            ->whereIn('audience',['all','students'])
+            ->where(function($q) use($groupIds){
+                $q->whereNull('study_group_id')
+                  ->orWhereIn('study_group_id',$groupIds);
+            })
+            ->where(function($q){
+                $q->whereNull('published_at')->orWhere('published_at','<=',now());
+            })
+            ->where(function($q){
+                $q->whereNull('expires_at')->orWhere('expires_at','>=',now());
+            })
+            ->latest('published_at')
+            ->take(10)
+            ->get();
+
         $profile=StudentProfile::firstOrCreate(
             ['user_id'=>$user->id],
             [
@@ -128,7 +146,7 @@ class AcademicController extends Controller
 
         return view('academic.dashboard',compact(
             'lessons','homework','grades','profile','practicalLessons','practicalWorks',
-            'attendanceSummary','attendanceBySubject'
+            'attendanceSummary','attendanceBySubject','announcements'
         ));
     }
 
