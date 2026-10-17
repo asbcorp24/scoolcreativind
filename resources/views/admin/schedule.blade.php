@@ -179,7 +179,13 @@ $groupScheduleData=$groups->mapWithKeys(function($group){
         </td>
         <td>
          <strong>{{ $l->title }}</strong>
-         <div class="small text-white-50">{{ $l->teacher_name }}</div>
+         <div class="small text-white-50">
+          {{ $l->teacher->name ?? $l->teacher_name }}
+          @if($l->substituteTeacher)
+           <span class="text-warning">→ замена: {{ $l->substituteTeacher->name }}</span>
+          @endif
+         </div>
+         @if($l->substitution_note)<div class="small text-warning">{{ $l->substitution_note }}</div>@endif
          @if($l->room)<div class="small">ауд. {{ $l->room }}</div>@endif
         </td>
         <td>
@@ -210,6 +216,22 @@ $groupScheduleData=$groups->mapWithKeys(function($group){
             <input type="hidden" name="status" value="planned">
             <button class="btn btn-sm btn-ghost">Вернуть</button>
            </form>
+          @endif
+
+          @if(auth()->user()->is_admin && !$l->journal_lesson_id)
+           <details class="text-start">
+            <summary class="btn btn-sm btn-ghost">Замена</summary>
+            <form class="mt-2 p-2 glass-card" style="min-width:240px" method="post" action="{{ route('admin.schedule.substitute',$l) }}">@csrf @method('PATCH')
+             <select class="form-select form-select-sm mb-2" name="substitute_teacher_id">
+              <option value="">Без замены</option>
+              @foreach($teachers as $teacher)
+               <option value="{{ $teacher->id }}" @selected((int)$l->substitute_teacher_id===$teacher->id)>{{ $teacher->name }}</option>
+              @endforeach
+             </select>
+             <input class="form-control form-control-sm mb-2" name="substitution_note" value="{{ $l->substitution_note }}" placeholder="Комментарий к замене">
+             <button class="btn btn-sm btn-neon w-100">Сохранить замену</button>
+            </form>
+           </details>
           @endif
 
           @if(!$l->journal_lesson_id)
