@@ -204,6 +204,15 @@
      </summary>
 
      <div class="journal-lesson-body p-3 p-lg-4 pt-0">
+      <div class="d-flex justify-content-end gap-2 flex-wrap mb-3">
+       <form method="post" action="{{ route('admin.journal.lessons.all-present',$lesson) }}" onsubmit="return confirm('Отметить всех учеников присутствующими?')">
+        @csrf
+        <button class="btn btn-sm btn-ghost">✓ Все присутствуют</button>
+       </form>
+       @if($lesson->homeworkAssignment)
+        <a class="btn btn-sm btn-ghost" href="{{ route('admin.homework.submissions',$lesson->homeworkAssignment) }}">Проверить ДЗ</a>
+       @endif
+      </div>
       <div class="d-none d-lg-block table-responsive">
        <table class="table admin-table align-middle">
         <thead><tr><th>Ученик</th><th>Посещение</th><th>Оценка</th><th>Комментарий</th><th></th></tr></thead>
