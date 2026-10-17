@@ -82,6 +82,7 @@ add_executable(ClassroomTeacher WIN32
     teacher/TeacherLessonsWidget.h
     teacher/RegionSelector.cpp
     teacher/RegionSelector.h
+    teacher/teacher.rc
 )
 target_link_libraries(ClassroomTeacher PRIVATE classroom_common Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Multimedia)
 
@@ -95,6 +96,7 @@ add_executable(ClassroomStudent WIN32
     student/StudentLessonsWidget.h
     student/ScreenshotCapture.cpp
     student/ScreenshotCapture.h
+    student/student.rc
 )
 target_link_libraries(ClassroomStudent PRIVATE classroom_common Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Multimedia)
 if(WIN32)
