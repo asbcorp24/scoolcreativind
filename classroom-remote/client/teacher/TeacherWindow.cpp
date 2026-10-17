@@ -609,6 +609,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
 
     auto* pollRow = new QHBoxLayout;
     auto* pollBtn = new QPushButton("Запустить быстрый опрос");
+    auto* pollResultsBtn = new QPushButton("Результаты опроса");
     pollStatus_ = new QLabel("Опрос не запущен");
     pollStatus_->setWordWrap(true);
     pollRow->addWidget(pollBtn);
