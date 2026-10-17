@@ -127,6 +127,12 @@
       'date_from'=>request('date_from', now()->startOfMonth()->toDateString()),
       'date_to'=>request('date_to', now()->toDateString())
     ]) }}">Печать журнала</a>
+    <a class="btn btn-ghost" href="{{ route('admin.attendance.export-csv',[
+      'group_id'=>$group->id,
+      'subject_id'=>$subject->id,
+      'date_from'=>request('date_from', now()->startOfMonth()->toDateString()),
+      'date_to'=>request('date_to', now()->toDateString())
+    ]) }}">Excel / CSV</a>
     <a class="btn btn-ghost" target="_blank" href="{{ route('admin.ktp.print',[
       'subject'=>$subject,
       'group_id'=>$group->id
