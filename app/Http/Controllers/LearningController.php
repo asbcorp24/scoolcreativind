@@ -12,6 +12,8 @@ use App\Models\Subject;
 use App\Models\User;
 use App\Models\StudyGroup;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class LearningController extends Controller
 {
@@ -224,6 +226,9 @@ class LearningController extends Controller
         $project->load([
             'student.user',
             'studio',
+            'subject',
+            'mentor.teacherProfile',
+            'homeworkSubmission.assignment',
             'lesson.subject',
             'media'=>fn($q)=>$q->where('is_visible',true)->orderBy('sort_order'),
         ]);
@@ -233,7 +238,15 @@ class LearningController extends Controller
     public function portfolio(StudentProfile $profile)
     {
         abort_unless($profile->is_public || (auth()->check() && auth()->id()===$profile->user_id),404);
-        $profile->load(['user','studio','portfolio.studio','portfolio.media'=>fn($q)=>$q->where('is_visible',true)->orderBy('sort_order'),'achievements.competition']);
+        $profile->load([
+            'user','studio',
+            'portfolio.studio',
+            'portfolio.subject',
+            'portfolio.mentor.teacherProfile',
+            'portfolio.lesson.subject',
+            'portfolio.media'=>fn($q)=>$q->where('is_visible',true)->orderBy('sort_order'),
+            'achievements.competition'
+        ]);
         return view('portfolio.show',compact('profile'));
     }
 
@@ -243,8 +256,44 @@ class LearningController extends Controller
             ['user_id'=>auth()->id()],
             ['portfolio_slug'=>'student-'.auth()->id(), 'is_public'=>false]
         );
-        $profile->load(['user','studio','portfolio.studio','achievements.competition']);
+        $profile->load([
+            'user','studio',
+            'portfolio.studio',
+            'portfolio.subject',
+            'portfolio.mentor.teacherProfile',
+            'portfolio.lesson.subject',
+            'portfolio.media',
+            'achievements.competition'
+        ]);
         return view('portfolio.mine',compact('profile'));
+    }
+
+    public function saveMyPortfolioProfile(Request $request)
+    {
+        $profile=StudentProfile::firstOrCreate(
+            ['user_id'=>auth()->id()],
+            ['portfolio_slug'=>'student-'.auth()->id(), 'is_public'=>false]
+        );
+
+        $data=$request->validate([
+            'headline'=>'nullable|string|max:255',
+            'bio'=>'nullable|string|max:5000',
+            'skills'=>'nullable|string|max:5000',
+            'avatar'=>'nullable|image|max:10240',
+            'is_public'=>'nullable|boolean',
+        ]);
+
+        if($request->hasFile('avatar')){
+            if($profile->avatar && !preg_match('~^(https?:)?//~i',$profile->avatar)){
+                Storage::disk('public')->delete($profile->avatar);
+            }
+            $data['avatar']=$request->file('avatar')->store('students','public');
+        }
+
+        $data['is_public']=$request->boolean('is_public');
+        $profile->fill($data)->save();
+
+        return back()->with('success','Портфолио обновлено.');
     }
 
     public function competitions()
