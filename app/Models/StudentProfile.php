@@ -3,7 +3,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 class StudentProfile extends Model {
- protected $fillable=['user_id','studio_id','class_name','avatar','bio','portfolio_slug','is_public'];
+ protected $fillable=['user_id','studio_id','class_name','headline','avatar','bio','skills','portfolio_slug','is_public'];
  protected $casts=['is_public'=>'boolean'];
  protected $appends=['avatar_url'];
  public function user(){return $this->belongsTo(User::class);}
