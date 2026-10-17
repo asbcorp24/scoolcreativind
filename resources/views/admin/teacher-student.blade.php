@@ -67,7 +67,7 @@
       <div class="eyebrow">{{ $work->type }}</div>
       <h4>{{ $work->title }}</h4>
       @if($work->lesson)<div class="small text-white-50">{{ $work->lesson->subject->title ?? '' }} · {{ $work->lesson->topic }}</div>@endif
-      @if($work->description)<p class="small text-white-50 mt-2">{{ IlluminateSupportStr::limit($work->description,180) }}</p>@endif
+      @if($work->description)<p class="small text-white-50 mt-2">{{ mb_strimwidth(strip_tags($work->description),0,180,'…') }}</p>@endif
       @if($profile)<a class="btn btn-sm btn-ghost mt-2" target="_blank" href="{{ route('portfolio.show',$profile) }}">Портфолио ↗</a>@endif
      </div>
     </div>
