@@ -9,7 +9,10 @@
     <h1 class="display-3 fw-bold m-0">Сегодня</h1>
     <p class="text-white-50 mt-2 mb-0">{{ now()->translatedFormat('d F Y, l') }} · {{ auth()->user()->name }}</p>
    </div>
-   <a href="{{ route('schedule') }}" class="btn btn-ghost" target="_blank">Общее расписание ↗</a>
+   <div class="d-flex gap-2 flex-wrap">
+    <a href="{{ route('admin.teacher-portfolio.edit') }}" class="btn btn-neon">Моё портфолио</a>
+    <a href="{{ route('schedule') }}" class="btn btn-ghost" target="_blank">Общее расписание ↗</a>
+   </div>
   </div>
  </div>
 </section>
