@@ -856,7 +856,8 @@ TeacherWindow::TeacherWindow(QWidget* parent)
             const int index=data.mid(7).toInt(&ok);
             if (!ok || index < 0 || index >= screens.size())
                 return;
-            sendLectureImage(screens[index]->grabWindow(0).toImage());
+            const QImage frame = screens[index]->grabWindow(0).toImage();
+            sendLectureImage(drawCursorOnFrame(frame, screens[index]->geometry()));
             return;
         }
 
@@ -872,7 +873,9 @@ TeacherWindow::TeacherWindow(QWidget* parent)
             const int h=p[5].toInt(&ok4);
             if(!ok0||!ok1||!ok2||!ok3||!ok4||index<0||index>=screens.size())
                 return;
-            sendLectureImage(screens[index]->grabWindow(0, x, y, w, h).toImage());
+            const QImage frame = screens[index]->grabWindow(0, x, y, w, h).toImage();
+            const QRect area(screens[index]->geometry().topLeft() + QPoint(x, y), QSize(w, h));
+            sendLectureImage(drawCursorOnFrame(frame, area));
         }
     });
 
