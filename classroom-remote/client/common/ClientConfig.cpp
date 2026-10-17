@@ -3,6 +3,7 @@
 #include <QCoreApplication>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QCheckBox>
 #include <QDir>
 #include <QFile>
 #include <QFormLayout>
@@ -35,6 +36,7 @@ ClientConfig ClientConfig::load(const QString& defaultName) {
     const QString server = obj.value("server_url").toString().trimmed();
     const QString lesson = obj.value("lesson_id").toString().trimmed();
     const QString name = obj.value("display_name").toString().trimmed();
+    cfg.localNetwork = obj.value("local_network").toBool(false);
     if (!server.isEmpty()) cfg.serverUrl = server;
     if (!lesson.isEmpty()) cfg.lessonId = lesson;
     if (!name.isEmpty()) cfg.displayName = name;
@@ -45,7 +47,8 @@ bool ClientConfig::save(QString* error) const {
     QJsonObject obj{
         {"server_url", serverUrl.trimmed()},
         {"lesson_id", lessonId.trimmed()},
-        {"display_name", displayName.trimmed()}
+        {"display_name", displayName.trimmed()},
+        {"local_network", localNetwork}
     };
     QFile f(filePath());
     if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
@@ -70,15 +73,18 @@ bool ClientConfig::edit(QWidget* parent, const QString& title, QString* error) {
     server->setPlaceholderText("http://200.165.236.80:8080");
     auto* lesson = new QLineEdit(lessonId);
     auto* name = new QLineEdit(displayName);
+    auto* localMode = new QCheckBox("Работа в локальной сети — искать преподавателя автоматически");
+    localMode->setChecked(localNetwork);
 
     form->addRow("Сервер:", server);
     form->addRow("Занятие / класс:", lesson);
     form->addRow("Имя:", name);
+    form->addRow("", localMode);
     layout->addLayout(form);
 
     auto* hint = new QLabel(
         "В config.json сохраняются только настройки подключения. "
-        "PIN и внутренний токен доступа не сохраняются.");
+        "PIN и внутренний токен доступа не сохраняются. В локальном режиме адрес преподавателя ищется автоматически; поле сервера используется как запасной адрес.");
     hint->setWordWrap(true);
     hint->setProperty("muted", true);
     layout->addWidget(hint);
@@ -102,6 +108,7 @@ bool ClientConfig::edit(QWidget* parent, const QString& title, QString* error) {
         base += ":" + QString::number(url.port());
 
     serverUrl = base;
+    localNetwork = localMode->isChecked();
     lessonId = lesson->text().trimmed().isEmpty() ? "101" : lesson->text().trimmed();
     displayName = name->text().trimmed();
     if (displayName.isEmpty())
