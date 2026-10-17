@@ -62,6 +62,10 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QNetworkInterface>
+#include <QUdpSocket>
+#include <QNetworkDatagram>
+#include <QHostAddress>
 #include <QUrl>
 #include <QMessageBox>
 #include <QPixmap>
@@ -145,6 +149,9 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     auto* fileBtn = new QPushButton("▶ Источник: видео");
     auto* presentationBtn = new QPushButton("📊 PPT/PDF");
     auto* regionBtn = new QPushButton("▱ Область");
+    auto* tvBtn = new QPushButton("📺 Окно на ТВ");
+    auto* screenshotTaskBtn = new QPushButton("🖼 Скрин-задание");
+    auto* localServerBtn = new QPushButton("📡 Локальный сервер");
     auto* stopLectureBtn = new QPushButton("⏹ СТОП");
     stopLectureBtn->hide();
     broadcastToggleButton_ = new QPushButton("▶ НАЧАТЬ ТРАНСЛЯЦИЮ");
@@ -297,6 +304,9 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     toolbar->addWidget(fileBtn);
     toolbar->addWidget(presentationBtn);
     toolbar->addWidget(regionBtn);
+    toolbar->addWidget(tvBtn);
+    toolbar->addWidget(screenshotTaskBtn);
+    toolbar->addWidget(localServerBtn);
     toolbar->addWidget(stopLectureBtn);
     toolbar->addWidget(micButton_);
     toolbar->addStretch();
@@ -705,6 +715,18 @@ TeacherWindow::TeacherWindow(QWidget* parent)
             startScreenLecture();
     });
     connect(stopLectureBtn, &QPushButton::clicked, this, &TeacherWindow::stopLecture);
+    connect(tvBtn, &QPushButton::clicked, this, &TeacherWindow::openTVWindow);
+    connect(screenshotTaskBtn, &QPushButton::clicked, this, &TeacherWindow::sendScreenshotTask);
+    connect(localServerBtn, &QPushButton::clicked, this, [this, localServerBtn] {
+        if (localServerProcess_ && localServerProcess_->state() != QProcess::NotRunning) {
+            stopLocalServer();
+            localServerBtn->setText("📡 Локальный сервер");
+        } else {
+            startLocalServer();
+            if (localServerProcess_ && localServerProcess_->state() != QProcess::NotRunning)
+                localServerBtn->setText("⏹ Остановить LAN");
+        }
+    });
     connect(recordCameraBtn, &QPushButton::clicked, this, &TeacherWindow::startCameraRecording);
     connect(recordScreenBtn, &QPushButton::clicked, this, &TeacherWindow::startScreenRecording);
     connect(stopRecordBtn, &QPushButton::clicked, this, &TeacherWindow::stopRecording);
@@ -942,6 +964,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
 TeacherWindow::~TeacherWindow() {
     stopRecording();
     stopLecture();
+    stopLocalServer();
     delete codec_;
 }
 
@@ -1734,6 +1757,316 @@ void TeacherWindow::setBroadcastState(bool active, const QString& mode) {
     }
 }
 
+
+void TeacherWindow::openTVWindow() {
+    if (!tvWindow_) {
+        tvWindow_ = new QDialog(nullptr);
+        tvWindow_->setAttribute(Qt::WA_DeleteOnClose, false);
+        tvWindow_->setWindowTitle("Трансляция преподавателя — ТВ / проектор");
+        tvWindow_->setStyleSheet("QDialog{background:#000;} QLabel{background:#000;color:white;}");
+        auto* layout = new QVBoxLayout(tvWindow_);
+        layout->setContentsMargins(0, 0, 0, 0);
+        tvPreview_ = new QLabel("Ожидание трансляции");
+        tvPreview_->setAlignment(Qt::AlignCenter);
+        tvPreview_->setStyleSheet("font-size:28px;");
+        layout->addWidget(tvPreview_);
+    }
+
+    const auto screens = QGuiApplication::screens();
+    QScreen* target = QGuiApplication::primaryScreen();
+    if (screens.size() > 1) {
+        QStringList names;
+        for (int i = 0; i < screens.size(); ++i) {
+            QString name = screens[i]->name();
+            if (name.isEmpty())
+                name = QString("Экран %1").arg(i + 1);
+            names << QString("%1 — %2×%3").arg(name)
+                         .arg(screens[i]->geometry().width())
+                         .arg(screens[i]->geometry().height());
+        }
+        bool ok = false;
+        const QString selected = QInputDialog::getItem(
+            this, "Экран для трансляции", "Куда вывести увеличенную трансляцию:",
+            names, screens.indexOf(target), false, &ok);
+        if (!ok)
+            return;
+        const int index = names.indexOf(selected);
+        if (index >= 0)
+            target = screens[index];
+    }
+
+    if (target)
+        tvWindow_->setGeometry(target->geometry());
+    tvWindow_->showFullScreen();
+    tvWindow_->raise();
+}
+
+void TeacherWindow::sendScreenshotTask() {
+    if (!ws_->isConnected() || token_->text().isEmpty()) {
+        QMessageBox::information(this, "Скрин-задание", "Сначала подключитесь к занятию.");
+        return;
+    }
+
+    bool ok = false;
+    const QStringList variants{
+        "Снять текущий экран преподавателя",
+        "Выбрать изображение с диска"
+    };
+    const QString variant = QInputDialog::getItem(
+        this, "Скрин-задание", "Источник изображения:", variants, 0, false, &ok);
+    if (!ok)
+        return;
+
+    QByteArray imageData;
+    QString fileName = "task-screenshot.png";
+    if (variant == variants[0]) {
+        QScreen* screen = QGuiApplication::primaryScreen();
+        if (!screen)
+            return;
+        const QPixmap pix = screen->grabWindow(0);
+        QBuffer buffer(&imageData);
+        buffer.open(QIODevice::WriteOnly);
+        pix.save(&buffer, "PNG");
+    } else {
+        const QString path = QFileDialog::getOpenFileName(
+            this, "Выберите скриншот", QString(),
+            "Изображения (*.png *.jpg *.jpeg *.webp *.bmp)");
+        if (path.isEmpty())
+            return;
+        QFile file(path);
+        if (!file.open(QIODevice::ReadOnly)) {
+            QMessageBox::warning(this, "Скрин-задание", "Не удалось открыть изображение.");
+            return;
+        }
+        imageData = file.readAll();
+        fileName = QFileInfo(path).fileName();
+    }
+
+    const QString task = QInputDialog::getMultiLineText(
+        this, "Задание ученикам", "Текст задания / пояснение:",
+        "Посмотрите на изображение и выполните задание.", &ok).trimmed();
+    if (!ok)
+        return;
+
+    auto* multi = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+    auto* buffer = new QBuffer(multi);
+    buffer->setData(imageData);
+    buffer->open(QIODevice::ReadOnly);
+
+    QHttpPart part;
+    part.setHeader(QNetworkRequest::ContentDispositionHeader,
+                   QString("form-data; name=\"file\"; filename=\"%1\"").arg(fileName));
+    part.setHeader(QNetworkRequest::ContentTypeHeader, "image/png");
+    part.setBodyDevice(buffer);
+    multi->append(part);
+
+    QUrl url = httpBaseUrl();
+    url.setPath(QString("/api/v1/classrooms/%1/quick-files").arg(lesson_->text()));
+    QNetworkRequest req(url);
+    req.setRawHeader("Authorization", "Bearer " + token_->text().toUtf8());
+
+    status_->setText("Отправляю скриншот ученикам...");
+    auto* reply = network_->post(req, multi);
+    multi->setParent(reply);
+    connect(reply, &QNetworkReply::finished, this, [this, reply, task, fileName] {
+        const QByteArray response = reply->readAll();
+        if (reply->error() != QNetworkReply::NoError) {
+            QMessageBox::warning(this, "Скрин-задание",
+                                 "Ошибка отправки: " + reply->errorString());
+            reply->deleteLater();
+            return;
+        }
+        const QJsonObject result = QJsonDocument::fromJson(response).object();
+        const qint64 fileId = qint64(result.value("id").toDouble());
+        if (fileId <= 0) {
+            QMessageBox::warning(this, "Скрин-задание", "Сервер не вернул ID изображения.");
+            reply->deleteLater();
+            return;
+        }
+        ws_->send(QJsonObject{
+            {"type", "screenshot_task"},
+            {"file_id", double(fileId)},
+            {"name", fileName},
+            {"title", "Задание преподавателя"},
+            {"text", task}
+        });
+        status_->setText("Скрин-задание отправлено всем ученикам");
+        reply->deleteLater();
+    });
+}
+
+QString TeacherWindow::localIPv4Address() const {
+    for (const QHostAddress& address : QNetworkInterface::allAddresses()) {
+        if (address.protocol() != QAbstractSocket::IPv4Protocol || address.isLoopback())
+            continue;
+        const QString value = address.toString();
+        if (value.startsWith("169.254."))
+            continue;
+        return value;
+    }
+    return "127.0.0.1";
+}
+
+QString TeacherWindow::localServerExecutable() const {
+    const QString appDir = QCoreApplication::applicationDirPath();
+#ifdef Q_OS_WIN
+    const QString name = "classroom-server.exe";
+#else
+    const QString name = "classroom-server";
+#endif
+    const QStringList candidates{
+        QDir(appDir).filePath(name),
+        QDir(appDir).filePath("../Server/" + name),
+        QDir(appDir).filePath("../server/" + name),
+        QDir(appDir).filePath("../../server/" + name)
+    };
+    for (const QString& path : candidates) {
+        if (QFileInfo::exists(path))
+            return QFileInfo(path).absoluteFilePath();
+    }
+    return {};
+}
+
+void TeacherWindow::startLocalServer() {
+    if (localServerProcess_ && localServerProcess_->state() != QProcess::NotRunning)
+        return;
+
+    const QString exe = localServerExecutable();
+    if (exe.isEmpty()) {
+        QMessageBox::warning(this, "Локальный сервер",
+            "Рядом с ClassroomTeacher не найден classroom-server.exe. "
+            "В готовом комплекте он должен лежать рядом с Teacher или в папке Server.");
+        return;
+    }
+
+    bool ok = false;
+    QString studentPin = QInputDialog::getText(
+        this, "Локальный класс", "PIN для учеников (4–10 цифр):",
+        QLineEdit::Normal, "12345", &ok).trimmed();
+    if (!ok)
+        return;
+    QRegularExpression pinRe("^\\d{4,10}$");
+    if (!pinRe.match(studentPin).hasMatch()) {
+        QMessageBox::warning(this, "Локальный класс", "PIN должен содержать 4–10 цифр.");
+        return;
+    }
+
+    QString teacherPin = pin_->text().trimmed();
+    if (!pinRe.match(teacherPin).hasMatch())
+        teacherPin = "54321";
+    if (teacherPin == studentPin)
+        teacherPin = studentPin == "54321" ? "54322" : "54321";
+
+    const QString localDir = QDir(QCoreApplication::applicationDirPath()).filePath("local-server");
+    QDir().mkpath(QDir(localDir).filePath("data/storage"));
+    const QString configPath = QDir(localDir).filePath("config.json");
+
+    QJsonObject cfg{
+        {"http_addr", ":8080"},
+        {"https_addr", ":443"},
+        {"domain", ""},
+        {"acme_email", ""},
+        {"public_ip", ""},
+        {"storage_dir", QDir(localDir).filePath("data/storage")},
+        {"db_path", QDir(localDir).filePath("data/classroom.db")},
+        {"teacher_token", ""},
+        {"student_token", ""},
+        {"teacher_pin", teacherPin},
+        {"student_pin", studentPin},
+        {"rtc_min_port", 50000},
+        {"rtc_max_port", 50100},
+        {"turn_enabled", false},
+        {"turn_listen", ":3478"},
+        {"turn_realm", "classroom"},
+        {"turn_username", "classroom"},
+        {"turn_password", ""},
+        {"turn_min_port", 49160},
+        {"turn_max_port", 49260},
+        {"ffmpeg_path", ""},
+        {"max_upload_mb", 200}
+    };
+    QFile configFile(configPath);
+    if (!configFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        QMessageBox::warning(this, "Локальный сервер", "Не удалось создать локальный config.json.");
+        return;
+    }
+    configFile.write(QJsonDocument(cfg).toJson(QJsonDocument::Indented));
+    configFile.close();
+
+    localServerProcess_ = new QProcess(this);
+    localServerProcess_->setWorkingDirectory(localDir);
+    localServerProcess_->setProgram(exe);
+    localServerProcess_->setArguments({"-config", configPath});
+    localServerProcess_->setProcessChannelMode(QProcess::MergedChannels);
+    localServerProcess_->start();
+
+    if (!localServerProcess_->waitForStarted(3000)) {
+        QMessageBox::warning(this, "Локальный сервер", "Не удалось запустить classroom-server.");
+        localServerProcess_->deleteLater();
+        localServerProcess_ = nullptr;
+        return;
+    }
+
+    localStudentPin_ = studentPin;
+    if (!lanDiscovery_)
+        lanDiscovery_ = new QUdpSocket(this);
+    lanDiscovery_->abort();
+    if (!lanDiscovery_->bind(QHostAddress::AnyIPv4, 45454,
+                             QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint)) {
+        status_->setText("LAN-сервер запущен, но UDP-автопоиск недоступен");
+    } else {
+        connect(lanDiscovery_, &QUdpSocket::readyRead, this, [this] {
+            while (lanDiscovery_->hasPendingDatagrams()) {
+                const QNetworkDatagram request = lanDiscovery_->receiveDatagram();
+                if (request.data().trimmed() != "SHKI_DISCOVER")
+                    continue;
+                const QByteArray response = QString("SHKI_CLASSROOM|%1|8080|%2|%3")
+                    .arg(localIPv4Address(), lesson_->text(), localStudentPin_)
+                    .toUtf8();
+                lanDiscovery_->writeDatagram(response, request.senderAddress(), request.senderPort());
+            }
+        }, Qt::UniqueConnection);
+    }
+
+    config_.serverUrl = "http://127.0.0.1:8080";
+    QString ignored;
+    config_.save(&ignored);
+    pin_->setText(teacherPin);
+
+    const QString ip = localIPv4Address();
+    status_->setText(QString("📡 Локальный класс: http://%1:8080 · PIN учеников: %2")
+                     .arg(ip, studentPin));
+
+    QMessageBox::information(this, "Локальный класс запущен",
+        QString("Интернет не требуется.\n\n"
+                "Адрес преподавателя: http://%1:8080\n"
+                "PIN учеников: %2\n"
+                "Занятие: %3\n\n"
+                "У ученика: Настройки → «Работа в локальной сети», затем ввести PIN.\n"
+                "Если Windows спросит доступ к сети — разрешите для частных сетей.")
+            .arg(ip, studentPin, lesson_->text()));
+
+    QTimer::singleShot(700, this, &TeacherWindow::loginWithPIN);
+}
+
+void TeacherWindow::stopLocalServer() {
+    if (lanDiscovery_) {
+        lanDiscovery_->close();
+        lanDiscovery_->deleteLater();
+        lanDiscovery_ = nullptr;
+    }
+    if (!localServerProcess_)
+        return;
+    if (localServerProcess_->state() != QProcess::NotRunning) {
+        localServerProcess_->terminate();
+        if (!localServerProcess_->waitForFinished(1500))
+            localServerProcess_->kill();
+    }
+    localServerProcess_->deleteLater();
+    localServerProcess_ = nullptr;
+    localStudentPin_.clear();
+}
+
 void TeacherWindow::sendLectureImage(const QImage& source) {
     if (!rtc_->isOpen() || source.isNull())
         return;
@@ -1748,8 +2081,13 @@ void TeacherWindow::sendLectureImage(const QImage& source) {
 }
 
 void TeacherWindow::showLocalPreview(const QImage& image) {
-    lecturePreview_->setPixmap(QPixmap::fromImage(image).scaled(
+    const QPixmap source = QPixmap::fromImage(image);
+    lecturePreview_->setPixmap(source.scaled(
         lecturePreview_->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    if (tvPreview_ && tvWindow_ && tvWindow_->isVisible()) {
+        tvPreview_->setPixmap(source.scaled(
+            tvPreview_->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    }
 }
 
 void TeacherWindow::onRtcVideo(const QString& trackId, const QByteArray& h264) {
