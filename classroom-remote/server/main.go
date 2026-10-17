@@ -532,6 +532,31 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, st
 					h.sendLesson(lessonID, msg, nil)
 				}
 
+			case "screenshot_task":
+				if c.Role != "teacher" || !jsonMessageSizeOK(m, 16*1024) {
+					continue
+				}
+				fileID, _ := m["file_id"].(float64)
+				text := strings.TrimSpace(fmt.Sprint(m["text"]))
+				title := strings.TrimSpace(fmt.Sprint(m["title"]))
+				name := strings.TrimSpace(fmt.Sprint(m["name"]))
+				if fileID <= 0 {
+					continue
+				}
+				if len([]rune(text)) > 3000 {
+					text = string([]rune(text)[:3000])
+				}
+				if len([]rune(title)) > 200 {
+					title = string([]rune(title)[:200])
+				}
+				h.sendLesson(lessonID, map[string]any{
+					"type": "screenshot_task",
+					"file_id": fileID,
+					"text": text,
+					"title": title,
+					"name": name,
+				}, func(x *Client) bool { return x.Role == "student" })
+
 			case "lecture_state":
 				if c.Role == "teacher" {
 					h.sendLesson(lessonID, m, func(x *Client) bool { return x.Role == "student" })
@@ -662,9 +687,12 @@ func main() {
 	iceURLs := []string{}
 	if turnServer != nil {
 		iceURLs = append(iceURLs, turnServer.urls...)
-	} else {
+	} else if strings.TrimSpace(cfg.Domain) != "" || strings.TrimSpace(cfg.PublicIP) != "" {
+		// Public deployment without embedded TURN may still use a public STUN server.
 		iceURLs = append(iceURLs, "stun://stun.l.google.com:19302")
 	}
+	// For a pure LAN deployment keep iceURLs empty. WebRTC will use host
+	// candidates directly and therefore has no Internet dependency.
 
 	hub := NewHub()
 	rtcRelay, err := NewRTCRelay(cfg)
