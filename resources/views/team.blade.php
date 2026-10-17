@@ -15,6 +15,7 @@
    @if($m->email)<a href="mailto:{{ $m->email }}">Email</a>@endif
    @if($m->vk_url)<a href="{{ $m->vk_url }}" target="_blank" rel="noopener">VK ↗</a>@endif
    @if($m->telegram_url)<a href="{{ $m->telegram_url }}" target="_blank" rel="noopener">Telegram ↗</a>@endif
+   @if($m->user?->teacherProfile?->is_public)<a href="{{ route('teachers.show',$m->user->teacherProfile) }}">Портфолио ↗</a>@endif
   </div>
  </div>
 </article>
