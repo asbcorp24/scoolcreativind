@@ -50,6 +50,8 @@ Route::get('/search',[SearchController::class,'index'])->name('search');
 Route::get('/robots.txt',[SeoController::class,'robots'])->name('robots');
 Route::get('/studios/{studio}', [PublicController::class,'studio'])->name('studios.show');
 Route::get('/team', [PublicController::class,'team'])->name('team');
+Route::get('/teachers',[TeacherPortfolioController::class,'index'])->name('teachers.index');
+Route::get('/teachers/{profile}',[TeacherPortfolioController::class,'show'])->name('teachers.show');
 Route::get('/equipment', [PublicController::class,'equipment'])->name('equipment');
 Route::get('/documents',[DocumentController::class,'index'])->name('documents.index');
 Route::get('/question',[QuestionController::class,'create'])->name('questions.create');
