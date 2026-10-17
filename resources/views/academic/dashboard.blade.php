@@ -3,6 +3,18 @@
 @section('content')
 <section class="page-top"><div class="container"><div class="eyebrow">Учебный кабинет</div><h1 class="display-2 fw-bold">Моя учёба</h1><p class="text-white-50">Расписание, оценки, посещаемость и домашние задания.</p></div></section>
 <section class="pb-5"><div class="container">
+@if($announcements->count())
+<div class="section-head"><div><div class="eyebrow">Notice</div><h2>Объявления</h2></div></div>
+<div class="row g-3 mb-5">
+ @foreach($announcements as $notice)
+  <div class="col-md-6"><article class="glass-card p-4 h-100">
+   <div class="eyebrow">{{ $notice->group->name ?? 'ШКИ' }}</div>
+   <h3>{{ $notice->title }}</h3>
+   <p class="text-white-50 mb-0">{{ $notice->body }}</p>
+  </article></div>
+ @endforeach
+</div>
+@endif
 <div class="section-head"><div><div class="eyebrow">Schedule</div><h2>Ближайшие занятия</h2></div><a class="btn btn-ghost" href="{{ route('schedule') }}">Календарь</a></div>
 <div class="row g-3 mb-5">@forelse($lessons as $l)<div class="col-md-6"><article class="glass-card p-4"><div class="eyebrow">{{ $l->lesson_date->format('d.m.Y') }} · {{ substr($l->starts_at,0,5) }}</div><h3 class="mt-3">{{ $l->title }}</h3><div class="text-white-50">{{ $l->group->name ?? '' }} @if($l->room) · {{ $l->room }} @endif</div></article></div>@empty<div class="text-white-50">Ближайших занятий нет.</div>@endforelse</div>
 <div class="section-head">
