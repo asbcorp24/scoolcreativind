@@ -83,6 +83,10 @@ class AppServiceProvider extends ServiceProvider
                             });
                     }
 
+                    if(Schema::hasTable('announcement_reads')){
+                        $query->whereDoesntHave('reads',fn($q)=>$q->where('user_id',$user->id));
+                    }
+
                     $userAnnouncements=$query->latest('published_at')->take(8)->get();
                 }
             } catch (\Throwable $e) {
