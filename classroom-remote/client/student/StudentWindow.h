@@ -47,8 +47,11 @@ private:
     void discoverLocalTeacher();
     void showScreenshotTask(const QJsonObject& obj);
     void loadSavedScreenshotTasks();
-    void saveScreenshotTask(const QString& title, const QString& text,
-                            const QByteArray& imageData, const QString& originalName);
+    void saveScreenshotTask(qint64 taskId, const QString& title, const QString& text,
+                            const QByteArray& imageData, const QString& originalName,
+                            qint64 createdAt = 0);
+    void loadServerScreenshotTasks();
+    bool hasSavedScreenshotTask(qint64 taskId) const;
     void refreshScreenshotTaskPreview();
     QString screenshotTasksDir() const;
     QString screenshotTasksIndexPath() const;
