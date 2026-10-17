@@ -39,7 +39,7 @@ class LearningController extends Controller
             $rangeEnd=$monthStart->copy()->endOfMonth();
         }
 
-        $query=ScheduleLesson::with(['studio','group','teacher','subject','planLesson'])
+        $query=ScheduleLesson::with(['studio','group','teacher','substituteTeacher','subject','planLesson'])
             ->where('is_published',true);
 
         $activeStudio=$request->input('studio','');
