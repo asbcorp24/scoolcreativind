@@ -877,7 +877,7 @@ function initGlobalMusicPlayer(){
   const eq=player.querySelector('[data-music-eq]');
 
   const storageKey='skiMusicPlayerStateV2';
-  let state={index:0,time:0,volume:.65,playing:false,collapsed:false,updatedAt:0};
+  let state={index:0,time:0,volume:.65,playing:false,collapsed:true,updatedAt:0};
   let playbackWanted=false;
   let leavingPage=false;
 
