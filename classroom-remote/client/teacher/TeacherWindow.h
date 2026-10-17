@@ -166,4 +166,5 @@ private:
     int selectedFrameIntervalMs_{100};
     bool broadcastActive_{false};
     QString broadcastMode_;
+    QString selectedBroadcastMode_{"screen"};
 };
