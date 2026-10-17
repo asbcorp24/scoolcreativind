@@ -89,6 +89,26 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
         @endif
       @endforeach
 
+      @auth
+      @if(isset($userAnnouncements) && $userAnnouncements->count())
+       <div class="dropdown notification-bell">
+        <button class="desktop-nav-more-btn" data-bs-toggle="dropdown" aria-expanded="false" title="Уведомления">
+         🔔 <span class="badge rounded-pill bg-danger">{{ $userAnnouncements->count() }}</span>
+        </button>
+        <div class="dropdown-menu dropdown-menu-dark sci-dropdown dropdown-menu-end" style="min-width:320px;max-width:420px">
+         <div class="px-3 py-2"><strong>Уведомления</strong></div>
+         <div class="dropdown-divider"></div>
+         @foreach($userAnnouncements as $notice)
+          <a class="dropdown-item text-wrap" href="{{ auth()->user()->isTeacherRole() ? route('admin.teacher-dashboard') : route('academic.dashboard') }}">
+           <strong>{{ $notice->title }}</strong>
+           <div class="small text-white-50">{{ $notice->group->name ?? 'ШКИ' }}</div>
+          </a>
+         @endforeach
+        </div>
+       </div>
+      @endif
+      @endauth
+
       <div class="desktop-nav-more dropdown">
         <button class="desktop-nav-more-btn" data-bs-toggle="dropdown" aria-expanded="false">Ещё <span>＋</span></button>
         <div class="dropdown-menu dropdown-menu-dark sci-dropdown dropdown-menu-end">
@@ -156,6 +176,11 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
     </div>
 
     <div class="mobile-more-grid">
+      @auth
+       @if(isset($userAnnouncements) && $userAnnouncements->count())
+        <a href="{{ auth()->user()->isTeacherRole() ? route('admin.teacher-dashboard') : route('academic.dashboard') }}"><span>🔔</span><strong>Уведомления ({{ $userAnnouncements->count() }})</strong></a>
+       @endif
+      @endauth
       <a href="{{ route('search') }}"><span>⌕</span><strong>Поиск</strong></a>
       <a href="{{ route('home') }}#studios"><span>✦</span><strong>Студии</strong></a>
       <a href="{{ route('schedule') }}"><span>◷</span><strong>Расписание</strong></a>
