@@ -7,12 +7,13 @@ use Illuminate\Support\Facades\Storage;
 class TeamMember extends Model
 {
     protected $fillable=[
-        'studio_id','name','role','bio','photo','email','vk_url','telegram_url','sort_order','is_active'
+        'user_id','studio_id','name','role','bio','photo','email','vk_url','telegram_url','sort_order','is_active'
     ];
 
     protected $casts=['is_active'=>'boolean'];
     protected $appends=['photo_url'];
 
+    public function user(){ return $this->belongsTo(User::class); }
     public function studio(){ return $this->belongsTo(Studio::class); }
 
     public function getPhotoUrlAttribute(): ?string
