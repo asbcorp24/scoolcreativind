@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
+use App\Models\ActivityLog;
 use App\Models\HomeworkAssignment;
 use App\Models\HomeworkSubmission;
 use App\Models\JournalEntry;
@@ -796,7 +797,16 @@ class AdminAcademicController extends Controller
             (int)$entry->lesson->study_group_id,
             (int)$entry->lesson->subject_id
         );
+        $before=$entry->toArray();
         $entry->update($data);
+
+        ActivityLog::record(
+            'journal.entry.updated',
+            $entry,
+            'Изменена запись журнала для ученика #'.$entry->student_id,
+            $before,
+            $entry->fresh()->toArray()
+        );
 
         if($request->expectsJson()){
             return response()->json([
@@ -1059,6 +1069,33 @@ class AdminAcademicController extends Controller
         ));
     }
 
+    public function markAllPresent(JournalLesson $lesson)
+    {
+        $lesson->load('entries');
+        $this->ensureSubjectAllowed(
+            (int)$lesson->study_group_id,
+            (int)$lesson->subject_id
+        );
+
+        $before=$lesson->entries->map(fn($entry)=>[
+            'id'=>$entry->id,
+            'attendance'=>$entry->attendance,
+        ])->values()->all();
+
+        JournalEntry::where('journal_lesson_id',$lesson->id)
+            ->update(['attendance'=>'present','updated_at'=>now()]);
+
+        ActivityLog::record(
+            'journal.all_present',
+            $lesson,
+            'Все ученики отмечены присутствующими: '.$lesson->topic,
+            ['entries'=>$before],
+            ['attendance'=>'present']
+        );
+
+        return back()->with('success','Все ученики отмечены как присутствующие.');
+    }
+
     public function homework()
     {
         $groups=StudyGroup::with('subjects')
@@ -1150,8 +1187,17 @@ class AdminAcademicController extends Controller
             'status'=>'required|in:reviewed,returned',
         ]);
 
+        $before=$submission->toArray();
         $data['reviewed_at']=now();
         $submission->update($data);
+
+        ActivityLog::record(
+            'homework.reviewed',
+            $submission,
+            'Проверена домашняя работа ученика #'.$submission->student_id,
+            $before,
+            $submission->fresh()->toArray()
+        );
 
         return back()->with('success','Работа проверена.');
     }
