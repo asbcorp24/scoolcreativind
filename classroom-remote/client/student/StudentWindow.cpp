@@ -30,6 +30,7 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QUdpSocket>
+#include <QNetworkDatagram>
 #include <QHostAddress>
 #include <QPixmap>
 #include <QPushButton>
