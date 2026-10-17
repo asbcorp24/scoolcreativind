@@ -105,6 +105,7 @@ private:
     QButtonGroup* studentButtons_{};
     QLabel* selectedStudentLabel_{};
     QPushButton* micButton_{};
+    QPushButton* broadcastToggleButton_{};
     QPushButton* muteButton_{};
     QComboBox* cameraCombo_{};
     QComboBox* micCombo_{};
