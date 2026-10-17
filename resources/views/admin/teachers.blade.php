@@ -200,6 +200,7 @@
           <td class="text-end">
            <div class="d-flex gap-2 justify-content-end flex-wrap">
             <a href="{{ route('admin.teachers.edit',$teacher) }}" class="btn btn-sm btn-ghost">Изменить</a>
+            <a href="{{ route('admin.teacher-portfolio.edit',$teacher) }}" class="btn btn-sm btn-neon">Портфолио</a>
             <form method="post" action="{{ route('admin.teachers.remove',$teacher) }}" onsubmit="return confirm('Снять роль преподавателя и убрать назначения групп/предметов? Аккаунт пользователя останется.')">
              @csrf
              @method('DELETE')
