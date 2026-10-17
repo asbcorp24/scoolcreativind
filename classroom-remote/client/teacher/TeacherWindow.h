@@ -39,6 +39,9 @@ class QSpinBox;
 class QWindowCapture;
 class QCheckBox;
 class SystemAudioCapture;
+class QDialog;
+class QProcess;
+class QUdpSocket;
 
 class TeacherWindow final : public QMainWindow {
     Q_OBJECT
@@ -80,6 +83,12 @@ private:
     void launchQuickPoll(const QString& question, const QStringList& options);
     void refreshCaptureSources();
     void applySelectedQuality();
+    void openTVWindow();
+    void sendScreenshotTask();
+    void startLocalServer();
+    void stopLocalServer();
+    QString localIPv4Address() const;
+    QString localServerExecutable() const;
     void setBroadcastState(bool active, const QString& mode = {});
 
     WsClient* ws_{};
@@ -98,6 +107,8 @@ private:
     QLabel* status_{};
     QLabel* broadcastStatus_{};
     QLabel* lecturePreview_{};
+    QDialog* tvWindow_{};
+    QLabel* tvPreview_{};
     RemoteView* remoteView_{};
     TeacherLessonsWidget* lessonsWidget_{};
     AnnotationOverlay* annotationOverlay_{};
@@ -132,6 +143,8 @@ private:
     QTimer* lessonTimer_{};
     QTimer* taskTimer_{};
     QNetworkAccessManager* network_{};
+    QProcess* localServerProcess_{};
+    QUdpSocket* lanDiscovery_{};
     QCamera* camera_{};
     QMediaCaptureSession* captureSession_{};
     QVideoSink* videoSink_{};
@@ -167,4 +180,5 @@ private:
     bool broadcastActive_{false};
     QString broadcastMode_;
     QString selectedBroadcastMode_{"screen"};
+    QString localStudentPin_;
 };
