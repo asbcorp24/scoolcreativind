@@ -8,6 +8,7 @@ struct ClientConfig {
     QString serverUrl;
     QString lessonId;
     QString displayName;
+    bool localNetwork{false};
 
     static QString filePath();
     static ClientConfig load(const QString& defaultName);
