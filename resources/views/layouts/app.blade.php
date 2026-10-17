@@ -114,6 +114,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
         <div class="dropdown-menu dropdown-menu-dark sci-dropdown dropdown-menu-end">
           <a class="dropdown-item" href="{{ route('search') }}">Поиск по сайту</a>
           <a class="dropdown-item" href="{{ route('team') }}">Команда</a>
+          <a class="dropdown-item" href="{{ route('teachers.index') }}">Преподаватели</a>
           <a class="dropdown-item" href="{{ route('equipment') }}">Оборудование</a>
           <a class="dropdown-item" href="{{ route('news.index') }}">Новости</a>
           <a class="dropdown-item" href="{{ route('clips.index') }}">Клипы</a>
@@ -186,6 +187,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
       <a href="{{ route('schedule') }}"><span>◷</span><strong>Расписание</strong></a>
       <a href="{{ route('quizzes.index') }}"><span>?</span><strong>Викторины</strong></a>
       <a href="{{ route('team') }}"><span>◎</span><strong>Команда</strong></a>
+      <a href="{{ route('teachers.index') }}"><span>♙</span><strong>Преподаватели</strong></a>
       <a href="{{ route('equipment') }}"><span>⌘</span><strong>Оборудование</strong></a>
       <a href="{{ route('news.index') }}"><span>▤</span><strong>Новости</strong></a>
       <a href="{{ route('clips.index') }}"><span>▶</span><strong>Клипы</strong></a>
@@ -312,6 +314,7 @@ $musicPlaylist=$musicTracks->map(function($track){
          <div class="admin-side-subhead">Рабочий стол</div>
          <a class="{{ request()->routeIs('admin.teacher-dashboard') ? 'active' : '' }}" href="{{ route('admin.teacher-dashboard') }}">Сегодня</a>
          <a class="{{ request()->routeIs('admin.teacher-groups','admin.teacher-students.*') ? 'active' : '' }}" href="{{ route('admin.teacher-groups') }}">Мои группы</a>
+         <a class="{{ request()->routeIs('admin.teacher-portfolio*') ? 'active' : '' }}" href="{{ route('admin.teacher-portfolio.edit') }}">Моё портфолио</a>
         @endif
 
         @if(auth()->user()->is_admin || auth()->user()->canAdminSection('groups') || auth()->user()->canAdminSection('subjects'))
