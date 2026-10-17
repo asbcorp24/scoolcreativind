@@ -902,6 +902,8 @@ class AdminAcademicController extends Controller
     {
         $data=$request->validate([
             'attendance'=>'required|in:present,absent,late,excused',
+            'absence_reason'=>'nullable|string|max:2000',
+            'absence_document'=>'nullable|file|mimes:pdf,jpg,jpeg,png,webp|max:10240',
             'grade'=>'nullable|numeric|min:1|max:100',
             'grade_label'=>'nullable|string|max:30',
             'comment'=>'nullable|string|max:1000',
@@ -912,6 +914,16 @@ class AdminAcademicController extends Controller
             (int)$entry->lesson->subject_id
         );
         $before=$entry->toArray();
+
+        if($request->hasFile('absence_document')){
+            if($entry->absence_document){
+                Storage::disk('public')->delete($entry->absence_document);
+            }
+            $data['absence_document']=$request->file('absence_document')->store('attendance/proofs','public');
+        }else{
+            unset($data['absence_document']);
+        }
+
         $entry->update($data);
 
         ActivityLog::record(
