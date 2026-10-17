@@ -308,18 +308,33 @@ $musicPlaylist=$musicTracks->map(function($track){
     <div class="admin-side-group {{ request()->routeIs('admin.teachers*','admin.groups*','admin.subjects*','admin.schedule*','admin.journal*','admin.attendance*','admin.reports*','admin.parent-reports*','admin.homework*','admin.students*','admin.competitions*','admin.achievements*','admin.quizzes*') ? 'open' : '' }}">
       <button type="button" class="admin-side-group-title" data-admin-group-toggle><span>▦</span><strong>Обучение</strong><i>⌄</i></button>
       <div class="admin-side-group-body">
-        @if(auth()->user()->isTeacherRole() && !auth()->user()->is_admin)<a class="{{ request()->routeIs('admin.teacher-dashboard') ? 'active' : '' }}" href="{{ route('admin.teacher-dashboard') }}">Сегодня</a>@endif
-        @if(auth()->user()->isTeacherRole() && !auth()->user()->is_admin)<a class="{{ request()->routeIs('admin.teacher-groups','admin.teacher-students.*') ? 'active' : '' }}" href="{{ route('admin.teacher-groups') }}">Мои группы</a>@endif
+        @if(auth()->user()->isTeacherRole() && !auth()->user()->is_admin)
+         <div class="admin-side-subhead">Рабочий стол</div>
+         <a class="{{ request()->routeIs('admin.teacher-dashboard') ? 'active' : '' }}" href="{{ route('admin.teacher-dashboard') }}">Сегодня</a>
+         <a class="{{ request()->routeIs('admin.teacher-groups','admin.teacher-students.*') ? 'active' : '' }}" href="{{ route('admin.teacher-groups') }}">Мои группы</a>
+        @endif
+
+        @if(auth()->user()->is_admin || auth()->user()->canAdminSection('groups') || auth()->user()->canAdminSection('subjects'))
+         <div class="admin-side-subhead">Структура обучения</div>
+        @endif
         @if(auth()->user()->is_admin)<a class="{{ request()->routeIs('admin.academic-years*') ? 'active' : '' }}" href="{{ route('admin.academic-years') }}">Учебные годы</a>@endif
         @if(auth()->user()->is_admin)<a class="{{ request()->routeIs('admin.teachers*') ? 'active' : '' }}" href="{{ route('admin.teachers') }}">Преподаватели</a>@endif
         @if(auth()->user()->canAdminSection('groups'))<a class="{{ request()->routeIs('admin.groups*') ? 'active' : '' }}" href="{{ route('admin.groups') }}">Учебные группы</a>@endif
-        @if(auth()->user()->canAdminSection('subjects') || auth()->user()->isTeacherRole())<a class="{{ request()->routeIs('admin.subjects*') ? 'active' : '' }}" href="{{ route('admin.subjects') }}">{{ auth()->user()->isTeacherRole() && !auth()->user()->is_admin ? 'Мои предметы / КТП' : 'Предметы' }}</a>@endif
-        @if(auth()->user()->canAdminSection('schedule') || (auth()->user()->isTeacherRole()))<a class="{{ request()->routeIs('admin.schedule*') ? 'active' : '' }}" href="{{ route('admin.schedule') }}">Расписание</a>@endif
-        @if(auth()->user()->canAdminSection('journal') || (auth()->user()->isTeacherRole()))<a class="{{ request()->routeIs('admin.journal*') ? 'active' : '' }}" href="{{ route('admin.journal') }}">Журнал</a>@endif
-        @if(auth()->user()->canAdminSection('journal') || (auth()->user()->isTeacherRole()))<a class="{{ request()->routeIs('admin.attendance*') ? 'active' : '' }}" href="{{ route('admin.attendance') }}">Посещаемость</a>@endif
-        @if(auth()->user()->canAdminSection('journal') || (auth()->user()->isTeacherRole()))<a class="{{ request()->routeIs('admin.reports*') ? 'active' : '' }}" href="{{ route('admin.reports') }}">Печатные отчёты</a>@endif
-        @if(auth()->user()->canAdminSection('students') || (auth()->user()->isTeacherRole()))<a class="{{ request()->routeIs('admin.parent-reports*') ? 'active' : '' }}" href="{{ route('admin.parent-reports') }}">Отчёты родителям</a>@endif
-        @if(auth()->user()->canAdminSection('homework') || (auth()->user()->isTeacherRole()))<a class="{{ request()->routeIs('admin.homework*') ? 'active' : '' }}" href="{{ route('admin.homework') }}">Домашние задания</a>@endif
+        @if(auth()->user()->canAdminSection('subjects') || auth()->user()->isTeacherRole())<a class="{{ request()->routeIs('admin.subjects*') ? 'active' : '' }}" href="{{ route('admin.subjects') }}">{{ auth()->user()->isTeacherRole() && !auth()->user()->is_admin ? 'Мои предметы / КТП' : 'Предметы и КТП' }}</a>@endif
+
+        <div class="admin-side-subhead">Учебный процесс</div>
+        @if(auth()->user()->canAdminSection('schedule') || auth()->user()->isTeacherRole())<a class="{{ request()->routeIs('admin.schedule*') ? 'active' : '' }}" href="{{ route('admin.schedule') }}">Расписание</a>@endif
+        @if(auth()->user()->canAdminSection('journal') || auth()->user()->isTeacherRole())<a class="{{ request()->routeIs('admin.journal*') ? 'active' : '' }}" href="{{ route('admin.journal') }}">Журнал</a>@endif
+        @if(auth()->user()->canAdminSection('homework') || auth()->user()->isTeacherRole())<a class="{{ request()->routeIs('admin.homework*') ? 'active' : '' }}" href="{{ route('admin.homework') }}">Домашние задания</a>@endif
+
+        <div class="admin-side-subhead">Аналитика</div>
+        @if(auth()->user()->canAdminSection('journal') || auth()->user()->isTeacherRole())<a class="{{ request()->routeIs('admin.attendance*') ? 'active' : '' }}" href="{{ route('admin.attendance') }}">Посещаемость</a>@endif
+        @if(auth()->user()->canAdminSection('journal') || auth()->user()->isTeacherRole())<a class="{{ request()->routeIs('admin.reports*') ? 'active' : '' }}" href="{{ route('admin.reports') }}">Отчёты</a>@endif
+        @if(auth()->user()->canAdminSection('students') || auth()->user()->isTeacherRole())<a class="{{ request()->routeIs('admin.parent-reports*') ? 'active' : '' }}" href="{{ route('admin.parent-reports') }}">Отчёты родителям</a>@endif
+
+        @if(auth()->user()->canAdminSection('students') || auth()->user()->canAdminSection('competitions') || auth()->user()->canAdminSection('quizzes'))
+         <div class="admin-side-subhead">Ученики и активности</div>
+        @endif
         @if(auth()->user()->canAdminSection('students'))<a class="{{ request()->routeIs('admin.students*') ? 'active' : '' }}" href="{{ route('admin.students') }}">Ученики и портфолио</a>@endif
         @if(auth()->user()->canAdminSection('competitions'))<a class="{{ request()->routeIs('admin.competitions*') || request()->routeIs('admin.achievements*') ? 'active' : '' }}" href="{{ route('admin.competitions') }}">Конкурсы и достижения</a>@endif
         @if(auth()->user()->canAdminSection('quizzes'))<a class="{{ request()->routeIs('admin.quizzes*') ? 'active' : '' }}" href="{{ route('admin.quizzes') }}">Викторины</a>@endif
