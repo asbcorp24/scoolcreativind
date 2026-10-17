@@ -29,7 +29,7 @@ td.name{text-align:left;font-weight:700}
 <div class="meta">
  Учебный год: {{ $group->academicYear->name ?? '—' }} ·
  Год обучения: {{ $group->study_year }} ·
- Период: {{ CarbonCarbon::parse($dateFrom)->format('d.m.Y') }} — {{ CarbonCarbon::parse($dateTo)->format('d.m.Y') }}
+ Период: {{ date('d.m.Y',strtotime($dateFrom)) }} — {{ date('d.m.Y',strtotime($dateTo)) }}
  @if($group->studio) · Студия: {{ $group->studio->title }} @endif
 </div>
 
