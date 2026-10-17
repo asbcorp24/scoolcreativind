@@ -31,7 +31,14 @@ class LearningController extends Controller
             $query->where('teacher_name',$activeTeacher);
         }
 
-        if (auth()->check() && !auth()->user()->is_admin) {
+        // Ученику показываем расписание только его групп.
+        // Преподаватель в общем календаре должен видеть опубликованное
+        // расписание целиком, в том числе добавленные им занятия.
+        if (
+            auth()->check() &&
+            !auth()->user()->is_admin &&
+            !auth()->user()->isTeacherRole()
+        ) {
             $groupIds=auth()->user()->studentGroups()->pluck('study_groups.id');
             $query->where(function($q) use ($groupIds){
                 $q->whereIn('study_group_id',$groupIds)->orWhereNull('study_group_id');
