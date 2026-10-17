@@ -146,6 +146,19 @@ CREATE TABLE IF NOT EXISTS quick_files (
 );
 CREATE INDEX IF NOT EXISTS idx_quick_files_classroom_time
 	ON quick_files(classroom_id, created_at);
+
+CREATE TABLE IF NOT EXISTS screenshot_tasks (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	classroom_id TEXT NOT NULL,
+	file_id INTEGER NOT NULL,
+	title TEXT NOT NULL DEFAULT '',
+	task_text TEXT NOT NULL DEFAULT '',
+	original_name TEXT NOT NULL DEFAULT '',
+	created_at INTEGER NOT NULL,
+	FOREIGN KEY(file_id) REFERENCES quick_files(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_screenshot_tasks_classroom_time
+	ON screenshot_tasks(classroom_id, created_at, id);
 `)
 	return err
 }
