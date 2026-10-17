@@ -2,10 +2,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
 class OfficialDocument extends Model
 {
+    use SoftDeletes;
     protected $fillable=[
         'title','item_type','category','document_number','document_date','description',
         'file_path','file_name','file_size','external_url','button_label','sort_order','is_published'
