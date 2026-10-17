@@ -118,6 +118,10 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::post('/teacher-portfolio/{teacher?}',[TeacherPortfolioController::class,'saveProfile'])->name('teacher-portfolio.save');
     Route::post('/teacher-portfolio/{profile}/projects/{item?}',[TeacherPortfolioController::class,'saveProject'])->name('teacher-portfolio.projects.save');
     Route::delete('/teacher-portfolio/{profile}/projects/{item}',[TeacherPortfolioController::class,'deleteProject'])->name('teacher-portfolio.projects.delete');
+    Route::get('/teacher-portfolio/{profile}/projects/{item}/media',[TeacherPortfolioController::class,'media'])->name('teacher-portfolio.media');
+    Route::post('/teacher-portfolio/{profile}/projects/{item}/media',[TeacherPortfolioController::class,'addMedia'])->name('teacher-portfolio.media.add');
+    Route::patch('/teacher-portfolio/{profile}/projects/{item}/media/{media}',[TeacherPortfolioController::class,'updateMediaFlags'])->name('teacher-portfolio.media.flags');
+    Route::delete('/teacher-portfolio/{profile}/projects/{item}/media/{media}',[TeacherPortfolioController::class,'deleteMedia'])->name('teacher-portfolio.media.delete');
     Route::get('/teacher-groups',[TeacherDashboardController::class,'groups'])->name('teacher-groups');
     Route::get('/teacher-students/{student}',[TeacherDashboardController::class,'student'])->name('teacher-students.show');
     Route::post('/teacher-dashboard/announcements',[TeacherDashboardController::class,'saveAnnouncement'])->name('teacher-dashboard.announcements.save');
