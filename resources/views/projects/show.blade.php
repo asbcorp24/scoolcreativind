@@ -12,6 +12,9 @@
    @if($project->completed_at)<span>· {{ $project->completed_at->format('Y') }}</span>@endif
    @if($project->type)<span>· {{ $project->type }}</span>@endif
    @if($project->lesson)<span>· Практическая работа к уроку «{{ $project->lesson->topic }}»</span>@endif
+   @if($project->subject)<span>· {{ $project->subject->title }}</span>@endif
+   @if($project->mentor)<span>· Наставник: @if($project->mentor->teacherProfile?->is_public)<a href="{{ route('teachers.show',$project->mentor->teacherProfile) }}">{{ $project->mentor->name }}</a>@else{{ $project->mentor->name }}@endif</span>@endif
+   @if($project->homeworkSubmission)<span>· Работа из домашнего задания</span>@endif
   </div>
   @if($project->student)
    <div class="mt-4">
