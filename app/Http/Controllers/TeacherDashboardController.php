@@ -1,11 +1,13 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Announcement;
 use App\Models\HomeworkSubmission;
 use App\Models\JournalLesson;
 use App\Models\ScheduleLesson;
 use App\Models\StudyGroup;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class TeacherDashboardController extends Controller
@@ -114,4 +116,70 @@ class TeacherDashboardController extends Controller
             'today','upcoming','needsJournal','pendingHomework','groups','progress','announcements'
         ));
     }
+
+    public function saveAnnouncement(Request $request)
+    {
+        $user=auth()->user();
+        abort_unless($user->is_admin || $user->isTeacherRole(),403);
+
+        $data=$request->validate([
+            'study_group_id'=>'nullable|exists:study_groups,id',
+            'audience'=>'required|in:all,students,teachers',
+            'title'=>'required|string|max:255',
+            'body'=>'required|string|max:10000',
+            'published_at'=>'nullable|date',
+            'expires_at'=>'nullable|date|after:published_at',
+        ]);
+
+        if(!$user->is_admin){
+            abort_unless(
+                !empty($data['study_group_id']) &&
+                $user->teacherGroups()->where('study_groups.id',$data['study_group_id'])->exists(),
+                403
+            );
+        }
+
+        $announcement=Announcement::create([
+            'author_id'=>$user->id,
+            'study_group_id'=>$data['study_group_id'] ?? null,
+            'audience'=>$data['audience'],
+            'title'=>$data['title'],
+            'body'=>$data['body'],
+            'published_at'=>$data['published_at'] ?? now(),
+            'expires_at'=>$data['expires_at'] ?? null,
+            'is_published'=>true,
+        ]);
+
+        ActivityLog::record(
+            'announcement.created',
+            $announcement,
+            'Создано объявление: '.$announcement->title,
+            null,
+            $announcement->toArray()
+        );
+
+        return back()->with('success','Объявление опубликовано.');
+    }
+
+    public function deleteAnnouncement(Announcement $announcement)
+    {
+        $user=auth()->user();
+        abort_unless(
+            $user->is_admin || (int)$announcement->author_id===$user->id,
+            403
+        );
+
+        ActivityLog::record(
+            'announcement.deleted',
+            $announcement,
+            'Удалено объявление: '.$announcement->title,
+            $announcement->toArray(),
+            null
+        );
+
+        $announcement->delete();
+
+        return back()->with('success','Объявление удалено.');
+    }
+
 }
