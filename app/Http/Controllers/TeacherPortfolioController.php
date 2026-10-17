@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\PortfolioItem;
 use App\Models\Studio;
+use App\Models\Subject;
 use App\Models\TeacherPortfolioItem;
 use App\Models\TeacherProfile;
 use App\Models\User;
@@ -17,7 +18,10 @@ class TeacherPortfolioController extends Controller
     {
         $profiles=TeacherProfile::with(['user','studio'])
             ->where('is_public',true)
-            ->whereHas('user',fn($q)=>$q->where('is_teacher',true))
+            ->whereHas('user',function($q){
+                $q->where('is_teacher',true)
+                  ->orWhereHas('studyGroups',fn($g)=>$g->where('role','teacher'));
+            })
             ->orderBy('id')
             ->get();
 
@@ -43,13 +47,11 @@ class TeacherPortfolioController extends Controller
             'mentoredWorks.lesson.subject',
         ]);
 
-        $subjects=$profile->user->studyGroups()
-            ->wherePivot('role','teacher')
-            ->with('subjects')
-            ->get()
-            ->flatMap(fn($g)=>$g->subjects)
-            ->unique('id')
-            ->values();
+        $subjects=Subject::whereHas('groups',function($q) use($profile){
+                $q->where('group_subjects.teacher_id',$profile->user_id);
+            })
+            ->orderBy('title')
+            ->get();
 
         return view('teachers.show',compact('profile','subjects'));
     }
