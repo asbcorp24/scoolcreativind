@@ -107,11 +107,19 @@ class TeacherDashboardController extends Controller
                     ->when(!$user->is_admin,fn($q)=>$q->where('teacher_id',$user->id))
                     ->count();
 
+                $planned=ScheduleLesson::where('study_group_id',$group->id)
+                    ->where('subject_id',$subject->id)
+                    ->whereDate('lesson_date','<=',now()->toDateString())
+                    ->where('status','<>','cancelled')
+                    ->count();
+
                 return [
                     'group'=>$group,
                     'subject'=>$subject,
                     'total'=>$total,
                     'conducted'=>$conducted,
+                    'planned'=>$planned,
+                    'delta'=>$conducted-$planned,
                     'percent'=>$total ? min(100,(int)round($conducted/$total*100)) : 0,
                 ];
             });
