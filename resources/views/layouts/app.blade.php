@@ -92,6 +92,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
       <div class="desktop-nav-more dropdown">
         <button class="desktop-nav-more-btn" data-bs-toggle="dropdown" aria-expanded="false">Ещё <span>＋</span></button>
         <div class="dropdown-menu dropdown-menu-dark sci-dropdown dropdown-menu-end">
+          <a class="dropdown-item" href="{{ route('search') }}">Поиск по сайту</a>
           <a class="dropdown-item" href="{{ route('team') }}">Команда</a>
           <a class="dropdown-item" href="{{ route('equipment') }}">Оборудование</a>
           <a class="dropdown-item" href="{{ route('news.index') }}">Новости</a>
@@ -155,6 +156,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
     </div>
 
     <div class="mobile-more-grid">
+      <a href="{{ route('search') }}"><span>⌕</span><strong>Поиск</strong></a>
       <a href="{{ route('home') }}#studios"><span>✦</span><strong>Студии</strong></a>
       <a href="{{ route('schedule') }}"><span>◷</span><strong>Расписание</strong></a>
       <a href="{{ route('quizzes.index') }}"><span>?</span><strong>Викторины</strong></a>
