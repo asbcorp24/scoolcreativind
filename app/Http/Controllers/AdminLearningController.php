@@ -53,10 +53,19 @@ class AdminLearningController extends Controller
         if(!auth()->user()->is_admin){
             $teacherId=auth()->id();
             $groups->each(function($group) use($teacherId){
+                $substituteSubjectIds=ScheduleLesson::where('study_group_id',$group->id)
+                    ->where('substitute_teacher_id',$teacherId)
+                    ->whereNotNull('subject_id')
+                    ->pluck('subject_id')
+                    ->map(fn($id)=>(int)$id);
+
                 $group->setRelation(
                     'subjects',
                     $group->subjects
-                        ->filter(fn($subject)=>(int)($subject->pivot->teacher_id ?? 0)===$teacherId)
+                        ->filter(fn($subject)=>
+                            (int)($subject->pivot->teacher_id ?? 0)===$teacherId ||
+                            $substituteSubjectIds->contains((int)$subject->id)
+                        )
                         ->values()
                 );
             });
