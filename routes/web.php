@@ -189,6 +189,7 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::get('/attendance',[AdminAcademicController::class,'attendance'])->name('attendance');
     Route::get('/reports',[AdminAcademicController::class,'reports'])->name('reports');
     Route::get('/attendance/print',[AdminAcademicController::class,'printJournalReport'])->name('attendance.print');
+    Route::get('/reports/group-progress/print',[AdminAcademicController::class,'printGroupProgressReport'])->name('reports.group-progress.print');
     Route::get('/attendance/export-csv',[AdminAcademicController::class,'exportJournalCsv'])->name('attendance.export-csv');
     Route::get('/attendance/ktp/{subject}/print',[AdminAcademicController::class,'printKtpReport'])->name('ktp.print');
     Route::get('/parent-reports',[AdminParentReportController::class,'index'])->name('parent-reports');
