@@ -1065,3 +1065,15 @@ input[type="time"]::-webkit-calendar-picker-indicator{
 @media(max-width:767px){
   .schedule-filter-panel{padding:14px}
 }
+
+
+.admin-side-subhead{
+  padding:14px 14px 5px;
+  margin-top:4px;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.38);
+}
+.admin-side-subhead:first-child{padding-top:6px}
