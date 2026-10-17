@@ -9,6 +9,7 @@ use App\Models\ScheduleLesson;
 use App\Models\StudentProfile;
 use App\Models\Studio;
 use App\Models\Subject;
+use App\Models\User;
 use App\Models\StudyGroup;
 use Illuminate\Http\Request;
 
@@ -42,13 +43,18 @@ class LearningController extends Controller
             ->where('is_published',true);
 
         $activeStudio=$request->input('studio','');
+        $activeTeacherId=$request->input('teacher_id','');
         $activeTeacher=trim((string)$request->input('teacher',''));
         $activeGroup=$request->input('group','');
         $activeSubject=$request->input('subject','');
         $activeRoom=trim((string)$request->input('room',''));
 
         if($activeStudio!=='') $query->where('studio_id',$activeStudio);
-        if($activeTeacher!=='') $query->where('teacher_name',$activeTeacher);
+        if($activeTeacherId!==''){
+            $query->where('teacher_id',$activeTeacherId);
+        }elseif($activeTeacher!==''){
+            $query->where('teacher_name',$activeTeacher);
+        }
         if($activeGroup!=='') $query->where('study_group_id',$activeGroup);
         if($activeSubject!=='') $query->where('subject_id',$activeSubject);
         if($activeRoom!=='') $query->where('room',$activeRoom);
@@ -70,7 +76,17 @@ class LearningController extends Controller
         $subjectIds=(clone $published)->whereNotNull('subject_id')->distinct()->pluck('subject_id');
         $subjects=Subject::whereIn('id',$subjectIds)->orderBy('title')->get();
 
-        $teachers=(clone $published)
+        $teacherIds=(clone $published)
+            ->whereNotNull('teacher_id')
+            ->distinct()
+            ->pluck('teacher_id');
+
+        $teachers=User::whereIn('id',$teacherIds)
+            ->orderBy('name')
+            ->get();
+
+        $legacyTeachers=(clone $published)
+            ->whereNull('teacher_id')
             ->whereNotNull('teacher_name')
             ->where('teacher_name','<>','')
             ->distinct()
@@ -92,8 +108,10 @@ class LearningController extends Controller
             'groups'=>$groups,
             'subjects'=>$subjects,
             'teachers'=>$teachers,
+            'legacyTeachers'=>$legacyTeachers,
             'rooms'=>$rooms,
             'activeStudio'=>$activeStudio,
+            'activeTeacherId'=>$activeTeacherId,
             'activeTeacher'=>$activeTeacher,
             'activeGroup'=>$activeGroup,
             'activeSubject'=>$activeSubject,
@@ -114,7 +132,11 @@ class LearningController extends Controller
         foreach(['studio'=>'studio_id','group'=>'study_group_id','subject'=>'subject_id'] as $param=>$column){
             if($request->filled($param)) $query->where($column,$request->input($param));
         }
-        if($request->filled('teacher')) $query->where('teacher_name',$request->input('teacher'));
+        if($request->filled('teacher_id')){
+            $query->where('teacher_id',$request->input('teacher_id'));
+        }elseif($request->filled('teacher')){
+            $query->where('teacher_name',$request->input('teacher'));
+        }
         if($request->filled('room')) $query->where('room',$request->input('room'));
 
         $from=$request->filled('from') ? \Carbon\Carbon::parse($request->input('from')) : now()->startOfMonth();
