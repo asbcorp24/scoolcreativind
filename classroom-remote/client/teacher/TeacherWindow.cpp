@@ -11,6 +11,7 @@
 #include "../common/AnnotationOverlay.h"
 
 #include <QBuffer>
+#include <QApplication>
 #include <QRadioButton>
 #include <QButtonGroup>
 #include <QComboBox>
