@@ -20,6 +20,7 @@ class QPlainTextEdit;
 class QListWidget;
 class QTabWidget;
 class QDialog;
+class QUdpSocket;
 
 class StudentWindow final : public QMainWindow {
     Q_OBJECT
@@ -42,6 +43,8 @@ private:
     void sendChat();
     void loadQuickFiles();
     void downloadQuickFile();
+    void discoverLocalTeacher();
+    void showScreenshotTask(const QJsonObject& obj);
     QUrl quickFileUrl(qint64 fileId = 0) const;
 
     WsClient* ws_{};
@@ -81,10 +84,12 @@ private:
     QTimer* remoteScreenTimer_{};
     QTimer* statusTimer_{};
     QNetworkAccessManager* network_{};
+    QUdpSocket* lanDiscovery_{};
 
     QString studentId_;
     bool handRaised_{false};
     bool remoteActive_{false};
     bool controlAllowed_{false};
     bool audioTalkActive_{false};
+    bool localDiscoveryResolved_{false};
 };
