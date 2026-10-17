@@ -9,7 +9,7 @@
     <h1 class="display-3 fw-bold m-0">Расписание</h1>
     <p class="text-white-50 mt-2 mb-0">Добавляйте одно занятие или создавайте серию по выбранному дню недели.</p>
    </div>
-   <a href="{{ route('admin.dashboard') }}" class="btn btn-ghost">← Админка</a>
+   <a href="{{ auth()->user()->is_admin ? route('admin.dashboard') : route('cabinet') }}" class="btn btn-ghost">← {{ auth()->user()->is_admin ? 'Админка' : 'Личный кабинет' }}</a>
   </div>
  </div>
 </section>
@@ -45,7 +45,14 @@
       <div class="col-md-4"><label class="form-label">Конец</label><input type="time" class="form-control" name="ends_at" value="{{ old('ends_at','16:30') }}" required></div>
       <div class="col-md-4"><label class="form-label">Аудитория</label><input class="form-control" name="room" value="{{ old('room') }}"></div>
 
-      <div class="col-md-7"><label class="form-label">Преподаватель</label><input class="form-control" name="teacher_name" value="{{ old('teacher_name') }}"></div>
+      <div class="col-md-7"><label class="form-label">Преподаватель</label>
+       @if(auth()->user()->is_admin)
+        <input class="form-control" name="teacher_name" value="{{ old('teacher_name') }}">
+       @else
+        <input class="form-control" value="{{ auth()->user()->name }}" readonly>
+        <div class="form-text text-white-50">Занятие автоматически будет записано на вас.</div>
+       @endif
+      </div>
       <div class="col-md-3"><label class="form-label">Цвет</label><input type="color" class="form-control form-control-color w-100" name="color" value="{{ old('color','#8a5cff') }}"></div>
       <div class="col-md-2 d-flex align-items-end"><div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="is_published" value="1" checked><label class="form-check-label">Показывать</label></div></div>
 
@@ -64,7 +71,7 @@
      <span class="schedule-mode-badge accent">серия</span>
     </div>
 
-    <p class="text-white-50 small mb-4">Пример: каждую субботу с 13:00 до 16:30, начиная с 3 октября и заканчивая 19 декабря. Все подходящие даты будут созданы автоматически.</p>
+    <p class="text-white-50 small mb-4">Пример: каждую субботу с 13:00 до 16:30. {{ auth()->user()->is_admin ? 'Все подходящие даты будут созданы автоматически.' : 'Все созданные занятия будут закреплены за вами и выбранной вашей группой.' }}</p>
 
     <form method="post" action="{{ route('admin.schedule.generate') }}">@csrf
      <div class="row g-3">
@@ -85,7 +92,14 @@
       <div class="col-md-4"><label class="form-label">Конец</label><input type="time" class="form-control" name="ends_at" value="{{ old('ends_at','16:30') }}" required></div>
       <div class="col-md-4"><label class="form-label">Аудитория</label><input class="form-control" name="room" value="{{ old('room') }}"></div>
 
-      <div class="col-md-7"><label class="form-label">Преподаватель</label><input class="form-control" name="teacher_name" value="{{ old('teacher_name') }}"></div>
+      <div class="col-md-7"><label class="form-label">Преподаватель</label>
+       @if(auth()->user()->is_admin)
+        <input class="form-control" name="teacher_name" value="{{ old('teacher_name') }}">
+       @else
+        <input class="form-control" value="{{ auth()->user()->name }}" readonly>
+        <div class="form-text text-white-50">Занятие автоматически будет записано на вас.</div>
+       @endif
+      </div>
       <div class="col-md-3"><label class="form-label">Цвет</label><input type="color" class="form-control form-control-color w-100" name="color" value="{{ old('color','#00e5ff') }}"></div>
       <div class="col-md-2 d-flex align-items-end"><div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="is_published" value="1" checked><label class="form-check-label">Показывать</label></div></div>
 
