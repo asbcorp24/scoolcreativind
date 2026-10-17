@@ -46,6 +46,7 @@ class AdminLearningController extends Controller
             'studio_id'=>'nullable|exists:studios,id',
             'study_group_id'=>'nullable|exists:study_groups,id',
             'title'=>'required|string|max:220',
+            'teacher_id'=>'nullable|exists:users,id',
             'teacher_name'=>'nullable|string|max:180',
             'lesson_date'=>'required|date',
             'starts_at'=>'required',
@@ -57,11 +58,8 @@ class AdminLearningController extends Controller
         ]);
 
         if (!auth()->user()->is_admin) {
-            if($lesson && $lesson->study_group_id){
-                abort_unless(
-                    auth()->user()->teacherGroups()->where('study_groups.id',$lesson->study_group_id)->exists(),
-                    403
-                );
+            if($lesson){
+                abort_unless((int)$lesson->teacher_id===auth()->id(),403);
             }
 
             abort_unless(
@@ -69,6 +67,15 @@ class AdminLearningController extends Controller
                 auth()->user()->teacherGroups()->where('study_groups.id',$data['study_group_id'])->exists(),
                 403
             );
+
+            $data['teacher_id']=auth()->id();
+            $data['teacher_name']=auth()->user()->name;
+        }elseif(!empty($data['teacher_id'])){
+            $teacher=User::findOrFail($data['teacher_id']);
+            abort_unless((bool)$teacher->is_teacher || $teacher->teacherGroups()->exists(),422);
+            $data['teacher_name']=$teacher->name;
+        }else{
+            $data['teacher_id']=null;
         }
 
         $lesson ??= new ScheduleLesson();
