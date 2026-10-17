@@ -1,7 +1,9 @@
 <?php
 namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 class NewsPost extends Model {
+ use SoftDeletes;
  protected $fillable=['title','slug','excerpt','body','cover','published_at','is_published'];
  protected $casts=['published_at'=>'datetime','is_published'=>'boolean'];
  protected $appends=['cover_url'];
