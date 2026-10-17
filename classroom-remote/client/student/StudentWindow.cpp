@@ -238,6 +238,10 @@ StudentWindow::StudentWindow(QWidget* parent)
 
     connect(ws_, &WsClient::connected, this, [this] {
         status_->setText("● Сигналинг подключён, получаю ICE/TURN конфигурацию...");
+        if (config_.localNetwork) {
+            showLanConnectDialog("Подключено к преподавателю");
+            QTimer::singleShot(500, this, &StudentWindow::closeLanConnectDialog);
+        }
         snapshotTimer_->start();
         statusTimer_->start();
         QTimer::singleShot(250, this, &StudentWindow::sendStudentStatus);
@@ -390,11 +394,31 @@ void StudentWindow::loginWithPIN() {
     connect(reply, &QNetworkReply::finished, this, [this, reply] {
         const QByteArray data = reply->readAll();
         if (reply->error() != QNetworkReply::NoError) {
-            if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 429)
-                QMessageBox::warning(this, "Вход", "Слишком много попыток. Повторите через минуту.");
-            else
-                QMessageBox::warning(this, "Вход", "Неверный пароль или сервер недоступен.");
-            status_->setText("Не удалось войти");
+            const int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+
+            if (config_.localNetwork) {
+                if (httpStatus == 401) {
+                    showLanConnectDialog("Неверный PIN ученика. Введите PIN, который показан у преподавателя.");
+                    status_->setText("Неверный PIN ученика");
+                } else if (httpStatus == 429) {
+                    showLanConnectDialog("Слишком много неверных попыток. Повторите через минуту.");
+                    status_->setText("Слишком много попыток входа");
+                } else {
+                    localDiscoveryResolved_ = false;
+                    showLanConnectDialog("Связь с локальным сервером потеряна. Выполняю новый поиск преподавателя...");
+                    status_->setText("Локальный сервер недоступен");
+                    QTimer::singleShot(500, this, &StudentWindow::discoverLocalTeacher);
+                }
+            } else {
+                if (httpStatus == 429)
+                    QMessageBox::warning(this, "Вход", "Слишком много попыток. Повторите через минуту.");
+                else if (httpStatus == 401)
+                    QMessageBox::warning(this, "Вход", "Неверный пароль.");
+                else
+                    QMessageBox::warning(this, "Вход", "Сервер недоступен.");
+                status_->setText("Не удалось войти");
+            }
+
             pin_->selectAll();
             pin_->setFocus();
             reply->deleteLater();
@@ -415,6 +439,8 @@ void StudentWindow::loginWithPIN() {
         name_->setText(config_.displayName);
         pin_->clear();
         status_->setText("Пароль принят, подключаюсь...");
+        if (config_.localNetwork)
+            showLanConnectDialog("PIN принят. Подключаюсь к занятию...");
         reply->deleteLater();
         connectServer();
     });
@@ -642,9 +668,79 @@ void StudentWindow::sendChat() {
     chatInput_->clear();
 }
 
+void StudentWindow::showLanConnectDialog(const QString& text) {
+    if (!lanConnectDialog_) {
+        lanConnectDialog_ = new QDialog(this);
+        lanConnectDialog_->setModal(false);
+        lanConnectDialog_->setWindowTitle("Подключение к преподавателю");
+        lanConnectDialog_->setFixedSize(420, 150);
+        auto* layout = new QVBoxLayout(lanConnectDialog_);
+        auto* title = new QLabel("<b>Локальная сеть</b>");
+        title->setAlignment(Qt::AlignCenter);
+        title->setStyleSheet("font-size:20px;");
+        lanConnectStatus_ = new QLabel;
+        lanConnectStatus_->setAlignment(Qt::AlignCenter);
+        lanConnectStatus_->setWordWrap(true);
+        lanConnectStatus_->setStyleSheet("font-size:15px;padding:10px;");
+        layout->addWidget(title);
+        layout->addWidget(lanConnectStatus_, 1);
+    }
+    if (lanConnectStatus_)
+        lanConnectStatus_->setText(text);
+    lanConnectDialog_->show();
+    lanConnectDialog_->raise();
+    lanConnectDialog_->activateWindow();
+}
+
+void StudentWindow::closeLanConnectDialog() {
+    if (!lanConnectDialog_)
+        return;
+    lanConnectDialog_->hide();
+}
+
+void StudentWindow::verifyLocalServerAndLogin() {
+    showLanConnectDialog("Преподаватель найден. Проверяю локальный сервер...");
+
+    QUrl health(config_.serverUrl);
+    health.setPath("/health");
+    health.setQuery(QString());
+    health.setFragment(QString());
+
+    auto* reply = network_->get(QNetworkRequest(health));
+    auto* timeout = new QTimer(reply);
+    timeout->setSingleShot(true);
+    timeout->setInterval(1800);
+    connect(timeout, &QTimer::timeout, reply, [reply] {
+        if (reply->isRunning())
+            reply->abort();
+    });
+    timeout->start();
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+        const bool ok = reply->error() == QNetworkReply::NoError &&
+                        reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200;
+        reply->deleteLater();
+
+        if (!ok) {
+            showLanConnectDialog("Сервер преподавателя найден, но ещё не готов. Повторяю подключение...");
+            QTimer::singleShot(700, this, [this] {
+                if (config_.localNetwork)
+                    verifyLocalServerAndLogin();
+            });
+            return;
+        }
+
+        showLanConnectDialog("Локальный сервер готов. Проверяю PIN...");
+        loginWithPIN();
+    });
+}
+
 void StudentWindow::discoverLocalTeacher() {
     if (!lanDiscovery_)
         return;
+
+    localDiscoveryResolved_ = false;
+    showLanConnectDialog("Ищу преподавателя в локальной сети...");
 
     lanDiscovery_->abort();
     lanDiscovery_->bind(QHostAddress::AnyIPv4, 0,
@@ -653,18 +749,18 @@ void StudentWindow::discoverLocalTeacher() {
     disconnect(lanDiscovery_, nullptr, this, nullptr);
     connect(lanDiscovery_, &QUdpSocket::readyRead, this, [this] {
         while (lanDiscovery_->hasPendingDatagrams()) {
-            QNetworkDatagram datagram = lanDiscovery_->receiveDatagram();
+            const QNetworkDatagram datagram = lanDiscovery_->receiveDatagram();
             const QByteArray data = datagram.data();
             if (!data.startsWith("SHKI_CLASSROOM|"))
                 continue;
 
             const QList<QByteArray> parts = data.split('|');
-            if (parts.size() < 5)
+            if (parts.size() < 4)
                 continue;
 
-            const QString host = QString::fromUtf8(parts[1]);
-            const QString port = QString::fromUtf8(parts[2]);
-            const QString lesson = QString::fromUtf8(parts[3]);
+            const QString host = QString::fromUtf8(parts[1]).trimmed();
+            const QString port = QString::fromUtf8(parts[2]).trimmed();
+            const QString lesson = QString::fromUtf8(parts[3]).trimmed();
             if (host.isEmpty() || port.isEmpty())
                 continue;
 
@@ -674,7 +770,7 @@ void StudentWindow::discoverLocalTeacher() {
             lesson_->setText(config_.lessonId);
             localDiscoveryResolved_ = true;
             status_->setText("Найден преподаватель: " + config_.serverUrl);
-            QTimer::singleShot(50, this, &StudentWindow::loginWithPIN);
+            verifyLocalServerAndLogin();
             return;
         }
     });
@@ -683,12 +779,15 @@ void StudentWindow::discoverLocalTeacher() {
     lanDiscovery_->writeDatagram(request, QHostAddress::Broadcast, 45454);
     status_->setText("Ищу преподавателя в локальной сети...");
 
-    QTimer::singleShot(1800, this, [this] {
+    QTimer::singleShot(2200, this, [this] {
         if (localDiscoveryResolved_)
             return;
-        localDiscoveryResolved_ = true;
-        status_->setText("Автопоиск не сработал. Использую запасной адрес: " + config_.serverUrl);
-        QTimer::singleShot(50, this, &StudentWindow::loginWithPIN);
+
+        showLanConnectDialog(
+            "Преподаватель не найден автоматически.\n"
+            "Проверьте, что Teacher запустил «Локальный сервер» и Windows Firewall разрешает частную сеть.");
+        status_->setText("Преподаватель в локальной сети не найден");
+        localDiscoveryResolved_ = false;
     });
 }
 
