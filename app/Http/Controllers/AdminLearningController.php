@@ -27,7 +27,7 @@ class AdminLearningController extends Controller
         $groupsQuery=StudyGroup::with([
             'subjects'=>fn($q)=>$q->with(['lessons'=>fn($l)=>$l->where('is_published',true)->orderBy('sort_order')->orderBy('lesson_number')])
         ])->where('is_active',true);
-        $lessonsQuery=ScheduleLesson::with(['studio','group','teacher','subject','planLesson','journalLesson']);
+        $lessonsQuery=ScheduleLesson::with(['studio','group','teacher','substituteTeacher','subject','planLesson','journalLesson']);
 
         if (!auth()->user()->is_admin) {
             $groupIds=auth()->user()->teacherGroups()->pluck('study_groups.id');
@@ -346,6 +346,42 @@ class AdminLearningController extends Controller
             'group_id'=>$lesson->study_group_id,
             'subject_id'=>$lesson->subject_id,
         ])->with('success','Урок проведён: журнал и домашнее задание подготовлены автоматически.');
+    }
+
+    public function updateSubstituteTeacher(Request $request, ScheduleLesson $lesson)
+    {
+        abort_unless(auth()->user()->is_admin,403);
+
+        $data=$request->validate([
+            'substitute_teacher_id'=>'nullable|exists:users,id',
+            'substitution_note'=>'nullable|string|max:500',
+        ]);
+
+        if(!empty($data['substitute_teacher_id'])){
+            $teacher=User::findOrFail($data['substitute_teacher_id']);
+            abort_unless($teacher->isTeacherRole(),422,'Для замены выберите преподавателя.');
+        }
+
+        $before=$lesson->toArray();
+
+        $lesson->update([
+            'substitute_teacher_id'=>$data['substitute_teacher_id'] ?? null,
+            'substitution_note'=>$data['substitution_note'] ?? null,
+        ]);
+
+        ActivityLog::record(
+            'schedule.substitution',
+            $lesson,
+            $lesson->substitute_teacher_id
+                ? 'Назначена замена: '.$lesson->fresh('substituteTeacher')->substituteTeacher?->name
+                : 'Замена преподавателя снята',
+            $before,
+            $lesson->fresh()->toArray()
+        );
+
+        return back()->with('success',$lesson->substitute_teacher_id
+            ? 'Преподаватель на замену назначен.'
+            : 'Замена преподавателя снята.');
     }
 
     public function updateLessonStatus(Request $request, ScheduleLesson $lesson)
