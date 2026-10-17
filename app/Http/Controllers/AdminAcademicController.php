@@ -88,9 +88,15 @@ class AdminAcademicController extends Controller
     public function groups()
     {
         return view('admin.academic.groups',[
-            'groups'=>StudyGroup::with(['studio','students','teachers','subjects'])->whereIn('id',$this->allowedGroupIds())->orderBy('study_year')->orderBy('name')->get(),
+            'groups'=>StudyGroup::with(['academicYear','studio','students','teachers','subjects'])
+                ->whereIn('id',$this->allowedGroupIds())
+                ->orderBy('academic_year_id')
+                ->orderBy('study_year')
+                ->orderBy('name')
+                ->get(),
             'users'=>User::orderBy('name')->get(),
             'subjects'=>Subject::orderBy('title')->get(),
+            'academicYears'=>AcademicYear::orderByDesc('starts_on')->get(),
         ]);
     }
 
