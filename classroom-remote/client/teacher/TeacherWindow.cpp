@@ -71,6 +71,10 @@
 #include <QUrl>
 #include <QMessageBox>
 #include <QPixmap>
+#include <QPainter>
+#include <QCursor>
+#include <QShortcut>
+#include <QKeySequence>
 #include <QPushButton>
 #include <QRegularExpressionValidator>
 #include <QScreen>
@@ -1330,9 +1334,15 @@ void TeacherWindow::startScreenLecture() {
             if (now - lastWindowSendMs_ < selectedFrameIntervalMs_)
                 return;
             lastWindowSendMs_ = now;
-            const QImage image=frame.toImage();
-            if (!image.isNull())
+            QImage image=frame.toImage();
+            if (!image.isNull()) {
+                QRect geom;
+                if (windowCapture_)
+                    geom = windowCapture_->window().geometry();
+                if (geom.isValid())
+                    image = drawCursorOnFrame(image, geom);
                 sendLectureImage(image);
+            }
         });
         connect(windowCapture_, &QWindowCapture::errorOccurred, this,
                 [this](QWindowCapture::Error, const QString& error) {
@@ -1768,10 +1778,32 @@ void TeacherWindow::openTVWindow() {
         tvWindow_->setStyleSheet("QDialog{background:#000;} QLabel{background:#000;color:white;}");
         auto* layout = new QVBoxLayout(tvWindow_);
         layout->setContentsMargins(0, 0, 0, 0);
+        layout->setSpacing(0);
+
+        auto* topBar = new QWidget(tvWindow_);
+        topBar->setStyleSheet("background:rgba(0,0,0,180);");
+        auto* topLayout = new QHBoxLayout(topBar);
+        topLayout->setContentsMargins(12, 8, 12, 8);
+        auto* title = new QLabel("Трансляция на ТВ");
+        title->setStyleSheet("font-size:16px;font-weight:700;");
+        auto* closeBtn = new QPushButton("✕ Закрыть ТВ");
+        closeBtn->setMinimumHeight(34);
+        closeBtn->setStyleSheet(
+            "QPushButton{background:#b91c1c;color:white;font-weight:800;padding:6px 12px;border-radius:8px;}"
+            " QPushButton:hover{background:#991b1b;}");
+        topLayout->addWidget(title);
+        topLayout->addStretch();
+        topLayout->addWidget(closeBtn);
+        layout->addWidget(topBar);
+
         tvPreview_ = new QLabel("Ожидание трансляции");
         tvPreview_->setAlignment(Qt::AlignCenter);
         tvPreview_->setStyleSheet("font-size:28px;");
-        layout->addWidget(tvPreview_);
+        layout->addWidget(tvPreview_, 1);
+
+        connect(closeBtn, &QPushButton::clicked, tvWindow_, &QDialog::hide);
+        auto* esc = new QShortcut(QKeySequence(Qt::Key_Escape), tvWindow_);
+        connect(esc, &QShortcut::activated, tvWindow_, &QDialog::hide);
     }
 
     const auto screens = QGuiApplication::screens();
@@ -2187,6 +2219,35 @@ void TeacherWindow::stopLocalServer() {
     localStudentPin_.clear();
     localTeacherPin_.clear();
     localServerPort_ = 0;
+}
+
+static QImage drawCursorOnFrame(const QImage& source, const QRect& capturedGeometry) {
+    if (source.isNull())
+        return source;
+
+    const QPoint globalPos = QCursor::pos();
+    if (!capturedGeometry.contains(globalPos))
+        return source;
+
+    const double sx = double(source.width()) / qMax(1, capturedGeometry.width());
+    const double sy = double(source.height()) / qMax(1, capturedGeometry.height());
+    const QPoint local = globalPos - capturedGeometry.topLeft();
+    const QPoint p(qRound(local.x() * sx), qRound(local.y() * sy));
+
+    QImage out = source.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+    QPainter painter(&out);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+
+    QPolygon arrow;
+    arrow << QPoint(0,0) << QPoint(0,22) << QPoint(6,17)
+          << QPoint(11,29) << QPoint(16,27) << QPoint(11,15) << QPoint(20,15);
+    painter.translate(p);
+    painter.setPen(QPen(Qt::black, 4, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    painter.setBrush(Qt::white);
+    painter.drawPolygon(arrow);
+    painter.setPen(QPen(Qt::white, 1));
+    painter.drawPolygon(arrow);
+    return out;
 }
 
 void TeacherWindow::sendLectureImage(const QImage& source) {
