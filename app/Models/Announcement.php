@@ -17,4 +17,5 @@ class Announcement extends Model
 
     public function author(){ return $this->belongsTo(User::class,'author_id'); }
     public function group(){ return $this->belongsTo(StudyGroup::class,'study_group_id'); }
+    public function reads(){ return $this->hasMany(AnnouncementRead::class); }
 }
