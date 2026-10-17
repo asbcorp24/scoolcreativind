@@ -2,6 +2,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Achievement;
+use App\Models\SubjectLesson;
+use App\Models\Subject;
+use App\Models\StudyGroup;
+use App\Models\JournalLesson;
+use App\Models\JournalEntry;
+use App\Models\HomeworkAssignment;
+use App\Models\ActivityLog;
 use App\Models\Competition;
 use App\Models\PortfolioItem;
 use App\Models\ScheduleLesson;
@@ -17,12 +24,15 @@ class AdminLearningController extends Controller
 {
     public function schedule()
     {
-        $groupsQuery=\App\Models\StudyGroup::where('is_active',true);
-        $lessonsQuery=ScheduleLesson::with(['studio','group']);
+        $groupsQuery=StudyGroup::with([
+            'subjects'=>fn($q)=>$q->with(['lessons'=>fn($l)=>$l->where('is_published',true)->orderBy('sort_order')->orderBy('lesson_number')])
+        ])->where('is_active',true);
+        $lessonsQuery=ScheduleLesson::with(['studio','group','teacher','subject','planLesson','journalLesson']);
 
         if (!auth()->user()->is_admin) {
             $groupIds=auth()->user()->teacherGroups()->pluck('study_groups.id');
-            $groupsQuery->whereIn('id',$groupIds);
+            $groupsQuery->whereIn('id',$groupIds)
+                ->whereHas('subjects',fn($q)=>$q->where('group_subjects.teacher_id',auth()->id()));
             $lessonsQuery->whereIn('study_group_id',$groupIds)
                 ->where(function($q){
                     $q->where('teacher_id',auth()->id())
@@ -45,7 +55,9 @@ class AdminLearningController extends Controller
         $data=$request->validate([
             'studio_id'=>'nullable|exists:studios,id',
             'study_group_id'=>'nullable|exists:study_groups,id',
-            'title'=>'required|string|max:220',
+            'title'=>'nullable|string|max:220',
+            'subject_id'=>'nullable|exists:subjects,id',
+            'subject_lesson_id'=>'nullable|exists:subject_lessons,id',
             'teacher_id'=>'nullable|exists:users,id',
             'teacher_name'=>'nullable|string|max:180',
             'lesson_date'=>'required|date',
@@ -56,6 +68,24 @@ class AdminLearningController extends Controller
             'color'=>'nullable|string|max:32',
             'is_published'=>'nullable|boolean',
         ]);
+
+        if(!empty($data['subject_lesson_id'])){
+            $planLesson=SubjectLesson::findOrFail($data['subject_lesson_id']);
+            abort_unless(
+                !empty($data['subject_id']) && (int)$planLesson->subject_id===(int)$data['subject_id'],
+                422
+            );
+            $data['title']=$planLesson->title;
+        }
+
+        if(empty($data['title'])){
+            return back()->withErrors(['title'=>'Выберите урок КТП или укажите название занятия.'])->withInput();
+        }
+
+        if(!empty($data['study_group_id']) && !empty($data['subject_id'])){
+            $group=StudyGroup::findOrFail($data['study_group_id']);
+            abort_unless($group->subjects()->where('subjects.id',$data['subject_id'])->exists(),422);
+        }
 
         if (!auth()->user()->is_admin) {
             if($lesson){
@@ -70,6 +100,17 @@ class AdminLearningController extends Controller
 
             $data['teacher_id']=auth()->id();
             $data['teacher_name']=auth()->user()->name;
+
+            if(!empty($data['subject_id'])){
+                abort_unless(
+                    StudyGroup::findOrFail($data['study_group_id'])
+                        ->subjects()
+                        ->where('subjects.id',$data['subject_id'])
+                        ->wherePivot('teacher_id',auth()->id())
+                        ->exists(),
+                    403
+                );
+            }
         }elseif(!empty($data['teacher_id'])){
             $teacher=User::findOrFail($data['teacher_id']);
             abort_unless((bool)$teacher->is_teacher || $teacher->teacherGroups()->exists(),422);
@@ -79,8 +120,19 @@ class AdminLearningController extends Controller
         }
 
         $lesson ??= new ScheduleLesson();
+        $before=$lesson->exists ? $lesson->toArray() : null;
         $data['is_published']=$request->boolean('is_published');
+        $data['status']=$lesson->status ?: 'planned';
         $lesson->fill($data)->save();
+
+        ActivityLog::record(
+            $before ? 'schedule.updated' : 'schedule.created',
+            $lesson,
+            ($before ? 'Изменено' : 'Создано').' занятие: '.$lesson->title,
+            $before,
+            $lesson->fresh()->toArray()
+        );
+
         return back()->with('success','Занятие сохранено.');
     }
 
@@ -177,6 +229,138 @@ class AdminLearningController extends Controller
         if($skipped)$message.=' Уже существовало и пропущено — '.$skipped.'.';
 
         return back()->with('success',$message);
+    }
+
+    public function conductLesson(ScheduleLesson $lesson)
+    {
+        $user=auth()->user();
+
+        if(!$user->is_admin){
+            abort_unless((int)$lesson->teacher_id===$user->id,403);
+        }
+
+        if(!$lesson->study_group_id || !$lesson->subject_id || !$lesson->subject_lesson_id){
+            return redirect()
+                ->route('admin.schedule')
+                ->withErrors(['lesson'=>'Чтобы провести урок, у занятия должны быть выбраны группа, предмет и урок КТП.']);
+        }
+
+        $group=StudyGroup::with('students')->findOrFail($lesson->study_group_id);
+        $planLesson=SubjectLesson::where('id',$lesson->subject_lesson_id)
+            ->where('subject_id',$lesson->subject_id)
+            ->firstOrFail();
+
+        if(!$user->is_admin){
+            abort_unless(
+                $group->subjects()
+                    ->where('subjects.id',$lesson->subject_id)
+                    ->wherePivot('teacher_id',$user->id)
+                    ->exists(),
+                403
+            );
+        }
+
+        $journal=$lesson->journalLesson;
+
+        if(!$journal){
+            $journal=JournalLesson::create([
+                'study_group_id'=>$group->id,
+                'subject_id'=>$lesson->subject_id,
+                'subject_lesson_id'=>$planLesson->id,
+                'teacher_id'=>$lesson->teacher_id ?: $user->id,
+                'lesson_date'=>$lesson->lesson_date,
+                'topic'=>$planLesson->title,
+                'notes'=>$lesson->description,
+            ]);
+
+            foreach($group->students as $student){
+                JournalEntry::firstOrCreate([
+                    'journal_lesson_id'=>$journal->id,
+                    'student_id'=>$student->id,
+                ],['attendance'=>'present']);
+            }
+
+            if(trim((string)$planLesson->homework_description)!==''){
+                $dueAt=$planLesson->homework_due_days===null
+                    ? null
+                    : $lesson->lesson_date->copy()->addDays((int)$planLesson->homework_due_days)->endOfDay();
+
+                HomeworkAssignment::firstOrCreate(
+                    ['journal_lesson_id'=>$journal->id],
+                    [
+                        'study_group_id'=>$group->id,
+                        'subject_id'=>$lesson->subject_id,
+                        'subject_lesson_id'=>$planLesson->id,
+                        'teacher_id'=>$lesson->teacher_id ?: $user->id,
+                        'title'=>'Домашнее задание: '.$planLesson->title,
+                        'description'=>$planLesson->homework_description,
+                        'due_at'=>$dueAt,
+                        'max_score'=>$planLesson->homework_max_score ?: 5,
+                        'is_published'=>true,
+                    ]
+                );
+            }
+
+            $before=$lesson->toArray();
+            $lesson->update([
+                'journal_lesson_id'=>$journal->id,
+                'status'=>'completed',
+            ]);
+
+            ActivityLog::record(
+                'schedule.conducted',
+                $lesson,
+                'Проведён урок: '.$lesson->title,
+                $before,
+                $lesson->fresh()->toArray()
+            );
+        }
+
+        return redirect()->route('admin.journal',[
+            'group_id'=>$lesson->study_group_id,
+            'subject_id'=>$lesson->subject_id,
+        ])->with('success','Урок проведён: журнал и домашнее задание подготовлены автоматически.');
+    }
+
+    public function updateLessonStatus(Request $request, ScheduleLesson $lesson)
+    {
+        if(!auth()->user()->is_admin){
+            abort_unless((int)$lesson->teacher_id===auth()->id(),403);
+        }
+
+        $data=$request->validate([
+            'status'=>'required|in:planned,cancelled,moved',
+            'status_note'=>'nullable|string|max:2000',
+            'lesson_date'=>'nullable|date',
+            'starts_at'=>'nullable',
+            'ends_at'=>'nullable',
+        ]);
+
+        $before=$lesson->toArray();
+
+        if($data['status']==='moved'){
+            if(!$lesson->original_lesson_date){
+                $lesson->original_lesson_date=$lesson->lesson_date;
+                $lesson->original_starts_at=$lesson->starts_at;
+            }
+            if(!empty($data['lesson_date'])) $lesson->lesson_date=$data['lesson_date'];
+            if(!empty($data['starts_at'])) $lesson->starts_at=$data['starts_at'];
+            if(!empty($data['ends_at'])) $lesson->ends_at=$data['ends_at'];
+        }
+
+        $lesson->status=$data['status'];
+        $lesson->status_note=$data['status_note'] ?? null;
+        $lesson->save();
+
+        ActivityLog::record(
+            'schedule.status',
+            $lesson,
+            'Изменён статус занятия: '.$lesson->status_label,
+            $before,
+            $lesson->fresh()->toArray()
+        );
+
+        return back()->with('success','Статус занятия обновлён.');
     }
 
     public function deleteLesson(ScheduleLesson $lesson)
