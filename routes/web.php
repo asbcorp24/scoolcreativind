@@ -212,6 +212,7 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::post('/homework/save/{assignment?}',[AdminAcademicController::class,'saveHomework'])->name('homework.save');
     Route::get('/homework/{assignment}/submissions',[AdminAcademicController::class,'submissions'])->name('homework.submissions');
     Route::patch('/homework/submissions/{submission}',[AdminAcademicController::class,'reviewSubmission'])->name('homework.submissions.review');
+    Route::post('/homework/submissions/{submission}/portfolio',[AdminAcademicController::class,'addSubmissionToPortfolio'])->name('homework.submissions.portfolio');
     Route::post('/settings',[AdminSettingsController::class,'update'])->name('settings.update');
     Route::get('/studios/create',[AdminController::class,'studioForm'])->name('studios.create');
     Route::get('/studios/{studio}/edit',[AdminController::class,'studioForm'])->name('studios.edit');
