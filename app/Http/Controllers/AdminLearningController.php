@@ -61,6 +61,12 @@ class AdminLearningController extends Controller
             'lessons'=>$lessonsQuery->orderByDesc('lesson_date')->orderBy('starts_at')->get(),
             'studios'=>Studio::orderBy('sort_order')->get(),
             'groups'=>$groups,
+            'teachers'=>auth()->user()->is_admin
+                ? User::where(function($q){
+                    $q->where('is_teacher',true)
+                      ->orWhereHas('studyGroups',fn($g)=>$g->where('role','teacher'));
+                })->orderBy('name')->get()
+                : collect([auth()->user()]),
         ]);
     }
 
@@ -156,6 +162,7 @@ class AdminLearningController extends Controller
             'studio_id'=>'nullable|exists:studios,id',
             'study_group_id'=>'nullable|exists:study_groups,id',
             'title'=>'required|string|max:220',
+            'teacher_id'=>'nullable|exists:users,id',
             'teacher_name'=>'nullable|string|max:180',
             'weekday'=>'required|integer|min:1|max:7',
             'date_from'=>'required|date',
@@ -177,8 +184,13 @@ class AdminLearningController extends Controller
 
             $data['teacher_id']=auth()->id();
             $data['teacher_name']=auth()->user()->name;
+        }elseif(!empty($data['teacher_id'])){
+            $teacher=User::findOrFail($data['teacher_id']);
+            abort_unless($teacher->isTeacherRole(),422);
+            $data['teacher_name']=$teacher->name;
         }else{
             $data['teacher_id']=null;
+            $data['teacher_name']=$data['teacher_name'] ?? null;
         }
 
         $from=Carbon::parse($data['date_from'])->startOfDay();
