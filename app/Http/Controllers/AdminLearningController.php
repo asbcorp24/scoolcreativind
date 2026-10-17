@@ -314,13 +314,14 @@ class AdminLearningController extends Controller
             ->firstOrFail();
 
         if(!$user->is_admin){
-            abort_unless(
-                $group->subjects()
-                    ->where('subjects.id',$lesson->subject_id)
-                    ->wherePivot('teacher_id',$user->id)
-                    ->exists(),
-                403
-            );
+            $isDirectTeacher=$group->subjects()
+                ->where('subjects.id',$lesson->subject_id)
+                ->wherePivot('teacher_id',$user->id)
+                ->exists();
+
+            $isSubstitute=(int)$lesson->substitute_teacher_id===$user->id;
+
+            abort_unless($isDirectTeacher || $isSubstitute,403);
         }
 
         $journal=$lesson->journalLesson;
