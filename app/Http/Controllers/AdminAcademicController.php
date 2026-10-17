@@ -103,6 +103,7 @@ class AdminAcademicController extends Controller
     public function saveGroup(Request $request, ?StudyGroup $group=null)
     {
         $data=$request->validate([
+            'academic_year_id'=>'nullable|exists:academic_years,id',
             'name'=>'required|string|max:180',
             'study_year'=>'required|integer|min:1|max:2',
             'code'=>'required|string|max:80|unique:study_groups,code,'.optional($group)->id,
@@ -112,6 +113,8 @@ class AdminAcademicController extends Controller
         ]);
 
         $group ??= new StudyGroup();
+        $data['academic_year_id']=$data['academic_year_id']
+            ?? AcademicYear::where('is_current',true)->value('id');
         $data['is_active']=$request->boolean('is_active');
         $group->fill($data)->save();
         return back()->with('success','Учебная группа сохранена.');
