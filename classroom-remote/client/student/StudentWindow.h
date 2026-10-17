@@ -64,6 +64,7 @@ private:
     QLineEdit* token_{};
     QLineEdit* name_{};
     QLabel* status_{};
+    QWidget* loginCard_{};
     QLabel* remoteBanner_{};
     QLabel* lecture_{};
     AnnotationOverlay* annotationOverlay_{};
