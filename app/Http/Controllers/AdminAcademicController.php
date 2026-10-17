@@ -14,6 +14,7 @@ use App\Models\Studio;
 use App\Models\Subject;
 use App\Models\SubjectLesson;
 use App\Models\MediaLibraryItem;
+use App\Models\PortfolioItem;
 use App\Models\User;
 use App\Services\StorageQuota;
 use Illuminate\Http\Request;
@@ -1457,6 +1458,84 @@ class AdminAcademicController extends Controller
         }
         $assignment->load(['group','subject','submissions.student']);
         return view('admin.academic.submissions',compact('assignment'));
+    }
+
+    public function addSubmissionToPortfolio(Request $request, HomeworkSubmission $submission)
+    {
+        $submission->load(['assignment.group','assignment.subject','assignment.journalLesson','student']);
+
+        $this->ensureSubjectAllowed(
+            (int)$submission->assignment->study_group_id,
+            (int)$submission->assignment->subject_id
+        );
+
+        $profile=StudentProfile::firstOrCreate(
+            ['user_id'=>$submission->student_id],
+            [
+                'studio_id'=>$submission->assignment->group?->studio_id,
+                'class_name'=>$submission->assignment->group?->name,
+                'portfolio_slug'=>Str::slug($submission->student->name).'-'.$submission->student_id,
+                'is_public'=>false,
+            ]
+        );
+
+        $item=PortfolioItem::firstOrNew([
+            'homework_submission_id'=>$submission->id,
+        ]);
+
+        if(!$item->exists){
+            $item->student_profile_id=$profile->id;
+        }
+
+        $filePath=$item->file_path;
+        $fileName=$item->file_name;
+        $mimeType=$item->mime_type;
+        $fileSize=$item->file_size;
+
+        if(!$item->exists && $submission->file && Storage::disk('public')->exists($submission->file)){
+            $ext=pathinfo($submission->file,PATHINFO_EXTENSION);
+            $target='projects/files/homework-'.$submission->id.'-'.Str::random(8).($ext ? '.'.$ext : '');
+
+            if(Storage::disk('public')->copy($submission->file,$target)){
+                $filePath=$target;
+                $fileName=basename($submission->file);
+                $mimeType=Storage::disk('public')->mimeType($target);
+                $fileSize=Storage::disk('public')->size($target);
+            }
+        }
+
+        $item->fill([
+            'student_profile_id'=>$profile->id,
+            'journal_lesson_id'=>$submission->assignment->journal_lesson_id,
+            'subject_id'=>$submission->assignment->subject_id,
+            'mentor_teacher_id'=>$submission->assignment->teacher_id ?: auth()->id(),
+            'homework_submission_id'=>$submission->id,
+            'practical_kind'=>'homework',
+            'studio_id'=>$submission->assignment->group?->studio_id,
+            'title'=>$submission->assignment->title,
+            'type'=>'project',
+            'description'=>$submission->text_answer ?: $submission->teacher_comment,
+            'file_path'=>$filePath,
+            'file_name'=>$fileName,
+            'mime_type'=>$mimeType,
+            'file_size'=>$fileSize,
+            'project_url'=>$submission->external_url,
+            'completed_at'=>optional($submission->submitted_at)->toDateString() ?: now()->toDateString(),
+            'is_featured'=>$request->boolean('is_featured'),
+            'is_public'=>$request->boolean('is_public',true),
+        ]);
+
+        $item->save();
+
+        ActivityLog::record(
+            'portfolio.from_homework',
+            $item,
+            'Работа ученика добавлена в портфолио: '.$item->title,
+            null,
+            $item->fresh()->toArray()
+        );
+
+        return back()->with('success','Работа добавлена в портфолио ученика.');
     }
 
     public function reviewSubmission(Request $request, HomeworkSubmission $submission)
