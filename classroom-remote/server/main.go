@@ -549,12 +549,24 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, st
 				if len([]rune(title)) > 200 {
 					title = string([]rune(title)[:200])
 				}
+				now := time.Now().UTC().UnixMilli()
+				res, err := store.db.Exec(`
+INSERT INTO screenshot_tasks(classroom_id,file_id,title,task_text,original_name,created_at)
+VALUES(?,?,?,?,?,?)`,
+					lessonID, int64(fileID), title, text, name, now)
+				if err != nil {
+					log.Printf("save screenshot task: %v", err)
+					continue
+				}
+				taskID, _ := res.LastInsertId()
 				h.sendLesson(lessonID, map[string]any{
 					"type": "screenshot_task",
+					"id": taskID,
 					"file_id": fileID,
 					"text": text,
 					"title": title,
 					"name": name,
+					"created_at": now,
 				}, func(x *Client) bool { return x.Role == "student" })
 
 			case "lecture_state":
@@ -762,6 +774,8 @@ func main() {
 		requireRoleAccess(auth, store, "teacher", uploadQuickFile(store, cfg, hub)))
 	r.Get("/api/v1/classrooms/{lesson}/quick-files/{fileId}",
 		requireAnyRoleAccess(auth, store, downloadQuickFile(store, cfg)))
+	r.Get("/api/v1/classrooms/{lesson}/screenshot-tasks",
+		requireRoleAccess(auth, store, "student", listScreenshotTasks(store)))
 	r.Get("/api/v1/classrooms/{lesson}/attendance",
 		requireRoleAccess(auth, store, "teacher", attendanceReport(store)))
 
