@@ -24,18 +24,27 @@ class TeacherDashboardController extends Controller
             $groupIds=StudyGroup::pluck('id');
             $scheduleBase=ScheduleLesson::query();
         }else{
-            $groupIds=$user->teacherGroups()->pluck('study_groups.id');
-            $scheduleBase=ScheduleLesson::where('teacher_id',$user->id);
+            $directGroups=$user->teacherGroups()->pluck('study_groups.id');
+            $substituteGroups=ScheduleLesson::where('substitute_teacher_id',$user->id)
+                ->whereNotNull('study_group_id')
+                ->pluck('study_group_id');
+
+            $groupIds=$directGroups->merge($substituteGroups)->filter()->unique()->values();
+
+            $scheduleBase=ScheduleLesson::where(function($q) use($user){
+                $q->where('teacher_id',$user->id)
+                  ->orWhere('substitute_teacher_id',$user->id);
+            });
         }
 
         $today=(clone $scheduleBase)
-            ->with(['group','studio','subject','planLesson','journalLesson'])
+            ->with(['group','studio','subject','planLesson','journalLesson','teacher','substituteTeacher'])
             ->whereDate('lesson_date',now()->toDateString())
             ->orderBy('starts_at')
             ->get();
 
         $upcoming=(clone $scheduleBase)
-            ->with(['group','subject','planLesson'])
+            ->with(['group','subject','planLesson','teacher','substituteTeacher'])
             ->whereDate('lesson_date','>',now()->toDateString())
             ->where('status','<>','cancelled')
             ->orderBy('lesson_date')
@@ -44,7 +53,7 @@ class TeacherDashboardController extends Controller
             ->get();
 
         $needsJournal=(clone $scheduleBase)
-            ->with(['group','subject','planLesson'])
+            ->with(['group','subject','planLesson','teacher','substituteTeacher'])
             ->whereDate('lesson_date','<',now()->toDateString())
             ->where('status','planned')
             ->whereNull('journal_lesson_id')
