@@ -45,6 +45,7 @@ class AdminMiddleware
 
         $isTeacher=$user->isTeacherRole();
         $teacherAllowed=$request->is(
+            'admin/teacher-dashboard',
             'admin/journal',
             'admin/journal/*',
             'admin/attendance',
@@ -70,7 +71,7 @@ class AdminMiddleware
         }
 
         if ($isTeacher) {
-            return redirect()->route('admin.journal')
+            return redirect()->route('admin.teacher-dashboard')
                 ->withErrors(['access'=>'Для преподавателя доступны только его предметы и КТП, журнал, посещаемость, отчёты, домашние задания и расписание.']);
         }
 
