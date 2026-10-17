@@ -198,6 +198,120 @@ class AdminAcademicController extends Controller
         return back()->with('success','Пользователь добавлен в группу.');
     }
 
+    public function importStudentsCsv(Request $request, StudyGroup $group)
+    {
+        abort_unless(auth()->user()->is_admin,403);
+
+        $request->validate([
+            'students_file'=>'required|file|max:10240',
+        ]);
+
+        $file=$request->file('students_file');
+        $extension=strtolower($file->getClientOriginalExtension());
+        abort_unless(in_array($extension,['csv','txt'],true),422,'Загрузите CSV-файл.');
+
+        $raw=file_get_contents($file->getRealPath());
+        if($raw===false){
+            return back()->withErrors(['students_file'=>'Не удалось прочитать файл.']);
+        }
+
+        $raw=preg_replace('/^\xEF\xBB\xBF/','',$raw);
+        if(!mb_check_encoding($raw,'UTF-8')){
+            $raw=mb_convert_encoding($raw,'UTF-8','Windows-1251');
+        }
+
+        $lines=preg_split('/\r\n|\r|\n/',$raw);
+        $lines=array_values(array_filter($lines,fn($line)=>trim($line)!==''));
+
+        if(!$lines){
+            return back()->withErrors(['students_file'=>'Файл пуст.']);
+        }
+
+        $delimiter=substr_count($lines[0],';')>=substr_count($lines[0],',') ? ';' : ',';
+        $rows=array_map(fn($line)=>str_getcsv($line,$delimiter),$lines);
+
+        $first=array_map(fn($v)=>mb_strtolower(trim((string)$v)),$rows[0]);
+        $hasHeader=collect($first)->contains(fn($v)=>in_array($v,['фио','имя','name','email','e-mail','пароль','password'],true));
+        if($hasHeader){
+            array_shift($rows);
+        }
+
+        $created=0;
+        $attached=0;
+        $credentials=[];
+
+        foreach($rows as $row){
+            $name=trim((string)($row[0] ?? ''));
+            $email=trim((string)($row[1] ?? ''));
+            $password=trim((string)($row[2] ?? ''));
+
+            if($name==='') continue;
+
+            $user=$email!=='' ? User::where('email',$email)->first() : null;
+
+            if(!$user){
+                $base=Str::slug($name) ?: 'student';
+                if($email===''){
+                    $email=$base.'.'.random_int(100,999).'@student.local';
+                    while(User::where('email',$email)->exists()){
+                        $email=$base.'.'.random_int(1000,9999).'@student.local';
+                    }
+                }elseif(User::where('email',$email)->exists()){
+                    continue;
+                }
+
+                if($password==='') $password=Str::random(10);
+
+                $user=User::create([
+                    'name'=>$name,
+                    'email'=>$email,
+                    'password'=>Hash::make($password),
+                    'is_admin'=>false,
+                    'registration_status'=>'active',
+                    'activated_at'=>now(),
+                    'activated_by'=>auth()->id(),
+                ]);
+                $created++;
+
+                $credentials[]=[
+                    'name'=>$name,
+                    'email'=>$email,
+                    'password'=>$password,
+                ];
+            }
+
+            $exists=$group->users()
+                ->where('users.id',$user->id)
+                ->wherePivot('role','student')
+                ->exists();
+
+            if(!$exists){
+                $group->users()->attach($user->id,['role'=>'student']);
+                $attached++;
+            }
+
+            StudentProfile::firstOrCreate(
+                ['user_id'=>$user->id],
+                [
+                    'studio_id'=>$group->studio_id,
+                    'class_name'=>$group->name,
+                    'portfolio_slug'=>Str::slug($user->name).'-'.$user->id,
+                    'is_public'=>false,
+                ]
+            );
+        }
+
+        ActivityLog::record(
+            'students.imported',
+            $group,
+            'Импорт учеников: создано '.$created.', добавлено в группу '.$attached
+        );
+
+        return back()
+            ->with('success','Импорт завершён: создано '.$created.', добавлено в группу '.$attached.'.')
+            ->with('imported_student_credentials',$credentials);
+    }
+
     public function removeMember(StudyGroup $group, User $user, string $role)
     {
         abort_unless(auth()->user()->is_admin,403);
@@ -1028,6 +1142,70 @@ class AdminAcademicController extends Controller
             'group','subject','lessons','students','attendanceMatrix','gradeMatrix',
             'studentSummary','dateFrom','dateTo'
         ));
+    }
+
+    public function exportJournalCsv(Request $request)
+    {
+        $data=$request->validate([
+            'group_id'=>'required|exists:study_groups,id',
+            'subject_id'=>'required|exists:subjects,id',
+            'date_from'=>'nullable|date',
+            'date_to'=>'nullable|date',
+        ]);
+
+        $groupId=(int)$data['group_id'];
+        $subjectId=(int)$data['subject_id'];
+        $this->ensureSubjectAllowed($groupId,$subjectId);
+
+        $dateFrom=$data['date_from'] ?? now()->startOfMonth()->toDateString();
+        $dateTo=$data['date_to'] ?? now()->toDateString();
+
+        $group=StudyGroup::findOrFail($groupId);
+        $subject=Subject::findOrFail($subjectId);
+
+        $lessons=JournalLesson::with(['entries.student','planLesson'])
+            ->where('study_group_id',$groupId)
+            ->where('subject_id',$subjectId)
+            ->whereBetween('lesson_date',[$dateFrom,$dateTo])
+            ->orderBy('lesson_date')
+            ->get();
+
+        $filename='journal-'.Str::slug($group->name).'-'.Str::slug($subject->title).'-'.$dateFrom.'-'.$dateTo.'.csv';
+
+        return response()->streamDownload(function() use($lessons,$group,$subject,$dateFrom,$dateTo){
+            $out=fopen('php://output','w');
+            fwrite($out,"\xEF\xBB\xBF");
+            fputcsv($out,['Группа',$group->name],';');
+            fputcsv($out,['Предмет',$subject->title],';');
+            fputcsv($out,['Период',$dateFrom.' — '.$dateTo],';');
+            fputcsv($out,[], ';');
+            fputcsv($out,['Дата','Урок КТП','Тема','Ученик','Посещение','Оценка','Комментарий'],';');
+
+            $attendanceLabels=[
+                'present'=>'Был',
+                'absent'=>'Отсутствовал',
+                'late'=>'Опоздал',
+                'excused'=>'Уважительная причина',
+            ];
+
+            foreach($lessons as $lesson){
+                foreach($lesson->entries->sortBy(fn($e)=>$e->student?->name ?? '') as $entry){
+                    fputcsv($out,[
+                        $lesson->lesson_date->format('d.m.Y'),
+                        $lesson->planLesson?->lesson_number,
+                        $lesson->topic,
+                        $entry->student?->name,
+                        $attendanceLabels[$entry->attendance] ?? $entry->attendance,
+                        $entry->grade ?? $entry->grade_label,
+                        $entry->comment,
+                    ],';');
+                }
+            }
+
+            fclose($out);
+        },$filename,[
+            'Content-Type'=>'text/csv; charset=UTF-8',
+        ]);
     }
 
     public function printKtpReport(Request $request, Subject $subject)
