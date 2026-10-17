@@ -8,6 +8,7 @@ use App\Http\Controllers\AdminSettingsController;
 use App\Http\Controllers\LearningController;
 use App\Http\Controllers\AcademicController;
 use App\Http\Controllers\AdminAcademicController;
+use App\Http\Controllers\AdminAcademicYearController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SeoController;
@@ -148,6 +149,10 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::post('/teachers/save/{teacher?}',[AdminTeacherController::class,'save'])->name('teachers.save');
     Route::post('/teachers/{teacher}/reset-password',[AdminTeacherController::class,'resetPassword'])->name('teachers.reset-password');
     Route::delete('/teachers/{teacher}',[AdminTeacherController::class,'remove'])->name('teachers.remove');
+    Route::get('/academic-years',[AdminAcademicYearController::class,'index'])->name('academic-years');
+    Route::post('/academic-years/save/{year?}',[AdminAcademicYearController::class,'save'])->name('academic-years.save');
+    Route::patch('/academic-years/{year}/toggle-closed',[AdminAcademicYearController::class,'toggleClosed'])->name('academic-years.toggle-closed');
+    Route::patch('/academic-years/{year}/current',[AdminAcademicYearController::class,'makeCurrent'])->name('academic-years.current');
     Route::get('/groups',[AdminAcademicController::class,'groups'])->name('groups');
     Route::post('/groups/save/{group?}',[AdminAcademicController::class,'saveGroup'])->name('groups.save');
     Route::post('/groups/{group}/students/create',[AdminAcademicController::class,'createStudent'])->name('groups.students.create');
