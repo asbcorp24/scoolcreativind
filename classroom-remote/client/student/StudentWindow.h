@@ -45,6 +45,9 @@ private:
     void downloadQuickFile();
     void discoverLocalTeacher();
     void showScreenshotTask(const QJsonObject& obj);
+    void showLanConnectDialog(const QString& text);
+    void closeLanConnectDialog();
+    void verifyLocalServerAndLogin();
     QUrl quickFileUrl(qint64 fileId = 0) const;
 
     WsClient* ws_{};
@@ -68,6 +71,8 @@ private:
     QPushButton* hand_{};
     QTabWidget* mainTabs_{};
     QDialog* attentionDialog_{};
+    QDialog* lanConnectDialog_{};
+    QLabel* lanConnectStatus_{};
 
     QLabel* pollQuestion_{};
     QListWidget* pollOptions_{};
