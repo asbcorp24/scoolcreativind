@@ -98,4 +98,5 @@ private:
     bool controlAllowed_{false};
     bool audioTalkActive_{false};
     bool localDiscoveryResolved_{false};
+    int lanHealthAttempts_{0};
 };
