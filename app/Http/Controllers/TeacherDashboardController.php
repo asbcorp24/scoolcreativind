@@ -5,6 +5,9 @@ use App\Models\ActivityLog;
 use App\Models\Announcement;
 use App\Models\HomeworkSubmission;
 use App\Models\JournalLesson;
+use App\Models\User;
+use App\Models\StudentProfile;
+use App\Models\JournalEntry;
 use App\Models\ScheduleLesson;
 use App\Models\StudyGroup;
 use Illuminate\Http\Request;
@@ -180,6 +183,136 @@ class TeacherDashboardController extends Controller
         $announcement->delete();
 
         return back()->with('success','Объявление удалено.');
+    }
+
+
+    public function groups()
+    {
+        $user=auth()->user();
+        abort_unless($user->is_admin || $user->isTeacherRole(),403);
+
+        $groupIds=$user->is_admin
+            ? StudyGroup::pluck('id')
+            : $user->teacherGroups()->pluck('study_groups.id');
+
+        $groups=StudyGroup::with(['academicYear','studio','students','subjects'])
+            ->whereIn('id',$groupIds)
+            ->orderBy('name')
+            ->get();
+
+        if(!$user->is_admin){
+            $teacherId=$user->id;
+            $groups->each(function($group) use($teacherId){
+                $group->setRelation(
+                    'subjects',
+                    $group->subjects
+                        ->filter(fn($subject)=>(int)($subject->pivot->teacher_id ?? 0)===$teacherId)
+                        ->values()
+                );
+            });
+        }
+
+        $stats=$groups->mapWithKeys(function($group) use($user){
+            $subjectIds=$group->subjects->pluck('id');
+
+            $entries=JournalEntry::whereHas('lesson',function($q) use($group,$subjectIds,$user){
+                $q->where('study_group_id',$group->id)
+                    ->whereIn('subject_id',$subjectIds);
+
+                if(!$user->is_admin){
+                    $q->where('teacher_id',$user->id);
+                }
+            })->get();
+
+            $total=$entries->count();
+            $present=$entries->whereIn('attendance',['present','late'])->count();
+
+            return [$group->id=>[
+                'students'=>$group->students->count(),
+                'lessons'=>JournalLesson::where('study_group_id',$group->id)
+                    ->whereIn('subject_id',$subjectIds)
+                    ->when(!$user->is_admin,fn($q)=>$q->where('teacher_id',$user->id))
+                    ->count(),
+                'attendance'=>$total ? round($present/$total*100,1) : null,
+            ]];
+        });
+
+        return view('admin.teacher-groups',compact('groups','stats'));
+    }
+
+    public function student(User $student)
+    {
+        $user=auth()->user();
+        abort_unless($user->is_admin || $user->isTeacherRole(),403);
+
+        $teacherGroupIds=$user->is_admin
+            ? StudyGroup::pluck('id')
+            : $user->teacherGroups()->pluck('study_groups.id');
+
+        $studentGroups=$student->studentGroups()
+            ->whereIn('study_groups.id',$teacherGroupIds)
+            ->get();
+
+        abort_if($studentGroups->isEmpty(),403);
+
+        $groupIds=$studentGroups->pluck('id');
+
+        if($user->is_admin){
+            $subjectIds=\App\Models\Subject::whereHas('groups',fn($q)=>$q->whereIn('study_groups.id',$groupIds))
+                ->pluck('id');
+        }else{
+            $subjectIds=DB::table('group_subjects')
+                ->whereIn('study_group_id',$groupIds)
+                ->where('teacher_id',$user->id)
+                ->pluck('subject_id');
+        }
+
+        $entries=JournalEntry::with(['lesson.subject','lesson.group'])
+            ->where('student_id',$student->id)
+            ->whereHas('lesson',function($q) use($groupIds,$subjectIds,$user){
+                $q->whereIn('study_group_id',$groupIds)
+                    ->whereIn('subject_id',$subjectIds);
+
+                if(!$user->is_admin){
+                    $q->where('teacher_id',$user->id);
+                }
+            })
+            ->latest()
+            ->get();
+
+        $attendanceTotal=$entries->count();
+        $present=$entries->whereIn('attendance',['present','late'])->count();
+        $graded=$entries->whereNotNull('grade');
+
+        $summary=[
+            'lessons'=>$attendanceTotal,
+            'attendance'=>$attendanceTotal ? round($present/$attendanceTotal*100,1) : null,
+            'absent'=>$entries->where('attendance','absent')->count(),
+            'late'=>$entries->where('attendance','late')->count(),
+            'avg_grade'=>$graded->count() ? round((float)$graded->avg('grade'),2) : null,
+        ];
+
+        $homework=HomeworkSubmission::with(['assignment.subject','assignment.group'])
+            ->where('student_id',$student->id)
+            ->whereHas('assignment',function($q) use($groupIds,$subjectIds,$user){
+                $q->whereIn('study_group_id',$groupIds)
+                    ->whereIn('subject_id',$subjectIds);
+
+                if(!$user->is_admin){
+                    $q->where('teacher_id',$user->id);
+                }
+            })
+            ->latest('submitted_at')
+            ->get();
+
+        $profile=StudentProfile::where('user_id',$student->id)->first();
+        $portfolio=$profile
+            ? $profile->portfolio()->with(['lesson.subject','media'])->take(20)->get()
+            : collect();
+
+        return view('admin.teacher-student',compact(
+            'student','studentGroups','entries','summary','homework','profile','portfolio'
+        ));
     }
 
 }
