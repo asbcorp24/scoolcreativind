@@ -2,9 +2,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ScheduleLesson extends Model
 {
+    use SoftDeletes;
     protected $fillable=[
         'studio_id','study_group_id','subject_id','subject_lesson_id','journal_lesson_id',
         'teacher_id','title','teacher_name','lesson_date','starts_at','ends_at','room',
