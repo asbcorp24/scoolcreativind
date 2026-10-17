@@ -106,6 +106,16 @@ class User extends Authenticatable
         return $this->studyGroups()->wherePivot('role','teacher');
     }
 
+    public function teacherProfile()
+    {
+        return $this->hasOne(TeacherProfile::class);
+    }
+
+    public function mentoredPortfolioItems()
+    {
+        return $this->hasMany(PortfolioItem::class,'mentor_teacher_id');
+    }
+
     public function homeworkSubmissions()
     {
         return $this->hasMany(HomeworkSubmission::class,'student_id');
