@@ -510,8 +510,10 @@ class AdminLearningController extends Controller
             'user_id'=>'required|exists:users,id',
             'studio_id'=>'nullable|exists:studios,id',
             'class_name'=>'nullable|string|max:120',
+            'headline'=>'nullable|string|max:255',
             'avatar'=>'nullable|image|max:10240',
             'bio'=>'nullable|string|max:5000',
+            'skills'=>'nullable|string|max:5000',
             'portfolio_slug'=>'nullable|string|max:180',
             'is_public'=>'nullable|boolean',
         ]);
@@ -536,8 +538,20 @@ class AdminLearningController extends Controller
     public function portfolio(StudentProfile $profile)
     {
         return view('admin.portfolio', [
-            'profile'=>$profile->load(['user','portfolio.studio','portfolio.media','achievements.competition']),
+            'profile'=>$profile->load([
+                'user',
+                'portfolio.studio',
+                'portfolio.subject',
+                'portfolio.mentor.teacherProfile',
+                'portfolio.media',
+                'achievements.competition'
+            ]),
             'studios'=>Studio::orderBy('sort_order')->get(),
+            'subjects'=>Subject::orderBy('title')->get(),
+            'teachers'=>User::where(function($q){
+                $q->where('is_teacher',true)
+                  ->orWhereHas('studyGroups',fn($g)=>$g->where('role','teacher'));
+            })->orderBy('name')->get(),
         ]);
     }
 
@@ -545,6 +559,8 @@ class AdminLearningController extends Controller
     {
         $data=$request->validate([
             'studio_id'=>'nullable|exists:studios,id',
+            'subject_id'=>'nullable|exists:subjects,id',
+            'mentor_teacher_id'=>'nullable|exists:users,id',
             'title'=>'required|string|max:220',
             'type'=>'required|string|max:80',
             'description'=>'nullable|string|max:5000',
