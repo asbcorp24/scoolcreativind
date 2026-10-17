@@ -45,7 +45,8 @@ class AdminTeacherController extends Controller
     private function teachersQuery()
     {
         return User::query()->where(function($q){
-            $q->whereHas('teacherGroups')
+            $q->where('is_teacher',true)
+              ->orWhereHas('teacherGroups')
               ->orWhereIn('id',function($sub){
                   $sub->select('teacher_id')
                       ->from('group_subjects')
@@ -56,7 +57,8 @@ class AdminTeacherController extends Controller
 
     private function isTeacher(User $user): bool
     {
-        return $user->teacherGroups()->exists()
+        return (bool)$user->is_teacher
+            || $user->teacherGroups()->exists()
             || DB::table('group_subjects')->where('teacher_id',$user->id)->exists();
     }
 
@@ -86,8 +88,12 @@ class AdminTeacherController extends Controller
                 $teacher=new User();
                 $teacher->is_admin=false;
                 $teacher->admin_sections=null;
+                $teacher->is_teacher=true;
             }
 
+            // Аккаунт, сохранённый через раздел «Преподаватели», должен
+            // оставаться преподавателем даже без назначенных групп/предметов.
+            $teacher->is_teacher=true;
             $teacher->name=$data['name'];
             $teacher->email=$data['email'];
             $teacher->phone=$data['phone'] ?? null;
@@ -213,6 +219,9 @@ class AdminTeacherController extends Controller
                 ->where('user_id',$teacher->id)
                 ->where('role','teacher')
                 ->delete();
+
+            $teacher->is_teacher=false;
+            $teacher->save();
         });
 
         return redirect()->route('admin.teachers')
