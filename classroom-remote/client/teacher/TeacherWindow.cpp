@@ -91,6 +91,8 @@ TeacherWindow::TeacherWindow(QWidget* parent)
 
     auto* root = new QWidget;
     auto* outer = new QVBoxLayout(root);
+    outer->setContentsMargins(10, 8, 10, 8);
+    outer->setSpacing(6);
 
     config_ = ClientConfig::load("Преподаватель");
 
@@ -108,7 +110,8 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     auto* loginCard = new QWidget;
     loginCard->setObjectName("sciCard");
     auto* loginLayout = new QHBoxLayout(loginCard);
-    loginLayout->setContentsMargins(18, 14, 18, 14);
+    loginLayout->setContentsMargins(12, 8, 12, 8);
+    loginLayout->setSpacing(6);
 
     auto* loginTitle = new QLabel("<b>CLASSROOM / TEACHER</b>");
     loginTitle->setObjectName("sciEyebrow");
@@ -116,7 +119,8 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     pin_->setPlaceholderText("Числовой пароль");
     pin_->setEchoMode(QLineEdit::Password);
     pin_->setMaxLength(10);
-    pin_->setMinimumWidth(180);
+    pin_->setMinimumWidth(130);
+    pin_->setMaximumWidth(170);
     pin_->setValidator(new QRegularExpressionValidator(QRegularExpression("\\d{0,10}"), pin_));
 
     auto* loginBtn = new QPushButton("Войти");
@@ -138,16 +142,16 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     auto* toolbar = new QHBoxLayout;
     auto* screenBtn = new QPushButton("🖥 Экран");
     auto* cameraBtn = new QPushButton("🎥 Камера");
-    auto* fileBtn = new QPushButton("▶ Видео-файл");
-    auto* presentationBtn = new QPushButton("📊 Презентация");
-    auto* regionBtn = new QPushButton("▱ Область экрана");
-    auto* stopLectureBtn = new QPushButton("⏹ Остановить показ");
+    auto* fileBtn = new QPushButton("▶ Видео");
+    auto* presentationBtn = new QPushButton("📊 PPT/PDF");
+    auto* regionBtn = new QPushButton("▱ Область");
+    auto* stopLectureBtn = new QPushButton("⏹ СТОП");
     micButton_ = new QPushButton("🎤 Микрофон");
 
     cameraCombo_ = new QComboBox;
     micCombo_ = new QComboBox;
-    cameraCombo_->setMinimumWidth(220);
-    micCombo_->setMinimumWidth(220);
+    cameraCombo_->setMinimumWidth(150);
+    micCombo_->setMinimumWidth(150);
 
     QSettings deviceSettings("SHKI", "ClassroomRemoteTeacher");
     const QByteArray savedCameraId = deviceSettings.value("devices/camera_id").toByteArray();
@@ -275,6 +279,13 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     });
 
 
+    toolbar->setSpacing(5);
+
+    broadcastStatus_ = new QLabel("● ТРАНСЛЯЦИЯ ОСТАНОВЛЕНА");
+    broadcastStatus_->setAlignment(Qt::AlignCenter);
+    broadcastStatus_->setMinimumWidth(230);
+    broadcastStatus_->setStyleSheet("QLabel{background:#311217;color:#ff8a98;font-weight:800;padding:7px 12px;border:1px solid #7f1d2d;border-radius:9px;}");
+    toolbar->addWidget(broadcastStatus_);
     toolbar->addWidget(screenBtn);
     toolbar->addWidget(cameraBtn);
     toolbar->addWidget(fileBtn);
@@ -286,6 +297,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     outer->addLayout(toolbar);
 
     auto* devicesRow = new QHBoxLayout;
+    devicesRow->setSpacing(5);
     devicesRow->addWidget(new QLabel("Камера:"));
     devicesRow->addWidget(cameraCombo_, 1);
     devicesRow->addWidget(new QLabel("Микрофон:"));
@@ -297,7 +309,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     qualityCombo_ = new QComboBox;
     auto* refreshSourcesBtn = new QPushButton("↻");
     auto* previewSourceBtn = new QPushButton("👁 Предпросмотр");
-    sourceCombo_->setMinimumWidth(280);
+    sourceCombo_->setMinimumWidth(210);
     qualityCombo_->addItem("Авто / 720p · 10 FPS", "1280x720@10");
     qualityCombo_->addItem("480p · 10 FPS", "854x480@10");
     qualityCombo_->addItem("720p · 5 FPS", "1280x720@5");
@@ -308,12 +320,12 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     micVolume_ = new QSlider(Qt::Horizontal);
     micVolume_->setRange(0, 200);
     micVolume_->setValue(deviceSettings.value("audio/mic_volume", 100).toInt());
-    micVolume_->setMaximumWidth(150);
+    micVolume_->setMaximumWidth(95);
     micLevel_ = new QProgressBar;
     micLevel_->setRange(0, 100);
     micLevel_->setValue(0);
     micLevel_->setTextVisible(false);
-    micLevel_->setMaximumWidth(120);
+    micLevel_->setMaximumWidth(80);
     muteButton_ = new QPushButton("🔊 Mute");
     muteButton_->setCheckable(true);
     systemAudioCheck_ = new QCheckBox("Звук компьютера");
@@ -391,6 +403,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
             micLevel_->setValue(level);
     });
 
+    broadcastRow->setSpacing(5);
     broadcastRow->addWidget(new QLabel("Источник:"));
     broadcastRow->addWidget(sourceCombo_, 1);
     broadcastRow->addWidget(refreshSourcesBtn);
@@ -419,6 +432,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     auto* pollUnderstandBtn = new QPushButton("Понятно?");
     auto* pollABCD = new QPushButton("A/B/C/D");
 
+    lessonTools->setSpacing(5);
     lessonTools->addWidget(lessonTimerLabel_);
     lessonTools->addWidget(lessonTimerStart);
     lessonTools->addWidget(lessonTimerReset);
@@ -501,10 +515,11 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     });
 
     auto* recordToolbar = new QHBoxLayout;
-    auto* recordCameraBtn = new QPushButton("⏺ Записать камеру");
-    auto* recordScreenBtn = new QPushButton("⏺ Записать экран");
-    auto* stopRecordBtn = new QPushButton("⏹ Стоп записи");
-    recordToolbar->addWidget(new QLabel("<b>Локальная запись:</b>"));
+    auto* recordCameraBtn = new QPushButton("⏺ Камера");
+    auto* recordScreenBtn = new QPushButton("⏺ Экран");
+    auto* stopRecordBtn = new QPushButton("⏹ Стоп");
+    recordToolbar->setSpacing(5);
+    recordToolbar->addWidget(new QLabel("<b>Запись:</b>"));
     recordToolbar->addWidget(recordCameraBtn);
     recordToolbar->addWidget(recordScreenBtn);
     recordToolbar->addWidget(stopRecordBtn);
@@ -512,6 +527,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     outer->addLayout(recordToolbar);
 
     status_ = new QLabel("Не подключено");
+    status_->setStyleSheet("QLabel{color:#94a3b8;font-size:11px;padding:1px 4px;}");
     outer->addWidget(status_);
 
     auto* split = new QSplitter;
@@ -1269,12 +1285,14 @@ void TeacherWindow::startScreenLecture() {
         });
         windowCapture_->setWindow(windows[index]);
         windowCapture_->start();
+        setBroadcastState(true, "ОКНО");
         ws_->send(QJsonObject{{"type","lecture_state"},{"mode","window"},{"active",true}});
         return;
     }
 
     screenTimer_->start();
     const QString lectureMode = source.startsWith("area:") ? "area" : "screen";
+    setBroadcastState(true, lectureMode == "area" ? "ОБЛАСТЬ ЭКРАНА" : "ЭКРАН");
     ws_->send(QJsonObject{{"type", "lecture_state"}, {"mode", lectureMode}, {"active", true}});
 }
 
@@ -1336,6 +1354,7 @@ void TeacherWindow::startCameraLecture() {
     });
 
     camera_->start();
+    setBroadcastState(true, "КАМЕРА");
     ws_->send(QJsonObject{{"type", "lecture_state"}, {"mode", "camera"}, {"active", true}});
 }
 
@@ -1423,6 +1442,7 @@ void TeacherWindow::startFileLecture() {
     filePlayer_->play();
 
     status_->setText("▶ Трансляция видео: " + QFileInfo(path).fileName());
+    setBroadcastState(true, "ВИДЕО");
     ws_->send(QJsonObject{
         {"type", "lecture_state"},
         {"mode", "file"},
@@ -1597,6 +1617,7 @@ void TeacherWindow::cleanupRecording() {
 
 void TeacherWindow::stopLecture() {
     screenTimer_->stop();
+    setBroadcastState(false);
 
     if (filePlayer_) {
         filePlayer_->stop();
@@ -1650,6 +1671,27 @@ void TeacherWindow::stopLecture() {
 
     if (ws_->isConnected())
         ws_->send(QJsonObject{{"type", "lecture_state"}, {"active", false}});
+}
+
+void TeacherWindow::setBroadcastState(bool active, const QString& mode) {
+    broadcastActive_ = active;
+    broadcastMode_ = active ? mode : QString();
+
+    if (!broadcastStatus_)
+        return;
+
+    if (active) {
+        const QString suffix = broadcastMode_.isEmpty() ? QString() : " · " + broadcastMode_;
+        broadcastStatus_->setText("● ТРАНСЛЯЦИЯ ИДЁТ" + suffix);
+        broadcastStatus_->setStyleSheet(
+            "QLabel{background:#0f2f24;color:#86efac;font-weight:900;padding:7px 12px;"
+            "border:1px solid #22c55e;border-radius:9px;}");
+    } else {
+        broadcastStatus_->setText("● ТРАНСЛЯЦИЯ ОСТАНОВЛЕНА");
+        broadcastStatus_->setStyleSheet(
+            "QLabel{background:#311217;color:#ff8a98;font-weight:800;padding:7px 12px;"
+            "border:1px solid #7f1d2d;border-radius:9px;}");
+    }
 }
 
 void TeacherWindow::sendLectureImage(const QImage& source) {
