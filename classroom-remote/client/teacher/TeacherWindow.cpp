@@ -87,6 +87,8 @@
 #include <QVideoSink>
 #include <QWidget>
 
+static QImage drawCursorOnFrame(const QImage& source, const QRect& capturedGeometry);
+
 TeacherWindow::TeacherWindow(QWidget* parent)
     : QMainWindow(parent),
       ws_(new WsClient(this)),
@@ -1337,15 +1339,9 @@ void TeacherWindow::startScreenLecture() {
             if (now - lastWindowSendMs_ < selectedFrameIntervalMs_)
                 return;
             lastWindowSendMs_ = now;
-            QImage image=frame.toImage();
-            if (!image.isNull()) {
-                QRect geom;
-                if (windowCapture_)
-                    geom = windowCapture_->window().geometry();
-                if (geom.isValid())
-                    image = drawCursorOnFrame(image, geom);
+            const QImage image=frame.toImage();
+            if (!image.isNull())
                 sendLectureImage(image);
-            }
         });
         connect(windowCapture_, &QWindowCapture::errorOccurred, this,
                 [this](QWindowCapture::Error, const QString& error) {
