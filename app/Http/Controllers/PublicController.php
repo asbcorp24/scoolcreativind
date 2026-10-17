@@ -77,6 +77,15 @@ class PublicController extends Controller
     public function cabinet()
     {
         $user=auth()->user();
+
+        if($user->is_admin){
+            return redirect()->route('admin.dashboard');
+        }
+
+        if($user->isTeacherRole()){
+            return redirect()->route('admin.teacher-dashboard');
+        }
+
         $groupIds=$user->studentGroups()->pluck('study_groups.id');
 
         $attendanceEntries=JournalEntry::with(['lesson.subject'])
