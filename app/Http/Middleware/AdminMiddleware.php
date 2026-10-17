@@ -43,7 +43,7 @@ class AdminMiddleware
                 ->withErrors(['access'=>'У вас нет доступа к этому разделу админки.']);
         }
 
-        $isTeacher=$user->teacherGroups()->exists();
+        $isTeacher=(bool)$user->is_teacher || $user->teacherGroups()->exists();
         $teacherAllowed=$request->is(
             'admin/journal',
             'admin/journal/*',
@@ -56,6 +56,13 @@ class AdminMiddleware
             'admin/homework/*',
             'admin/schedule',
             'admin/schedule/*'
+        ) || $request->routeIs(
+            'admin.subjects',
+            'admin.subjects.lessons',
+            'admin.subjects.lessons.save',
+            'admin.subjects.lessons.delete',
+            'admin.subjects.lessons.media.add',
+            'admin.subjects.lessons.media.delete'
         );
 
         if ($isTeacher && $teacherAllowed) {
@@ -64,7 +71,7 @@ class AdminMiddleware
 
         if ($isTeacher) {
             return redirect()->route('admin.journal')
-                ->withErrors(['access'=>'Для преподавателя доступны журнал, посещаемость, родительские отчёты, домашние задания и расписание.']);
+                ->withErrors(['access'=>'Для преподавателя доступны только его предметы и КТП, журнал, посещаемость, отчёты, домашние задания и расписание.']);
         }
 
         return redirect()->route('admin.login')->withErrors([
