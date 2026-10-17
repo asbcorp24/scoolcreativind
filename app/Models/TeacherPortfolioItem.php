@@ -21,6 +21,7 @@ class TeacherPortfolioItem extends Model
 
     public function teacherProfile(){ return $this->belongsTo(TeacherProfile::class); }
     public function studio(){ return $this->belongsTo(Studio::class); }
+    public function media(){ return $this->morphMany(MediaLibraryItem::class,'attachable')->orderBy('sort_order')->orderBy('id'); }
 
     public function getCoverUrlAttribute(): ?string
     {
