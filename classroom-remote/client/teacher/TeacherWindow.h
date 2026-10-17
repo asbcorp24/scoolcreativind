@@ -80,6 +80,7 @@ private:
     void launchQuickPoll(const QString& question, const QStringList& options);
     void refreshCaptureSources();
     void applySelectedQuality();
+    void setBroadcastState(bool active, const QString& mode = {});
 
     WsClient* ws_{};
     RtcRelayClient* rtc_{};
@@ -95,6 +96,7 @@ private:
     QLineEdit* token_{};
     QLineEdit* teacherName_{};
     QLabel* status_{};
+    QLabel* broadcastStatus_{};
     QLabel* lecturePreview_{};
     RemoteView* remoteView_{};
     TeacherLessonsWidget* lessonsWidget_{};
@@ -161,4 +163,6 @@ private:
     qint64 lastWindowSendMs_{0};
     qint64 lastFileVideoSendMs_{0};
     int selectedFrameIntervalMs_{100};
+    bool broadcastActive_{false};
+    QString broadcastMode_;
 };
