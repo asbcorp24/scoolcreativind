@@ -54,6 +54,7 @@ Route::get('/clips/{clip}',[ClipController::class,'show'])->name('clips.show');
 Route::post('/question',[QuestionController::class,'store'])->name('questions.store');
 Route::get('/page/{page}',[CustomPageController::class,'show'])->name('pages.show');
 Route::get('/schedule',[LearningController::class,'schedule'])->name('schedule');
+Route::get('/schedule.ics',[LearningController::class,'scheduleIcs'])->name('schedule.ics');
 Route::get('/parent-report/{token}',[ParentReportController::class,'show'])->name('parent-report.show');
 Route::get('/projects',[LearningController::class,'projects'])->name('projects.index');
 Route::get('/projects/{project}',[LearningController::class,'project'])->name('projects.show');
