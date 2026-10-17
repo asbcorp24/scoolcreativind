@@ -882,8 +882,14 @@ void StudentWindow::showScreenshotTask(const QJsonObject& obj) {
         if (screenshotTasks_ && screenshotTasks_->count() > 0)
             screenshotTasks_->setCurrentRow(0);
 
-        const int tabIndex = mainTabs_ ? mainTabs_->indexOf(screenshotTasks_->parentWidget()->parentWidget()) : -1;
-        Q_UNUSED(tabIndex);
+        if (mainTabs_) {
+            for (int i = 0; i < mainTabs_->count(); ++i) {
+                if (mainTabs_->tabText(i) == "Скрин-задания") {
+                    mainTabs_->setCurrentIndex(i);
+                    break;
+                }
+            }
+        }
         status_->setText("Новое скрин-задание сохранено");
         reply->deleteLater();
     });
@@ -975,7 +981,8 @@ void StudentWindow::loadSavedScreenshotTasks() {
         auto* row = new QListWidgetItem(
             QString("🖼 %1\n%2")
                 .arg(item.value("title").toString("Задание"), when));
-        row->setData(Qt::UserRole, item);
+        row->setData(Qt::UserRole,
+                     QString::fromUtf8(QJsonDocument(item).toJson(QJsonDocument::Compact)));
         screenshotTasks_->addItem(row);
     }
 
@@ -999,7 +1006,8 @@ void StudentWindow::refreshScreenshotTaskPreview() {
         return;
     }
 
-    const QJsonObject item = row->data(Qt::UserRole).toJsonObject();
+    const QJsonObject item = QJsonDocument::fromJson(
+        row->data(Qt::UserRole).toString().toUtf8()).object();
     const QString imagePath = QDir(screenshotTasksDir()).filePath(item.value("file").toString());
     QPixmap pix(imagePath);
 
