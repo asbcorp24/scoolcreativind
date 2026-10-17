@@ -102,11 +102,17 @@ class AdminLearningController extends Controller
             'is_published'=>'nullable|boolean',
         ]);
 
-        if (!auth()->user()->is_admin && !empty($data['study_group_id'])) {
+        if (!auth()->user()->is_admin) {
             abort_unless(
+                !empty($data['study_group_id']) &&
                 auth()->user()->teacherGroups()->where('study_groups.id',$data['study_group_id'])->exists(),
                 403
             );
+
+            $data['teacher_id']=auth()->id();
+            $data['teacher_name']=auth()->user()->name;
+        }else{
+            $data['teacher_id']=null;
         }
 
         $from=Carbon::parse($data['date_from'])->startOfDay();
@@ -145,6 +151,7 @@ class AdminLearningController extends Controller
                         'studio_id'=>$data['studio_id'] ?? null,
                         'study_group_id'=>$data['study_group_id'] ?? null,
                         'title'=>$data['title'],
+                        'teacher_id'=>$data['teacher_id'] ?? null,
                         'teacher_name'=>$data['teacher_name'] ?? null,
                         'lesson_date'=>$lessonDate,
                         'starts_at'=>$data['starts_at'],
@@ -176,6 +183,7 @@ class AdminLearningController extends Controller
     {
         if(!auth()->user()->is_admin){
             abort_unless(
+                (int)$lesson->teacher_id===auth()->id() &&
                 $lesson->study_group_id &&
                 auth()->user()->teacherGroups()->where('study_groups.id',$lesson->study_group_id)->exists(),
                 403
