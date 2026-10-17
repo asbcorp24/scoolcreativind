@@ -22,6 +22,18 @@ use Carbon\Carbon;
 
 class AdminLearningController extends Controller
 {
+    private function ensureScheduleGroupWritable(?int $groupId): void
+    {
+        if(!$groupId) return;
+
+        $group=StudyGroup::with('academicYear')->findOrFail($groupId);
+        abort_if(
+            $group->academicYear?->is_closed,
+            423,
+            'Учебный год '.$group->academicYear->name.' закрыт. Изменение расписания и журнала запрещено.'
+        );
+    }
+
     public function schedule()
     {
         $groupsQuery=StudyGroup::with([
@@ -154,6 +166,8 @@ class AdminLearningController extends Controller
             $data['teacher_id']=null;
         }
 
+        $this->ensureScheduleGroupWritable((int)($data['study_group_id'] ?? 0));
+
         $lesson ??= new ScheduleLesson();
         $before=$lesson->exists ? $lesson->toArray() : null;
         $data['is_published']=$request->boolean('is_published');
@@ -207,6 +221,8 @@ class AdminLearningController extends Controller
             $data['teacher_id']=null;
             $data['teacher_name']=$data['teacher_name'] ?? null;
         }
+
+        $this->ensureScheduleGroupWritable((int)($data['study_group_id'] ?? 0));
 
         $from=Carbon::parse($data['date_from'])->startOfDay();
         $to=Carbon::parse($data['date_to'])->startOfDay();
@@ -283,6 +299,8 @@ class AdminLearningController extends Controller
                 403
             );
         }
+
+        $this->ensureScheduleGroupWritable((int)$lesson->study_group_id);
 
         if(!$lesson->study_group_id || !$lesson->subject_id || !$lesson->subject_lesson_id){
             return redirect()
@@ -371,6 +389,8 @@ class AdminLearningController extends Controller
     {
         abort_unless(auth()->user()->is_admin,403);
 
+        $this->ensureScheduleGroupWritable((int)$lesson->study_group_id);
+
         $data=$request->validate([
             'substitute_teacher_id'=>'nullable|exists:users,id',
             'substitution_note'=>'nullable|string|max:500',
@@ -409,6 +429,8 @@ class AdminLearningController extends Controller
             abort_unless((int)$lesson->teacher_id===auth()->id(),403);
         }
 
+        $this->ensureScheduleGroupWritable((int)$lesson->study_group_id);
+
         $data=$request->validate([
             'status'=>'required|in:planned,cancelled,moved',
             'status_note'=>'nullable|string|max:2000',
@@ -446,6 +468,8 @@ class AdminLearningController extends Controller
 
     public function deleteLesson(ScheduleLesson $lesson)
     {
+        $this->ensureScheduleGroupWritable((int)$lesson->study_group_id);
+
         if(!auth()->user()->is_admin){
             abort_unless(
                 (int)$lesson->teacher_id===auth()->id() &&
