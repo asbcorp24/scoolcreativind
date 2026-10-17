@@ -26,7 +26,13 @@ class AdminAcademicController extends Controller
     private function allowedGroupIds()
     {
         if (auth()->user()->is_admin) return StudyGroup::pluck('id');
-        return auth()->user()->teacherGroups()->pluck('study_groups.id');
+
+        $direct=auth()->user()->teacherGroups()->pluck('study_groups.id');
+        $substitute=ScheduleLesson::where('substitute_teacher_id',auth()->id())
+            ->whereNotNull('study_group_id')
+            ->pluck('study_group_id');
+
+        return $direct->merge($substitute)->filter()->unique()->values();
     }
 
     private function ensureGroupAllowed(int $groupId): void
@@ -42,9 +48,25 @@ class AdminAcademicController extends Controller
             return $group->subjects()->pluck('subjects.id');
         }
 
-        return $group->subjects()
+        $direct=$group->subjects()
             ->wherePivot('teacher_id',auth()->id())
             ->pluck('subjects.id');
+
+        $substitute=ScheduleLesson::where('study_group_id',$groupId)
+            ->where('substitute_teacher_id',auth()->id())
+            ->whereNotNull('subject_id')
+            ->pluck('subject_id');
+
+        $conducted=JournalLesson::where('study_group_id',$groupId)
+            ->where('teacher_id',auth()->id())
+            ->pluck('subject_id');
+
+        return $direct
+            ->merge($substitute)
+            ->merge($conducted)
+            ->filter()
+            ->unique()
+            ->values();
     }
 
     private function ensureSubjectAllowed(int $groupId, int $subjectId): void
@@ -61,7 +83,10 @@ class AdminAcademicController extends Controller
 
         $allowed=$subject->groups()
             ->wherePivot('teacher_id',auth()->id())
-            ->exists();
+            ->exists()
+            || ScheduleLesson::where('subject_id',$subject->id)
+                ->where('substitute_teacher_id',auth()->id())
+                ->exists();
 
         abort_unless($allowed,403);
     }
