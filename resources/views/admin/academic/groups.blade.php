@@ -15,10 +15,13 @@
 
 <form class="form-shell mb-5" method="post" action="{{ route('admin.groups.save') }}">@csrf
 <div class="row g-3">
-<div class="col-md-5"><label class="form-label">Название</label><input class="form-control" name="name" placeholder="Группа А" required></div>
+<div class="col-md-3"><label class="form-label">Учебный год</label><select class="form-select" name="academic_year_id">
+@foreach($academicYears as $year)<option value="{{ $year->id }}" @selected($year->is_current)>{{ $year->name }}{{ $year->is_closed ? ' · архив' : '' }}</option>@endforeach
+</select></div>
+<div class="col-md-4"><label class="form-label">Название</label><input class="form-control" name="name" placeholder="Группа А" required></div>
 <div class="col-md-2"><label class="form-label">Год обучения</label><select class="form-select" name="study_year"><option value="1">1 год</option><option value="2">2 год</option></select></div>
-<div class="col-md-3"><label class="form-label">Код</label><input class="form-control" name="code" placeholder="Y1-A" required></div>
-<div class="col-md-2 d-flex align-items-end"><div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="is_active" value="1" checked><label class="form-check-label">Активна</label></div></div>
+<div class="col-md-2"><label class="form-label">Код</label><input class="form-control" name="code" placeholder="Y1-A" required></div>
+<div class="col-md-1 d-flex align-items-end"><div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="is_active" value="1" checked><label class="form-check-label">Активна</label></div></div>
 <div class="col-md-6"><label class="form-label">Куратор</label><input class="form-control" name="curator_name"></div>
 <div class="col-12 text-end"><button class="btn btn-neon">Создать группу</button></div>
 </div></form>
@@ -26,7 +29,7 @@
 @foreach($groups as $g)
 <div class="glass-card p-4 mb-4">
  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-  <div><div class="eyebrow">{{ $g->study_year }} год обучения · {{ $g->code }}</div><h3 class="display-6 fw-bold mt-2">{{ $g->name }}</h3><div class="text-white-50">{{ $g->curator_name }}</div></div>
+  <div><div class="eyebrow">{{ $g->academicYear->name ?? 'Без учебного года' }} · {{ $g->study_year }} год обучения · {{ $g->code }}</div><h3 class="display-6 fw-bold mt-2">{{ $g->name }}</h3><div class="text-white-50">{{ $g->curator_name }}</div></div>
   <form class="d-flex gap-2" method="post" action="{{ route('admin.groups.members.add',$g) }}">@csrf
    <select class="form-select" name="user_id">@foreach($users as $u)<option value="{{ $u->id }}">{{ $u->name }} · {{ $u->email }}</option>@endforeach</select>
    <select class="form-select" name="role"><option value="student">Ученик</option><option value="teacher">Преподаватель</option></select>
