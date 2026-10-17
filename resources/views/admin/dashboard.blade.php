@@ -18,7 +18,7 @@
 @if(auth()->user()->canAdminSection('competitions'))<a href="{{ route('admin.competitions') }}" class="btn btn-ghost">Конкурсы</a>@endif
 @if(auth()->user()->canAdminSection('quizzes'))<a href="{{ route('admin.quizzes') }}" class="btn btn-ghost">Викторины</a>@endif
 @if(auth()->user()->canAdminSection('settings'))<a href="{{ route('admin.settings') }}" class="btn btn-ghost">Настройки сайта / SEO</a>@endif
-@if(auth()->user()->canAdminSection('documents'))<a href="{{ route('admin.documents') }}" class="btn btn-ghost">Документы</a>@endif
+@if(auth()->user()->canAdminSection('documents'))<a href="{{ route('admin.documents') }}" class="btn btn-ghost">Документы и файлы</a>@endif
 @if(auth()->user()->canAdminSection('questions'))<a href="{{ route('admin.questions') }}" class="btn btn-ghost">Вопросы</a>@endif
 @if(auth()->user()->canAdminSection('contacts'))<a href="{{ route('admin.contacts') }}" class="btn btn-ghost">Контакты</a>@endif
 @if(auth()->user()->canAdminSection('music'))<a href="{{ route('admin.music') }}" class="btn btn-ghost">Музыка</a>@endif
