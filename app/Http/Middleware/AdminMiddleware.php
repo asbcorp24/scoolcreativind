@@ -46,6 +46,7 @@ class AdminMiddleware
         $isTeacher=$user->isTeacherRole();
         $teacherAllowed=$request->is(
             'admin/teacher-dashboard',
+            'admin/teacher-dashboard/*',
             'admin/journal',
             'admin/journal/*',
             'admin/attendance',
