@@ -16,6 +16,7 @@ use App\Http\Controllers\QuizController;
 use App\Http\Controllers\AdminQuizController;
 use App\Http\Controllers\CompetitionParticipationController;
 use App\Http\Controllers\AdminAccessController;
+use App\Http\Controllers\AdminAuditController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\AdminDocumentController;
 use App\Http\Controllers\QuestionController;
@@ -114,6 +115,7 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::post('/access-admins/save/{user?}',[AdminAccessController::class,'save'])->name('access-admins.save');
     Route::delete('/access-admins/{user}',[AdminAccessController::class,'delete'])->name('access-admins.delete');
     Route::get('/settings',[AdminSettingsController::class,'edit'])->name('settings');
+    Route::get('/audit',[AdminAuditController::class,'index'])->name('audit');
     Route::get('/documents',[AdminDocumentController::class,'index'])->name('documents');
     Route::get('/questions',[AdminQuestionController::class,'index'])->name('questions');
     Route::get('/contacts',[AdminContactController::class,'edit'])->name('contacts');
