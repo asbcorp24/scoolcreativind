@@ -101,6 +101,8 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::middleware('admin')->group(function(){
     Route::get('/',[AdminController::class,'dashboard'])->name('dashboard');
     Route::get('/teacher-dashboard',[TeacherDashboardController::class,'index'])->name('teacher-dashboard');
+    Route::post('/teacher-dashboard/announcements',[TeacherDashboardController::class,'saveAnnouncement'])->name('teacher-dashboard.announcements.save');
+    Route::delete('/teacher-dashboard/announcements/{announcement}',[TeacherDashboardController::class,'deleteAnnouncement'])->name('teacher-dashboard.announcements.delete');
     Route::get('/registrations',[AdminRegistrationController::class,'index'])->name('registrations.index');
     Route::post('/registrations/bulk-activate',[AdminRegistrationController::class,'activateBulk'])->name('registrations.bulk-activate');
     Route::delete('/registrations/bulk',[AdminRegistrationController::class,'destroyBulk'])->name('registrations.bulk-delete');
