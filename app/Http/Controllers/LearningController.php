@@ -8,54 +8,160 @@ use App\Models\PortfolioItem;
 use App\Models\ScheduleLesson;
 use App\Models\StudentProfile;
 use App\Models\Studio;
+use App\Models\Subject;
+use App\Models\StudyGroup;
 use Illuminate\Http\Request;
 
 class LearningController extends Controller
 {
     public function schedule(Request $request)
     {
-        $month=$request->input('month', now()->format('Y-m'));
-        $start=\Carbon\Carbon::createFromFormat('Y-m',$month)->startOfMonth();
-        $end=$start->copy()->endOfMonth();
+        $viewMode=in_array($request->input('view'),['month','week','day','list'],true)
+            ? $request->input('view')
+            : 'month';
 
-        $query=ScheduleLesson::with(['studio','group'])->where('is_published',true);
+        $month=$request->input('month',now()->format('Y-m'));
+        $monthStart=\Carbon\Carbon::createFromFormat('Y-m',$month)->startOfMonth();
 
-        $activeStudio=$request->input('studio');
+        $anchorDate=$request->filled('date')
+            ? \Carbon\Carbon::parse($request->input('date'))
+            : ($month===now()->format('Y-m') ? now()->copy() : $monthStart->copy());
+
+        if($viewMode==='day'){
+            $rangeStart=$anchorDate->copy()->startOfDay();
+            $rangeEnd=$anchorDate->copy()->endOfDay();
+        }elseif($viewMode==='week'){
+            $rangeStart=$anchorDate->copy()->startOfWeek(\Carbon\Carbon::MONDAY);
+            $rangeEnd=$anchorDate->copy()->endOfWeek(\Carbon\Carbon::SUNDAY);
+        }else{
+            $rangeStart=$monthStart->copy()->startOfMonth();
+            $rangeEnd=$monthStart->copy()->endOfMonth();
+        }
+
+        $query=ScheduleLesson::with(['studio','group','teacher','subject','planLesson'])
+            ->where('is_published',true);
+
+        $activeStudio=$request->input('studio','');
         $activeTeacher=trim((string)$request->input('teacher',''));
+        $activeGroup=$request->input('group','');
+        $activeSubject=$request->input('subject','');
+        $activeRoom=trim((string)$request->input('room',''));
 
-        if($activeStudio!==''){
-            $query->where('studio_id',$activeStudio);
-        }
-
-        if($activeTeacher!==''){
-            $query->where('teacher_name',$activeTeacher);
-        }
-
-
+        if($activeStudio!=='') $query->where('studio_id',$activeStudio);
+        if($activeTeacher!=='') $query->where('teacher_name',$activeTeacher);
+        if($activeGroup!=='') $query->where('study_group_id',$activeGroup);
+        if($activeSubject!=='') $query->where('subject_id',$activeSubject);
+        if($activeRoom!=='') $query->where('room',$activeRoom);
 
         $lessons=$query
-            ->whereBetween('lesson_date',[$start->toDateString(),$end->toDateString()])
-            ->orderBy('lesson_date')->orderBy('starts_at')->get();
-
-        $studioIds=ScheduleLesson::where('is_published',true)
-            ->whereNotNull('studio_id')
-            ->distinct()
-            ->pluck('studio_id');
-
-        $studios=Studio::whereIn('id',$studioIds)
-            ->orderBy('sort_order')
+            ->whereBetween('lesson_date',[$rangeStart->toDateString(),$rangeEnd->toDateString()])
+            ->orderBy('lesson_date')
+            ->orderBy('starts_at')
             ->get();
 
-        $teachers=ScheduleLesson::where('is_published',true)
+        $published=ScheduleLesson::where('is_published',true);
+
+        $studioIds=(clone $published)->whereNotNull('studio_id')->distinct()->pluck('studio_id');
+        $studios=Studio::whereIn('id',$studioIds)->orderBy('sort_order')->get();
+
+        $groupIds=(clone $published)->whereNotNull('study_group_id')->distinct()->pluck('study_group_id');
+        $groups=StudyGroup::whereIn('id',$groupIds)->orderBy('name')->get();
+
+        $subjectIds=(clone $published)->whereNotNull('subject_id')->distinct()->pluck('subject_id');
+        $subjects=Subject::whereIn('id',$subjectIds)->orderBy('title')->get();
+
+        $teachers=(clone $published)
             ->whereNotNull('teacher_name')
             ->where('teacher_name','<>','')
             ->distinct()
             ->orderBy('teacher_name')
             ->pluck('teacher_name');
 
-        return view('schedule',compact(
-            'lessons','start','month','studios','teachers','activeStudio','activeTeacher'
-        ));
+        $rooms=(clone $published)
+            ->whereNotNull('room')
+            ->where('room','<>','')
+            ->distinct()
+            ->orderBy('room')
+            ->pluck('room');
+
+        return view('schedule',[
+            'lessons'=>$lessons,
+            'start'=>$monthStart,
+            'month'=>$month,
+            'studios'=>$studios,
+            'groups'=>$groups,
+            'subjects'=>$subjects,
+            'teachers'=>$teachers,
+            'rooms'=>$rooms,
+            'activeStudio'=>$activeStudio,
+            'activeTeacher'=>$activeTeacher,
+            'activeGroup'=>$activeGroup,
+            'activeSubject'=>$activeSubject,
+            'activeRoom'=>$activeRoom,
+            'viewMode'=>$viewMode,
+            'anchorDate'=>$anchorDate,
+            'rangeStart'=>$rangeStart,
+            'rangeEnd'=>$rangeEnd,
+        ]);
+    }
+
+    public function scheduleIcs(Request $request)
+    {
+        $query=ScheduleLesson::with(['group','subject'])
+            ->where('is_published',true)
+            ->where('status','<>','cancelled');
+
+        foreach(['studio'=>'studio_id','group'=>'study_group_id','subject'=>'subject_id'] as $param=>$column){
+            if($request->filled($param)) $query->where($column,$request->input($param));
+        }
+        if($request->filled('teacher')) $query->where('teacher_name',$request->input('teacher'));
+        if($request->filled('room')) $query->where('room',$request->input('room'));
+
+        $from=$request->filled('from') ? \Carbon\Carbon::parse($request->input('from')) : now()->startOfMonth();
+        $to=$request->filled('to') ? \Carbon\Carbon::parse($request->input('to')) : $from->copy()->addMonths(6);
+
+        $lessons=$query->whereBetween('lesson_date',[$from->toDateString(),$to->toDateString()])
+            ->orderBy('lesson_date')->orderBy('starts_at')->get();
+
+        $escape=function($value){
+            return str_replace(["\\",";",",","\r","\n"],["\\\\","\\;","\\,","","\\n"],(string)$value);
+        };
+
+        $lines=[
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//SHKIVR//Schedule//RU',
+            'CALSCALE:GREGORIAN',
+            'METHOD:PUBLISH',
+        ];
+
+        foreach($lessons as $lesson){
+            $date=$lesson->lesson_date->format('Ymd');
+            $start=str_replace(':','',substr($lesson->starts_at,0,5)).'00';
+            $end=str_replace(':','',substr($lesson->ends_at,0,5)).'00';
+
+            $lines[]='BEGIN:VEVENT';
+            $lines[]='UID:schedule-'.$lesson->id.'@'.parse_url(config('app.url'),PHP_URL_HOST);
+            $lines[]='DTSTAMP:'.now()->utc()->format('Ymd\\THis\\Z');
+            $lines[]='DTSTART:'.$date.'T'.$start;
+            $lines[]='DTEND:'.$date.'T'.$end;
+            $lines[]='SUMMARY:'.$escape($lesson->title);
+            $lines[]='DESCRIPTION:'.$escape(collect([
+                $lesson->group?->name,
+                $lesson->subject?->title,
+                $lesson->teacher_name ? 'Преподаватель: '.$lesson->teacher_name : null,
+                $lesson->status_note,
+            ])->filter()->implode(' · '));
+            if($lesson->room) $lines[]='LOCATION:'.$escape($lesson->room);
+            $lines[]='END:VEVENT';
+        }
+
+        $lines[]='END:VCALENDAR';
+
+        return response(implode("\r\n",$lines)."\r\n",200,[
+            'Content-Type'=>'text/calendar; charset=utf-8',
+            'Content-Disposition'=>'attachment; filename="shki-schedule.ics"',
+        ]);
     }
 
     public function projects(Request $request)
