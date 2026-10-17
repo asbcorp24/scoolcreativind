@@ -40,6 +40,18 @@ class AdminAcademicController extends Controller
         abort_unless($this->allowedGroupIds()->contains($groupId),403);
     }
 
+    private function ensureGroupWritable(int $groupId): void
+    {
+        $this->ensureGroupAllowed($groupId);
+
+        $group=StudyGroup::with('academicYear')->findOrFail($groupId);
+        abort_if(
+            $group->academicYear?->is_closed,
+            423,
+            'Учебный год '.$group->academicYear->name.' закрыт. Изменение учебных данных запрещено.'
+        );
+    }
+
     private function allowedSubjectIdsForGroup(int $groupId)
     {
         $group=StudyGroup::findOrFail($groupId);
@@ -872,6 +884,7 @@ class AdminAcademicController extends Controller
             (int)$data['study_group_id'],
             (int)$data['subject_id']
         );
+        $this->ensureGroupWritable((int)$data['study_group_id']);
 
         $planLesson=SubjectLesson::where('id',$data['subject_lesson_id'])
             ->where('subject_id',$data['subject_id'])
@@ -938,6 +951,7 @@ class AdminAcademicController extends Controller
             (int)$entry->lesson->study_group_id,
             (int)$entry->lesson->subject_id
         );
+        $this->ensureGroupWritable((int)$entry->lesson->study_group_id);
         $before=$entry->toArray();
 
         if($request->hasFile('absence_document')){
@@ -1347,6 +1361,7 @@ class AdminAcademicController extends Controller
             (int)$lesson->study_group_id,
             (int)$lesson->subject_id
         );
+        $this->ensureGroupWritable((int)$lesson->study_group_id);
 
         $before=$lesson->entries->map(fn($entry)=>[
             'id'=>$entry->id,
@@ -1415,6 +1430,7 @@ class AdminAcademicController extends Controller
         ]);
 
         $this->ensureSubjectAllowed((int)$data['study_group_id'],(int)$data['subject_id']);
+        $this->ensureGroupWritable((int)$data['study_group_id']);
 
         if($assignment && !auth()->user()->is_admin){
             abort_unless((int)$assignment->teacher_id===auth()->id(),403);
@@ -1449,6 +1465,7 @@ class AdminAcademicController extends Controller
             (int)$submission->assignment->study_group_id,
             (int)$submission->assignment->subject_id
         );
+        $this->ensureGroupWritable((int)$submission->assignment->study_group_id);
         if(!auth()->user()->is_admin){
             abort_unless((int)$submission->assignment->teacher_id===auth()->id(),403);
         }
