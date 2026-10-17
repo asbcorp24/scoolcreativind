@@ -779,7 +779,9 @@ void StudentWindow::discoverLocalTeacher() {
             if (parts.size() < 4)
                 continue;
 
-            const QString host = QString::fromUtf8(parts[1]).trimmed();
+            QString host = datagram.senderAddress().toString().trimmed();
+            if (host.isEmpty() || host == "0.0.0.0")
+                host = QString::fromUtf8(parts[1]).trimmed();
             const QString port = QString::fromUtf8(parts[2]).trimmed();
             const QString lesson = QString::fromUtf8(parts[3]).trimmed();
             if (host.isEmpty() || port.isEmpty())
