@@ -6,6 +6,7 @@ $filterParams=array_filter([
  'month'=>$month,
  'date'=>$anchorDate->toDateString(),
  'studio'=>$activeStudio,
+ 'teacher_id'=>$activeTeacherId,
  'teacher'=>$activeTeacher,
  'group'=>$activeGroup,
  'subject'=>$activeSubject,
@@ -71,10 +72,14 @@ $filterParams=array_filter([
 
     <div class="col-md-4 col-xl-2">
      <label class="form-label">Преподаватель</label>
-     <select class="form-select" name="teacher">
+     <select class="form-select" name="teacher_id">
       <option value="">Все преподаватели</option>
-      @foreach($teachers as $teacher)<option value="{{ $teacher }}" @selected($activeTeacher===$teacher)>{{ $teacher }}</option>@endforeach
+      @foreach($teachers as $teacher)<option value="{{ $teacher->id }}" @selected((string)$activeTeacherId===(string)$teacher->id)>{{ $teacher->name }}</option>@endforeach
      </select>
+     @if($activeTeacher!=='')
+      <input type="hidden" name="teacher" value="{{ $activeTeacher }}">
+      <div class="form-text text-warning">Используется старый фильтр по ФИО: {{ $activeTeacher }}</div>
+     @endif
     </div>
 
     <div class="col-md-4 col-xl-2">
