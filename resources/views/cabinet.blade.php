@@ -2,7 +2,7 @@
 @section('title','Личный кабинет · ШКИ')
 @section('content')
 <section class="page-top"><div class="container"><div class="eyebrow">Личный кабинет</div><div class="d-flex justify-content-between align-items-end gap-3 flex-wrap"><div><h1 class="display-2 fw-bold mt-2">{{ auth()->user()->name }}</h1><p class="text-white-50 mb-0">{{ auth()->user()->email }}</p></div><form method="post" action="{{ route('logout') }}">@csrf<button class="btn btn-ghost">Выйти</button></form></div></div></section>
-@if(auth()->user()->is_teacher)
+@if(auth()->user()->isTeacherRole())
 <section class="pb-4">
  <div class="container">
   <div class="section-head mb-3">
@@ -30,7 +30,7 @@
 <a href="{{ route('competitions') }}" class="cabinet-link"><span>03</span><strong>Конкурсы</strong><small>Запись и мои конкурсные работы</small></a>
 <a href="{{ route('quizzes.index') }}" class="cabinet-link"><span>04</span><strong>Викторины</strong><small>Тесты и онлайн-сертификаты</small></a>
 <a href="{{ route('academic.dashboard') }}" class="cabinet-link"><span>05</span><strong>Моя учёба</strong><small>Оценки, посещаемость и домашние задания</small></a>
-@if(auth()->user()->is_teacher)<a href="{{ route('admin.journal') }}" class="cabinet-link"><span>06</span><strong>Рабочая панель</strong><small>Открыть журнал преподавателя</small></a>@endif
+@if(auth()->user()->isTeacherRole())<a href="{{ route('admin.journal') }}" class="cabinet-link"><span>06</span><strong>Рабочая панель</strong><small>Открыть журнал преподавателя</small></a>@endif
 </div></div></section>
 
 <section class="pb-5">
