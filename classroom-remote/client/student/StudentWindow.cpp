@@ -42,6 +42,10 @@
 #include <QUuid>
 #include <QVBoxLayout>
 #include <QWidget>
+#include <QSplitter>
+#include <QDir>
+#include <QStandardPaths>
+#include <QDateTime>
 
 StudentWindow::StudentWindow(QWidget* parent)
     : QMainWindow(parent),
@@ -148,6 +152,45 @@ StudentWindow::StudentWindow(QWidget* parent)
     mainTabs_->addTab(livePage, "Урок сейчас");
     lessonsWidget_ = new StudentLessonsWidget;
     mainTabs_->addTab(lessonsWidget_, "Уроки и домашние работы");
+
+    auto* screenshotPage = new QWidget;
+    auto* screenshotLayout = new QVBoxLayout(screenshotPage);
+    auto* screenshotSplitter = new QSplitter(Qt::Horizontal);
+
+    screenshotTasks_ = new QListWidget;
+    screenshotTasks_->setMinimumWidth(260);
+    screenshotTasks_->setMaximumWidth(360);
+    screenshotSplitter->addWidget(screenshotTasks_);
+
+    auto* previewPane = new QWidget;
+    auto* previewLayout = new QVBoxLayout(previewPane);
+    screenshotTaskTitle_ = new QLabel("<b>Выберите задание</b>");
+    screenshotTaskTitle_->setWordWrap(true);
+    screenshotTaskTitle_->setStyleSheet("font-size:20px;");
+    screenshotTaskMeta_ = new QLabel;
+    screenshotTaskMeta_->setProperty("muted", true);
+    screenshotTaskImage_ = new QLabel("Здесь будет изображение задания");
+    screenshotTaskImage_->setAlignment(Qt::AlignCenter);
+    screenshotTaskImage_->setMinimumSize(520, 320);
+    screenshotTaskImage_->setStyleSheet(
+        "background:#0b1220;color:#cbd5e1;border:1px solid #334155;border-radius:12px;");
+    screenshotTaskText_ = new QLabel;
+    screenshotTaskText_->setWordWrap(true);
+    screenshotTaskText_->setStyleSheet("font-size:17px;padding:8px 0;");
+    previewLayout->addWidget(screenshotTaskTitle_);
+    previewLayout->addWidget(screenshotTaskMeta_);
+    previewLayout->addWidget(screenshotTaskImage_, 1);
+    previewLayout->addWidget(screenshotTaskText_);
+    screenshotSplitter->addWidget(previewPane);
+    screenshotSplitter->setStretchFactor(1, 1);
+
+    screenshotLayout->addWidget(new QLabel("<b>Сохранённые скрин-задания преподавателя</b>"));
+    screenshotLayout->addWidget(screenshotSplitter, 1);
+    mainTabs_->addTab(screenshotPage, "Скрин-задания");
+
+    connect(screenshotTasks_, &QListWidget::currentRowChanged,
+            this, [this] { refreshScreenshotTaskPreview(); });
+    loadSavedScreenshotTasks();
 
     auto* interactivePage = new QWidget;
     auto* interactiveLayout = new QVBoxLayout(interactivePage);
@@ -818,55 +861,164 @@ void StudentWindow::showScreenshotTask(const QJsonObject& obj) {
     const qint64 fileId = qint64(obj.value("file_id").toDouble());
     const QString taskText = obj.value("text").toString().trimmed();
     const QString titleText = obj.value("title").toString("Задание преподавателя");
+    const QString originalName = obj.value("name").toString("task.png");
     if (fileId <= 0)
         return;
 
     QNetworkRequest req(quickFileUrl(fileId));
     req.setRawHeader("Authorization", "Bearer " + token_->text().toUtf8());
     auto* reply = network_->get(req);
-    connect(reply, &QNetworkReply::finished, this, [this, reply, taskText, titleText] {
+    connect(reply, &QNetworkReply::finished, this,
+            [this, reply, taskText, titleText, originalName] {
         const QByteArray data = reply->readAll();
         if (reply->error() != QNetworkReply::NoError) {
+            status_->setText("Не удалось загрузить скрин-задание: " + reply->errorString());
             reply->deleteLater();
             return;
         }
 
-        QPixmap pix;
-        pix.loadFromData(data);
+        saveScreenshotTask(titleText, taskText, data, originalName);
+        loadSavedScreenshotTasks();
+        if (screenshotTasks_ && screenshotTasks_->count() > 0)
+            screenshotTasks_->setCurrentRow(0);
 
-        auto* dlg = new QDialog(this);
-        dlg->setAttribute(Qt::WA_DeleteOnClose);
-        dlg->setWindowTitle(titleText);
-        dlg->resize(1000, 720);
-        auto* layout = new QVBoxLayout(dlg);
-
-        auto* title = new QLabel("<b>" + titleText.toHtmlEscaped() + "</b>");
-        title->setStyleSheet("font-size:22px;");
-        layout->addWidget(title);
-
-        auto* image = new QLabel;
-        image->setAlignment(Qt::AlignCenter);
-        image->setMinimumSize(640, 360);
-        image->setStyleSheet("background:#0b1220;border:1px solid #334155;border-radius:12px;");
-        if (!pix.isNull())
-            image->setPixmap(pix.scaled(940, 520, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        layout->addWidget(image, 1);
-
-        auto* text = new QLabel(taskText.isEmpty() ? "Откройте изображение и выполните задание преподавателя." : taskText);
-        text->setWordWrap(true);
-        text->setStyleSheet("font-size:18px;padding:10px;");
-        layout->addWidget(text);
-
-        auto* closeBtn = new QPushButton("Понятно");
-        closeBtn->setMinimumHeight(42);
-        layout->addWidget(closeBtn, 0, Qt::AlignRight);
-        connect(closeBtn, &QPushButton::clicked, dlg, &QDialog::accept);
-
-        dlg->show();
-        dlg->raise();
-        dlg->activateWindow();
+        const int tabIndex = mainTabs_ ? mainTabs_->indexOf(screenshotTasks_->parentWidget()->parentWidget()) : -1;
+        Q_UNUSED(tabIndex);
+        status_->setText("Новое скрин-задание сохранено");
+        reply->deleteLater();
     });
 }
+
+QString StudentWindow::screenshotTasksDir() const {
+    QString base = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    if (base.isEmpty())
+        base = QDir::homePath() + "/.shki-classroom";
+    return QDir(base).filePath("screenshot-tasks");
+}
+
+QString StudentWindow::screenshotTasksIndexPath() const {
+    return QDir(screenshotTasksDir()).filePath("index.json");
+}
+
+void StudentWindow::saveScreenshotTask(const QString& title, const QString& text,
+                                       const QByteArray& imageData, const QString& originalName) {
+    QDir dir;
+    dir.mkpath(screenshotTasksDir());
+
+    QString ext = QFileInfo(originalName).suffix().toLower();
+    if (ext.isEmpty() || ext.size() > 8)
+        ext = "png";
+
+    const qint64 ts = QDateTime::currentMSecsSinceEpoch();
+    const QString fileName = QString("%1.%2").arg(ts).arg(ext);
+    const QString imagePath = QDir(screenshotTasksDir()).filePath(fileName);
+
+    QFile imageFile(imagePath);
+    if (!imageFile.open(QIODevice::WriteOnly) || imageFile.write(imageData) != imageData.size()) {
+        status_->setText("Не удалось сохранить изображение задания");
+        return;
+    }
+    imageFile.close();
+
+    QJsonArray items;
+    QFile indexFile(screenshotTasksIndexPath());
+    if (indexFile.open(QIODevice::ReadOnly)) {
+        const QJsonDocument doc = QJsonDocument::fromJson(indexFile.readAll());
+        if (doc.isArray())
+            items = doc.array();
+        indexFile.close();
+    }
+
+    QJsonObject item{
+        {"title", title},
+        {"text", text},
+        {"file", fileName},
+        {"original_name", originalName},
+        {"received_at", double(ts)},
+        {"lesson_id", lesson_ ? lesson_->text() : config_.lessonId}
+    };
+    items.prepend(item);
+
+    if (indexFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        indexFile.write(QJsonDocument(items).toJson(QJsonDocument::Indented));
+        indexFile.close();
+    }
+}
+
+void StudentWindow::loadSavedScreenshotTasks() {
+    if (!screenshotTasks_)
+        return;
+
+    screenshotTasks_->clear();
+    QFile indexFile(screenshotTasksIndexPath());
+    if (!indexFile.open(QIODevice::ReadOnly)) {
+        refreshScreenshotTaskPreview();
+        return;
+    }
+
+    const QJsonDocument doc = QJsonDocument::fromJson(indexFile.readAll());
+    indexFile.close();
+    if (!doc.isArray()) {
+        refreshScreenshotTaskPreview();
+        return;
+    }
+
+    const QJsonArray items = doc.array();
+    for (const QJsonValue& value : items) {
+        const QJsonObject item = value.toObject();
+        const QString file = item.value("file").toString();
+        if (file.isEmpty() || !QFileInfo::exists(QDir(screenshotTasksDir()).filePath(file)))
+            continue;
+
+        const qint64 ts = qint64(item.value("received_at").toDouble());
+        const QString when = QDateTime::fromMSecsSinceEpoch(ts).toString("dd.MM.yyyy HH:mm");
+        auto* row = new QListWidgetItem(
+            QString("🖼 %1\n%2")
+                .arg(item.value("title").toString("Задание"), when));
+        row->setData(Qt::UserRole, item);
+        screenshotTasks_->addItem(row);
+    }
+
+    if (screenshotTasks_->count() > 0)
+        screenshotTasks_->setCurrentRow(0);
+    else
+        refreshScreenshotTaskPreview();
+}
+
+void StudentWindow::refreshScreenshotTaskPreview() {
+    if (!screenshotTaskImage_ || !screenshotTaskTitle_ || !screenshotTaskText_ || !screenshotTaskMeta_)
+        return;
+
+    auto* row = screenshotTasks_ ? screenshotTasks_->currentItem() : nullptr;
+    if (!row) {
+        screenshotTaskTitle_->setText("<b>Нет сохранённых заданий</b>");
+        screenshotTaskMeta_->clear();
+        screenshotTaskText_->clear();
+        screenshotTaskImage_->setPixmap(QPixmap());
+        screenshotTaskImage_->setText("Скрин-задания будут сохраняться здесь");
+        return;
+    }
+
+    const QJsonObject item = row->data(Qt::UserRole).toJsonObject();
+    const QString imagePath = QDir(screenshotTasksDir()).filePath(item.value("file").toString());
+    QPixmap pix(imagePath);
+
+    screenshotTaskTitle_->setText("<b>" + item.value("title").toString("Задание").toHtmlEscaped() + "</b>");
+    const qint64 ts = qint64(item.value("received_at").toDouble());
+    const QString when = QDateTime::fromMSecsSinceEpoch(ts).toString("dd.MM.yyyy HH:mm");
+    screenshotTaskMeta_->setText(
+        QString("Получено: %1 · Урок: %2")
+            .arg(when, item.value("lesson_id").toString()));
+    screenshotTaskText_->setText(item.value("text").toString());
+
+    screenshotTaskImage_->setText(QString());
+    if (!pix.isNull())
+        screenshotTaskImage_->setPixmap(pix.scaled(
+            screenshotTaskImage_->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    else
+        screenshotTaskImage_->setText("Не удалось открыть сохранённое изображение");
+}
+
 
 QUrl StudentWindow::quickFileUrl(qint64 fileId) const {
     QUrl url(httpUrl_->text());
