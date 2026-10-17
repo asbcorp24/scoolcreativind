@@ -703,7 +703,9 @@ void StudentWindow::closeLanConnectDialog() {
 }
 
 void StudentWindow::verifyLocalServerAndLogin() {
-    showLanConnectDialog("Преподаватель найден. Проверяю локальный сервер...");
+    ++lanHealthAttempts_;
+    showLanConnectDialog(QString("Преподаватель найден. Проверяю локальный сервер... (%1/5)")
+                         .arg(lanHealthAttempts_));
 
     QUrl health(config_.serverUrl);
     health.setPath("/health");
@@ -726,14 +728,28 @@ void StudentWindow::verifyLocalServerAndLogin() {
         reply->deleteLater();
 
         if (!ok) {
-            showLanConnectDialog("Сервер преподавателя найден, но ещё не готов. Повторяю подключение...");
-            QTimer::singleShot(700, this, [this] {
-                if (config_.localNetwork)
+            if (lanHealthAttempts_ >= 5) {
+                localDiscoveryResolved_ = false;
+                showLanConnectDialog(
+                    "Сервер преподавателя найден, но не отвечает после 5 попыток.\n"
+                    "Проверьте, что локальный сервер действительно запущен и Windows Firewall "
+                    "разрешает ClassroomTeacher/classroom-server в частной сети.\n"
+                    "Закройте это окно и нажмите «Войти» ещё раз для новой попытки.");
+                status_->setText("Локальный сервер найден, но не отвечает");
+                return;
+            }
+
+            showLanConnectDialog(QString(
+                "Сервер преподавателя найден, но ещё не готов. Повтор через секунду... (%1/5)")
+                .arg(lanHealthAttempts_));
+            QTimer::singleShot(1000, this, [this] {
+                if (config_.localNetwork && localDiscoveryResolved_)
                     verifyLocalServerAndLogin();
             });
             return;
         }
 
+        lanHealthAttempts_ = 0;
         showLanConnectDialog("Локальный сервер готов. Проверяю PIN...");
         loginWithPIN();
     });
@@ -744,6 +760,7 @@ void StudentWindow::discoverLocalTeacher() {
         return;
 
     localDiscoveryResolved_ = false;
+    lanHealthAttempts_ = 0;
     showLanConnectDialog("Ищу преподавателя в локальной сети...");
 
     lanDiscovery_->abort();
