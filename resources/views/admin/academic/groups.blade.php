@@ -3,6 +3,23 @@
 @section('content')
 <section class="page-top"><div class="container"><div class="eyebrow">Админ / учебные группы</div><div class="d-flex justify-content-between align-items-end flex-wrap gap-3"><h1 class="display-3 fw-bold m-0">Учебные группы</h1><a href="{{ route('admin.dashboard') }}" class="btn btn-ghost">← Админка</a></div></div></section>
 <section class="pb-5"><div class="container">
+@if(session('imported_student_credentials') && count(session('imported_student_credentials')))
+<div class="alert alert-success mb-4">
+ <strong>Новые учётные записи после импорта.</strong>
+ <div class="table-responsive mt-3">
+  <table class="table table-sm">
+   <thead><tr><th>ФИО</th><th>Логин</th><th>Пароль</th></tr></thead>
+   <tbody>
+    @foreach(session('imported_student_credentials') as $cred)
+     <tr><td>{{ $cred['name'] }}</td><td><code>{{ $cred['email'] }}</code></td><td><code>{{ $cred['password'] }}</code></td></tr>
+    @endforeach
+   </tbody>
+  </table>
+ </div>
+ <div class="small">Скопируйте эти данные сейчас: пароли в открытом виде больше не хранятся.</div>
+</div>
+@endif
+
 @if(session('created_student_credentials'))
 <div class="alert alert-success mb-4">
  <strong>Ученик создан.</strong>
@@ -45,6 +62,18 @@
    <div class="col-lg-3"><input class="form-control" name="password" placeholder="Пароль или авто"></div>
    <div class="col-lg-2"><button class="btn btn-neon w-100">+ Ученик</button></div>
   </form>
+ </div>
+ @endif
+ @if(auth()->user()->is_admin)
+ <div class="mt-3">
+  <details>
+   <summary class="btn btn-sm btn-ghost">Импорт учеников CSV</summary>
+   <form class="row g-2 mt-2" method="post" enctype="multipart/form-data" action="{{ route('admin.groups.students.import-csv',$g) }}">
+    @csrf
+    <div class="col-lg-8"><input type="file" class="form-control" name="students_file" accept=".csv,.txt" required><div class="form-text text-white-50">Формат: ФИО;email;пароль. Email и пароль можно оставить пустыми.</div></div>
+    <div class="col-lg-4 d-grid"><button class="btn btn-neon">Импортировать</button></div>
+   </form>
+  </details>
  </div>
  @endif
  <div class="row g-4 mt-2">
