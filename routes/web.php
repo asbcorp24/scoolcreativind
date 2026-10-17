@@ -13,6 +13,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SeoController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\AdminQuizController;
 use App\Http\Controllers\CompetitionParticipationController;
@@ -67,6 +68,9 @@ Route::get('/projects/{project}',[LearningController::class,'project'])->name('p
 Route::get('/portfolio/{profile}',[LearningController::class,'portfolio'])->name('portfolio.show');
 Route::get('/my-portfolio',[LearningController::class,'myPortfolio'])->middleware('auth')->name('portfolio.mine');
 Route::middleware('auth')->group(function(){
+    Route::get('/notifications',[NotificationController::class,'index'])->name('notifications.index');
+    Route::post('/notifications/read-all',[NotificationController::class,'readAll'])->name('notifications.read-all');
+    Route::post('/notifications/{announcement}/read',[NotificationController::class,'read'])->name('notifications.read');
     Route::post('/quizzes/{quiz}',[QuizController::class,'submit'])->name('quizzes.submit');
     Route::get('/quiz-results/{attempt}',[QuizController::class,'result'])->name('quizzes.result');
     Route::post('/competitions/{competition}/register',[CompetitionParticipationController::class,'register'])->name('competitions.register');
