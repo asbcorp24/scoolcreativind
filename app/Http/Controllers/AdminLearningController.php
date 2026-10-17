@@ -400,8 +400,18 @@ class AdminLearningController extends Controller
             );
         }
 
+        $before=$lesson->toArray();
         $lesson->delete();
-        return back()->with('success','Занятие удалено.');
+
+        ActivityLog::record(
+            'schedule.trashed',
+            $lesson,
+            'Занятие перемещено в корзину: '.$lesson->title,
+            $before,
+            null
+        );
+
+        return back()->with('success','Занятие перемещено в корзину.');
     }
 
     public function students()
