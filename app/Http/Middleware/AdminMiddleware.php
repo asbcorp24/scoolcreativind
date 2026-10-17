@@ -47,6 +47,8 @@ class AdminMiddleware
         $teacherAllowed=$request->is(
             'admin/teacher-dashboard',
             'admin/teacher-dashboard/*',
+            'admin/teacher-portfolio',
+            'admin/teacher-portfolio/*',
             'admin/teacher-groups',
             'admin/teacher-groups/*',
             'admin/teacher-students/*',
