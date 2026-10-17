@@ -3,11 +3,25 @@
 @section('content')
 <section class="page-top"><div class="container"><div class="eyebrow">Админ / портфолио</div><h1 class="display-3 fw-bold">{{ $profile->user->name }}</h1></div></section>
 <section class="pb-5"><div class="container">
+<form class="form-shell mb-5" enctype="multipart/form-data" method="post" action="{{ route('admin.students.save',$profile) }}">@csrf
+ <input type="hidden" name="user_id" value="{{ $profile->user_id }}">
+ <div class="row g-3">
+  <div class="col-md-6"><label class="form-label">Заголовок профиля</label><input class="form-control" name="headline" value="{{ $profile->headline }}"></div>
+  <div class="col-md-3"><label class="form-label">Класс / группа</label><input class="form-control" name="class_name" value="{{ $profile->class_name }}"></div>
+  <div class="col-md-3"><label class="form-label">Фото</label><input type="file" class="form-control" name="avatar" accept="image/*"></div>
+  <div class="col-12"><label class="form-label">О себе</label><textarea class="form-control" rows="3" name="bio">{{ $profile->bio }}</textarea></div>
+  <div class="col-12"><label class="form-label">Навыки</label><textarea class="form-control" rows="2" name="skills">{{ $profile->skills }}</textarea></div>
+  <div class="col-md-6"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_public" value="1" @checked($profile->is_public)><label class="form-check-label">Публичное портфолио</label></div></div>
+  <div class="col-md-6 text-end"><button class="btn btn-ghost">Сохранить профиль ученика</button></div>
+ </div>
+</form>
 <form class="form-shell mb-5" enctype="multipart/form-data" method="post" action="{{ route('admin.students.portfolio.save',$profile) }}">@csrf
 <div class="row g-3">
 <div class="col-md-7"><label class="form-label">Название работы</label><input class="form-control" name="title" required></div>
 <div class="col-md-5"><label class="form-label">Тип</label><select class="form-select" name="type"><option value="project">Проект</option><option value="video">Видео</option><option value="3d">3D</option><option value="audio">Аудио</option><option value="design">Дизайн</option></select></div>
-<div class="col-md-6"><label class="form-label">Студия</label><select class="form-select" name="studio_id"><option value="">Не выбрана</option>@foreach($studios as $s)<option value="{{ $s->id }}">{{ $s->title }}</option>@endforeach</select></div>
+<div class="col-md-4"><label class="form-label">Студия</label><select class="form-select" name="studio_id"><option value="">Не выбрана</option>@foreach($studios as $s)<option value="{{ $s->id }}">{{ $s->title }}</option>@endforeach</select></div>
+<div class="col-md-4"><label class="form-label">Предмет</label><select class="form-select" name="subject_id"><option value="">Не выбран</option>@foreach($subjects as $subject)<option value="{{ $subject->id }}">{{ $subject->title }}</option>@endforeach</select></div>
+<div class="col-md-4"><label class="form-label">Наставник</label><select class="form-select" name="mentor_teacher_id"><option value="">Не выбран</option>@foreach($teachers as $teacher)<option value="{{ $teacher->id }}">{{ $teacher->name }}</option>@endforeach</select></div>
 <div class="col-md-6"><label class="form-label">Дата завершения</label><input type="date" class="form-control" name="completed_at"></div>
 <div class="col-12"><div class="form-text text-white-50">Все фото, видео, 360°, 3D, звук, файлы и ссылки добавляются через медиагалерею после создания работы.</div></div>
 <div class="col-12"><label class="form-label">Описание</label><textarea class="form-control" rows="4" name="description"></textarea></div>
@@ -30,6 +44,8 @@
    <div class="pt-3">
     <h4>{{ $item->title }}</h4>
     <div class="small text-white-50">{{ $item->type }} · {{ optional($item->completed_at)->format('d.m.Y') }} · {{ $item->media->count() }} медиа</div>
+    @if($item->subject)<div class="small text-white-50">{{ $item->subject->title }}</div>@endif
+    @if($item->mentor)<div class="small text-white-50">Наставник: {{ $item->mentor->name }}</div>@endif
     <div class="d-flex gap-2 mt-3">
      <a class="btn btn-sm btn-neon" href="{{ route('admin.projects.media',$item) }}">Медиагалерея</a>
      <form method="post" action="{{ route('admin.portfolio.delete',$item) }}">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">Удалить</button></form>
