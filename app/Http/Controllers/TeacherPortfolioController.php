@@ -3,6 +3,8 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\PortfolioItem;
+use App\Services\StorageQuota;
+use App\Models\MediaLibraryItem;
 use App\Models\Studio;
 use App\Models\Subject;
 use App\Models\TeacherPortfolioItem;
@@ -41,6 +43,7 @@ class TeacherPortfolioController extends Controller
             'studio',
             'portfolio'=>fn($q)=>$q->where('is_public',true)->orderByDesc('is_featured')->latest('completed_at'),
             'portfolio.studio',
+            'portfolio.media'=>fn($q)=>$q->where('is_visible',true)->orderBy('sort_order')->orderBy('id'),
             'mentoredWorks'=>fn($q)=>$q->where('is_public',true)->latest('completed_at')->take(24),
             'mentoredWorks.student.user',
             'mentoredWorks.subject',
@@ -81,7 +84,7 @@ class TeacherPortfolioController extends Controller
             ]
         );
 
-        $profile->load(['portfolio.studio','studio','mentoredWorks.student.user','mentoredWorks.subject']);
+        $profile->load(['portfolio.studio','portfolio.media','studio','mentoredWorks.student.user','mentoredWorks.subject']);
 
         return view('admin.teacher-portfolio.edit',[
             'teacher'=>$teacher,
@@ -200,10 +203,184 @@ class TeacherPortfolioController extends Controller
         return back()->with('success','Проект преподавателя сохранён.');
     }
 
+    public function media(TeacherProfile $profile, TeacherPortfolioItem $item)
+    {
+        $this->authorizeProfile($profile);
+        abort_unless((int)$item->teacher_profile_id===(int)$profile->id,404);
+
+        $item->load(['teacherProfile.user','studio','media']);
+
+        return view('admin.teacher-portfolio.media',[
+            'profile'=>$profile,
+            'item'=>$item,
+            'limits'=>[
+                'photo'=>'10 МБ',
+                'panorama'=>'20 МБ',
+                'video'=>'50 МБ',
+                'model'=>'30 МБ',
+                'audio'=>'20 МБ',
+                'file'=>'25 МБ',
+            ],
+        ]);
+    }
+
+    public function addMedia(Request $request, TeacherProfile $profile, TeacherPortfolioItem $item)
+    {
+        $this->authorizeProfile($profile);
+        abort_unless((int)$item->teacher_profile_id===(int)$profile->id,404);
+
+        if($item->media()->count()>=30){
+            return back()->withErrors(['file'=>'Для одного проекта разрешено не более 30 материалов.'])->withInput();
+        }
+
+        $data=$request->validate([
+            'type'=>'required|in:photo,panorama,video,model,audio,file,link',
+            'title'=>'nullable|string|max:180',
+            'url'=>'nullable|string|max:2000',
+            'file'=>'nullable|file|max:51200',
+            'thumbnail'=>'nullable|string|max:2000',
+            'caption'=>'nullable|string|max:3000',
+            'hotspots_json'=>'nullable|json',
+            'sort_order'=>'nullable|integer|min:0|max:9999',
+            'is_visible'=>'nullable|boolean',
+            'is_featured'=>'nullable|boolean',
+        ]);
+
+        if(!$request->filled('url') && !$request->hasFile('file')){
+            return back()->withErrors(['file'=>'Укажите URL или загрузите файл.'])->withInput();
+        }
+
+        if($request->hasFile('file')){
+            $file=$request->file('file');
+            $ext=strtolower($file->getClientOriginalExtension());
+
+            $allowed=[
+                'photo'=>['jpg','jpeg','png','webp'],
+                'panorama'=>['jpg','jpeg','png','webp'],
+                'video'=>['mp4','webm','mov'],
+                'model'=>['glb','gltf','stl'],
+                'audio'=>['mp3','wav','ogg','m4a','aac'],
+                'file'=>['pdf','doc','docx','xls','xlsx','ppt','pptx','zip'],
+                'link'=>[],
+            ];
+
+            $maxBytes=[
+                'photo'=>10*1024*1024,
+                'panorama'=>20*1024*1024,
+                'video'=>50*1024*1024,
+                'model'=>30*1024*1024,
+                'audio'=>20*1024*1024,
+                'file'=>25*1024*1024,
+                'link'=>0,
+            ];
+
+            if(!in_array($ext,$allowed[$data['type']] ?? [],true)){
+                return back()->withErrors([
+                    'file'=>'Формат файла не подходит для выбранного типа медиа.'
+                ])->withInput();
+            }
+
+            if($file->getSize()>($maxBytes[$data['type']] ?? 0)){
+                $mb=round(($maxBytes[$data['type']] ?? 0)/1024/1024);
+                return back()->withErrors([
+                    'file'=>'Файл слишком большой. Лимит для этого типа: '.$mb.' МБ.'
+                ])->withInput();
+            }
+
+            if(!StorageQuota::canStore((int)$file->getSize())){
+                return back()->withErrors([
+                    'file'=>'Недостаточно свободного места в хранилище сайта.'
+                ])->withInput();
+            }
+
+            $data['url']=$file->store('teachers/media/'.$data['type'],'public');
+            $data['file_name']=$file->getClientOriginalName();
+            $data['mime_type']=$file->getMimeType();
+            $data['file_size']=$file->getSize();
+        }
+
+        unset($data['file']);
+        $data['sort_order']=$data['sort_order'] ?? 0;
+        $data['is_visible']=$request->boolean('is_visible');
+        $data['is_featured']=$request->boolean('is_featured');
+
+        $media=$item->media()->create($data);
+
+        if($media->is_featured){
+            $item->media()->where('id','<>',$media->id)->update(['is_featured'=>false]);
+        }
+
+        ActivityLog::record(
+            'teacher_portfolio.media.created',
+            $media,
+            'Добавлено медиа к проекту преподавателя: '.$item->title
+        );
+
+        return back()->with('success','Материал добавлен.');
+    }
+
+    public function updateMediaFlags(Request $request, TeacherProfile $profile, TeacherPortfolioItem $item, MediaLibraryItem $media)
+    {
+        $this->authorizeProfile($profile);
+        abort_unless((int)$item->teacher_profile_id===(int)$profile->id,404);
+        abort_unless(
+            $media->attachable_type===TeacherPortfolioItem::class &&
+            (int)$media->attachable_id===(int)$item->id,
+            404
+        );
+
+        $media->update([
+            'is_visible'=>$request->boolean('is_visible'),
+            'is_featured'=>$request->boolean('is_featured'),
+        ]);
+
+        if($media->is_featured){
+            $item->media()->where('id','<>',$media->id)->update(['is_featured'=>false]);
+        }
+
+        return back()->with('success','Настройки материала обновлены.');
+    }
+
+    public function deleteMedia(TeacherProfile $profile, TeacherPortfolioItem $item, MediaLibraryItem $media)
+    {
+        $this->authorizeProfile($profile);
+        abort_unless((int)$item->teacher_profile_id===(int)$profile->id,404);
+        abort_unless(
+            $media->attachable_type===TeacherPortfolioItem::class &&
+            (int)$media->attachable_id===(int)$item->id,
+            404
+        );
+
+        if($media->url && !preg_match('~^(https?:)?//~i',$media->url)){
+            Storage::disk('public')->delete($media->url);
+        }
+
+        ActivityLog::record(
+            'teacher_portfolio.media.deleted',
+            $media,
+            'Удалено медиа проекта преподавателя: '.$item->title,
+            $media->toArray(),
+            null
+        );
+
+        $media->delete();
+
+        return back()->with('success','Материал удалён.');
+    }
+
     public function deleteProject(TeacherProfile $profile, TeacherPortfolioItem $item)
     {
         $this->authorizeProfile($profile);
         abort_unless((int)$item->teacher_profile_id===(int)$profile->id,404);
+
+        $item->load('media');
+
+        foreach($item->media as $media){
+            if($media->url && !preg_match('~^(https?:)?//~i',$media->url)){
+                Storage::disk('public')->delete($media->url);
+            }
+            $media->delete();
+        }
 
         if($item->cover && !preg_match('~^(https?:)?//~i',$item->cover)){
             Storage::disk('public')->delete($item->cover);
