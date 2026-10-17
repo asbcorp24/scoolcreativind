@@ -87,6 +87,9 @@ private:
     void sendScreenshotTask();
     void startLocalServer();
     void stopLocalServer();
+    void checkLocalServerReady(int attempt = 1);
+    void advertiseLocalServer();
+    int findAvailableLocalPort() const;
     QString localIPv4Address() const;
     QString localServerExecutable() const;
     void setBroadcastState(bool active, const QString& mode = {});
@@ -181,4 +184,6 @@ private:
     QString broadcastMode_;
     QString selectedBroadcastMode_{"screen"};
     QString localStudentPin_;
+    int localServerPort_{0};
+    QString localTeacherPin_;
 };
