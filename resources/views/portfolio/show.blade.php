@@ -3,7 +3,7 @@
 @section('content')
 <section class="page-top"><div class="container"><div class="portfolio-hero">
  <div class="portfolio-avatar">@if($profile->avatar_url)<img src="{{ $profile->avatar_url }}" alt="{{ $profile->user->name }}">@else<div class="team-placeholder">{{ mb_substr($profile->user->name,0,1) }}</div>@endif</div>
- <div><div class="eyebrow">Student portfolio</div><h1 class="display-2 fw-bold mt-2">{{ $profile->user->name }}</h1><div class="text-white-50">{{ $profile->studio->title ?? 'Школа креативных индустрий' }} @if($profile->class_name) · {{ $profile->class_name }} @endif</div>@if($profile->bio)<p class="lead mt-3">{{ $profile->bio }}</p>@endif</div>
+ <div><div class="eyebrow">Student portfolio</div><h1 class="display-2 fw-bold mt-2">{{ $profile->user->name }}</h1><div class="text-white-50">{{ $profile->headline ?: ($profile->studio->title ?? 'Школа креативных индустрий') }} @if($profile->class_name) · {{ $profile->class_name }} @endif</div>@if($profile->bio)<p class="lead mt-3">{{ $profile->bio }}</p>@endif @if($profile->skills)<div class="d-flex gap-2 flex-wrap mt-3">@foreach(preg_split('/[,;\n]+/',$profile->skills) as $skill) @if(trim($skill)!=='')<span class="badge-soft">{{ trim($skill) }}</span>@endif @endforeach</div>@endif</div>
 </div></div></section>
 <section class="pb-5"><div class="container">
 <div class="section-head"><div><div class="eyebrow">Works</div><h2>Проекты</h2></div></div>
@@ -25,6 +25,8 @@
   </div>
   <div class="pt-3">
    <div class="small text-white-50">{{ $item->studio->title ?? $item->type }}</div>
+   @if($item->subject || $item->lesson)<div class="small text-white-50">{{ $item->subject->title ?? $item->lesson->subject->title ?? '' }}@if($item->lesson) · {{ $item->lesson->topic }}@endif</div>@endif
+   @if($item->mentor)<div class="small text-white-50">Наставник: @if($item->mentor->teacherProfile?->is_public)<a href="{{ route('teachers.show',$item->mentor->teacherProfile) }}">{{ $item->mentor->name }}</a>@else{{ $item->mentor->name }}@endif</div>@endif
    <h4>{{ $item->title }}</h4>
    <p class="text-white-50">{{ $item->description }}</p>
    <div class="small text-white-50">{{ $item->media->count() }} медиа</div>
