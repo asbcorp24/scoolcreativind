@@ -18,6 +18,7 @@ class StudentLessonsWidget;
 class AnnotationOverlay;
 class QPlainTextEdit;
 class QListWidget;
+class QListWidgetItem;
 class QTabWidget;
 class QDialog;
 class QUdpSocket;
@@ -45,6 +46,12 @@ private:
     void downloadQuickFile();
     void discoverLocalTeacher();
     void showScreenshotTask(const QJsonObject& obj);
+    void loadSavedScreenshotTasks();
+    void saveScreenshotTask(const QString& title, const QString& text,
+                            const QByteArray& imageData, const QString& originalName);
+    void refreshScreenshotTaskPreview();
+    QString screenshotTasksDir() const;
+    QString screenshotTasksIndexPath() const;
     void showLanConnectDialog(const QString& text);
     void closeLanConnectDialog();
     void verifyLocalServerAndLogin();
@@ -82,6 +89,11 @@ private:
     QLineEdit* chatInput_{};
     QLabel* chatState_{};
     QListWidget* quickFiles_{};
+    QListWidget* screenshotTasks_{};
+    QLabel* screenshotTaskImage_{};
+    QLabel* screenshotTaskTitle_{};
+    QLabel* screenshotTaskText_{};
+    QLabel* screenshotTaskMeta_{};
 
     QString activePollId_;
     bool publicChatEnabled_{true};
