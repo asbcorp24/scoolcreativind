@@ -23,7 +23,14 @@ class AdminLearningController extends Controller
         if (!auth()->user()->is_admin) {
             $groupIds=auth()->user()->teacherGroups()->pluck('study_groups.id');
             $groupsQuery->whereIn('id',$groupIds);
-            $lessonsQuery->whereIn('study_group_id',$groupIds);
+            $lessonsQuery->whereIn('study_group_id',$groupIds)
+                ->where(function($q){
+                    $q->where('teacher_id',auth()->id())
+                      ->orWhere(function($legacy){
+                          $legacy->whereNull('teacher_id')
+                              ->where('teacher_name',auth()->user()->name);
+                      });
+                });
         }
 
         return view('admin.schedule', [
