@@ -29,6 +29,8 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QUdpSocket>
+#include <QHostAddress>
 #include <QPixmap>
 #include <QPushButton>
 #include <QRegularExpressionValidator>
@@ -49,7 +51,8 @@ StudentWindow::StudentWindow(QWidget* parent)
       snapshotTimer_(new QTimer(this)),
       remoteScreenTimer_(new QTimer(this)),
       statusTimer_(new QTimer(this)),
-      network_(new QNetworkAccessManager(this)) {
+      network_(new QNetworkAccessManager(this)),
+      lanDiscovery_(new QUdpSocket(this)) {
 
     QSettings settings("SHKI", "ClassroomRemote");
     studentId_ = settings.value("student/id").toString();
@@ -103,7 +106,10 @@ StudentWindow::StudentWindow(QWidget* parent)
 
     connect(loginBtn, &QPushButton::clicked, this, &StudentWindow::loginWithPIN);
     connect(pin_, &QLineEdit::returnPressed, this, &StudentWindow::loginWithPIN);
-    connect(settingsBtn, &QPushButton::clicked, this, &StudentWindow::editConnectionSettings);
+    connect(settingsBtn, &QPushButton::clicked, this, [this] {
+        localDiscoveryResolved_ = false;
+        editConnectionSettings();
+    });
 
     status_ = new QLabel("Не подключено");
     outer->addWidget(status_);
@@ -352,6 +358,11 @@ void StudentWindow::editConnectionSettings() {
 }
 
 void StudentWindow::loginWithPIN() {
+    if (config_.localNetwork && !localDiscoveryResolved_) {
+        discoverLocalTeacher();
+        return;
+    }
+
     const QString pin = pin_->text().trimmed();
     if (pin.size() < 4) {
         QMessageBox::information(this, "Вход", "Введите числовой пароль.");
@@ -524,6 +535,11 @@ void StudentWindow::onMessage(const QJsonObject& obj) {
         return;
     }
 
+    if (type == "screenshot_task") {
+        showScreenshotTask(obj);
+        return;
+    }
+
     if (type == "quick_file") {
         loadQuickFiles();
         mainTabs_->setCurrentIndex(2);
@@ -623,6 +639,110 @@ void StudentWindow::sendChat() {
         return;
     ws_->send(QJsonObject{{"type", "chat_message"}, {"text", text}});
     chatInput_->clear();
+}
+
+void StudentWindow::discoverLocalTeacher() {
+    if (!lanDiscovery_)
+        return;
+
+    lanDiscovery_->abort();
+    lanDiscovery_->bind(QHostAddress::AnyIPv4, 0,
+                        QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint);
+
+    disconnect(lanDiscovery_, nullptr, this, nullptr);
+    connect(lanDiscovery_, &QUdpSocket::readyRead, this, [this] {
+        while (lanDiscovery_->hasPendingDatagrams()) {
+            QNetworkDatagram datagram = lanDiscovery_->receiveDatagram();
+            const QByteArray data = datagram.data();
+            if (!data.startsWith("SHKI_CLASSROOM|"))
+                continue;
+
+            const QList<QByteArray> parts = data.split('|');
+            if (parts.size() < 5)
+                continue;
+
+            const QString host = QString::fromUtf8(parts[1]);
+            const QString port = QString::fromUtf8(parts[2]);
+            const QString lesson = QString::fromUtf8(parts[3]);
+            if (host.isEmpty() || port.isEmpty())
+                continue;
+
+            config_.serverUrl = QString("http://%1:%2").arg(host, port);
+            if (!lesson.isEmpty())
+                config_.lessonId = lesson;
+            lesson_->setText(config_.lessonId);
+            localDiscoveryResolved_ = true;
+            status_->setText("Найден преподаватель: " + config_.serverUrl);
+            QTimer::singleShot(50, this, &StudentWindow::loginWithPIN);
+            return;
+        }
+    });
+
+    const QByteArray request("SHKI_DISCOVER");
+    lanDiscovery_->writeDatagram(request, QHostAddress::Broadcast, 45454);
+    status_->setText("Ищу преподавателя в локальной сети...");
+
+    QTimer::singleShot(1800, this, [this] {
+        if (localDiscoveryResolved_)
+            return;
+        localDiscoveryResolved_ = true;
+        status_->setText("Автопоиск не сработал. Использую запасной адрес: " + config_.serverUrl);
+        QTimer::singleShot(50, this, &StudentWindow::loginWithPIN);
+    });
+}
+
+void StudentWindow::showScreenshotTask(const QJsonObject& obj) {
+    const qint64 fileId = qint64(obj.value("file_id").toDouble());
+    const QString taskText = obj.value("text").toString().trimmed();
+    const QString titleText = obj.value("title").toString("Задание преподавателя");
+    if (fileId <= 0)
+        return;
+
+    QNetworkRequest req(quickFileUrl(fileId));
+    req.setRawHeader("Authorization", "Bearer " + token_->text().toUtf8());
+    auto* reply = network_->get(req);
+    connect(reply, &QNetworkReply::finished, this, [this, reply, taskText, titleText] {
+        const QByteArray data = reply->readAll();
+        if (reply->error() != QNetworkReply::NoError) {
+            reply->deleteLater();
+            return;
+        }
+
+        QPixmap pix;
+        pix.loadFromData(data);
+
+        auto* dlg = new QDialog(this);
+        dlg->setAttribute(Qt::WA_DeleteOnClose);
+        dlg->setWindowTitle(titleText);
+        dlg->resize(1000, 720);
+        auto* layout = new QVBoxLayout(dlg);
+
+        auto* title = new QLabel("<b>" + titleText.toHtmlEscaped() + "</b>");
+        title->setStyleSheet("font-size:22px;");
+        layout->addWidget(title);
+
+        auto* image = new QLabel;
+        image->setAlignment(Qt::AlignCenter);
+        image->setMinimumSize(640, 360);
+        image->setStyleSheet("background:#0b1220;border:1px solid #334155;border-radius:12px;");
+        if (!pix.isNull())
+            image->setPixmap(pix.scaled(940, 520, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        layout->addWidget(image, 1);
+
+        auto* text = new QLabel(taskText.isEmpty() ? "Откройте изображение и выполните задание преподавателя." : taskText);
+        text->setWordWrap(true);
+        text->setStyleSheet("font-size:18px;padding:10px;");
+        layout->addWidget(text);
+
+        auto* closeBtn = new QPushButton("Понятно");
+        closeBtn->setMinimumHeight(42);
+        layout->addWidget(closeBtn, 0, Qt::AlignRight);
+        connect(closeBtn, &QPushButton::clicked, dlg, &QDialog::accept);
+
+        dlg->show();
+        dlg->raise();
+        dlg->activateWindow();
+    });
 }
 
 QUrl StudentWindow::quickFileUrl(qint64 fileId) const {
