@@ -182,6 +182,7 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::patch('/parent-reports/{link}/revoke',[AdminParentReportController::class,'revoke'])->name('parent-reports.revoke');
     Route::patch('/parent-reports/{link}/regenerate',[AdminParentReportController::class,'regenerate'])->name('parent-reports.regenerate');
     Route::post('/journal/lessons',[AdminAcademicController::class,'createJournalLesson'])->name('journal.lessons.create');
+    Route::post('/journal/lessons/{lesson}/all-present',[AdminAcademicController::class,'markAllPresent'])->name('journal.lessons.all-present');
     Route::patch('/journal/entries/{entry}',[AdminAcademicController::class,'saveJournalEntry'])->name('journal.entries.update');
     Route::get('/homework',[AdminAcademicController::class,'homework'])->name('homework');
     Route::post('/homework/save/{assignment?}',[AdminAcademicController::class,'saveHomework'])->name('homework.save');
