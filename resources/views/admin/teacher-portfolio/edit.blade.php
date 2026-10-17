@@ -40,8 +40,11 @@
 <div class="row g-4">
 @forelse($profile->portfolio as $item)<div class="col-md-6 col-xl-4"><div class="project-card h-100">
  <div class="project-media">@if($item->cover_url)<img src="{{ $item->cover_url }}" alt="{{ $item->title }}">@else<div class="project-noise"></div>@endif</div>
- <div class="pt-3"><h4>{{ $item->title }}</h4><div class="small text-white-50">{{ $item->type }} · {{ optional($item->completed_at)->format('d.m.Y') }}</div><p class="text-white-50">{{ $item->description }}</p>
- <form method="post" action="{{ route('admin.teacher-portfolio.projects.delete',[$profile,$item]) }}" onsubmit="return confirm('Удалить проект?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">Удалить</button></form></div>
+ <div class="pt-3"><h4>{{ $item->title }}</h4><div class="small text-white-50">{{ $item->type }} · {{ optional($item->completed_at)->format('d.m.Y') }} · {{ $item->media->count() }} медиа</div><p class="text-white-50">{{ $item->description }}</p>
+ <div class="d-flex gap-2 flex-wrap">
+  <a class="btn btn-sm btn-neon" href="{{ route('admin.teacher-portfolio.media',[$profile,$item]) }}">Медиагалерея</a>
+  <form method="post" action="{{ route('admin.teacher-portfolio.projects.delete',[$profile,$item]) }}" onsubmit="return confirm('Удалить проект?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">Удалить</button></form>
+ </div></div>
 </div></div>@empty<div class="text-white-50">Проектов пока нет.</div>@endforelse
 </div>
 </div></section>
