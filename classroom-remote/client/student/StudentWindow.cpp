@@ -79,9 +79,9 @@ StudentWindow::StudentWindow(QWidget* parent)
     name_ = new QLineEdit(config_.displayName, this);
     name_->hide();
 
-    auto* loginCard = new QWidget;
-    loginCard->setObjectName("sciCard");
-    auto* loginLayout = new QHBoxLayout(loginCard);
+    loginCard_ = new QWidget;
+    loginCard_->setObjectName("sciCard");
+    auto* loginLayout = new QHBoxLayout(loginCard_);
     loginLayout->setContentsMargins(18, 14, 18, 14);
 
     auto* loginTitle = new QLabel("<b>CLASSROOM / STUDENT</b>");
@@ -103,7 +103,7 @@ StudentWindow::StudentWindow(QWidget* parent)
     loginLayout->addWidget(pin_);
     loginLayout->addWidget(loginBtn);
     loginLayout->addWidget(settingsBtn);
-    outer->addWidget(loginCard);
+    outer->addWidget(loginCard_);
 
     connect(loginBtn, &QPushButton::clicked, this, &StudentWindow::loginWithPIN);
     connect(pin_, &QLineEdit::returnPressed, this, &StudentWindow::loginWithPIN);
@@ -238,6 +238,8 @@ StudentWindow::StudentWindow(QWidget* parent)
 
     connect(ws_, &WsClient::connected, this, [this] {
         status_->setText("● Сигналинг подключён, получаю ICE/TURN конфигурацию...");
+        if (loginCard_)
+            loginCard_->hide();
         if (config_.localNetwork) {
             showLanConnectDialog("Подключено к преподавателю");
             QTimer::singleShot(500, this, &StudentWindow::closeLanConnectDialog);
@@ -249,6 +251,8 @@ StudentWindow::StudentWindow(QWidget* parent)
 
     connect(ws_, &WsClient::disconnected, this, [this] {
         status_->setText("○ Отключено");
+        if (loginCard_)
+            loginCard_->show();
         snapshotTimer_->stop();
         remoteScreenTimer_->stop();
         statusTimer_->stop();
