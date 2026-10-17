@@ -612,6 +612,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     pollStatus_ = new QLabel("Опрос не запущен");
     pollStatus_->setWordWrap(true);
     pollRow->addWidget(pollBtn);
+    pollRow->addWidget(pollResultsBtn);
     pollRow->addWidget(pollStatus_, 1);
     interactiveLayout->addLayout(pollRow);
 
@@ -753,6 +754,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
             [this](const QJsonObject& obj) { ws_->send(obj); });
 
     connect(pollBtn, &QPushButton::clicked, this, &TeacherWindow::startPoll);
+    connect(pollResultsBtn, &QPushButton::clicked, this, &TeacherWindow::showPollResults);
     connect(quickFileBtn, &QPushButton::clicked, this, &TeacherWindow::uploadQuickFile);
     connect(attendanceBtn, &QPushButton::clicked, this, &TeacherWindow::showAttendance);
     connect(chatToggle_, &QPushButton::clicked, this, [this] {
@@ -1212,7 +1214,11 @@ void TeacherWindow::onMessage(const QJsonObject& obj) {
     } else if (type == "poll_answer") {
         if (obj.value("poll_id").toString() == activePollId_) {
             const int answer = obj.value("answer").toInt(-1);
-            if (answer >= 0) {
+            const QString studentId = obj.value("student_id").toString();
+            const QString studentName = obj.value("student_name").toString();
+            if (answer >= 0 && !studentId.isEmpty() && !pollStudentAnswers_.contains(studentId)) {
+                pollStudentAnswers_[studentId] = answer;
+                pollStudentNames_[studentId] = studentName;
                 pollCounts_[answer] = pollCounts_.value(answer) + 1;
                 ++pollResponses_;
                 updatePollStatus();
@@ -2309,6 +2315,8 @@ void TeacherWindow::launchQuickPoll(const QString& question, const QStringList& 
     activePollId_ = QUuid::createUuid().toString(QUuid::WithoutBraces);
     activePollQuestion_ = question.trimmed();
     pollCounts_.clear();
+    pollStudentAnswers_.clear();
+    pollStudentNames_.clear();
     pollResponses_ = 0;
 
     QJsonArray arr;
@@ -2372,10 +2380,51 @@ void TeacherWindow::startPoll() {
 void TeacherWindow::updatePollStatus() {
     const QStringList options = pollStatus_->property("options").toStringList();
     QStringList parts;
-    for (int i = 0; i < options.size(); ++i)
-        parts << QString("%1 — %2").arg(options.at(i)).arg(pollCounts_.value(i));
+    for (int i = 0; i < options.size(); ++i) {
+        const int count = pollCounts_.value(i);
+        const int percent = pollResponses_ > 0 ? qRound(100.0 * count / pollResponses_) : 0;
+        parts << QString("%1 — %2 (%3%)").arg(options.at(i)).arg(count).arg(percent);
+    }
     pollStatus_->setText(activePollQuestion_ + " | Ответов: " +
                          QString::number(pollResponses_) + " | " + parts.join(" · "));
+}
+
+void TeacherWindow::showPollResults() {
+    if (activePollId_.isEmpty()) {
+        QMessageBox::information(this, "Результаты опроса", "Опрос ещё не запускался.");
+        return;
+    }
+
+    const QStringList options = pollStatus_->property("options").toStringList();
+    QString text = "Вопрос: " + activePollQuestion_ + "\n\n";
+    text += QString("Ответило: %1\n\n").arg(pollResponses_);
+
+    for (int i = 0; i < options.size(); ++i) {
+        const int count = pollCounts_.value(i);
+        const int percent = pollResponses_ > 0 ? qRound(100.0 * count / pollResponses_) : 0;
+        text += QString("%1 — %2 голосов (%3%)\n")
+            .arg(options.at(i))
+            .arg(count)
+            .arg(percent);
+
+        QStringList students;
+        for (auto it = pollStudentAnswers_.cbegin(); it != pollStudentAnswers_.cend(); ++it) {
+            if (it.value() != i)
+                continue;
+            const QString name = pollStudentNames_.value(it.key()).trimmed();
+            students << (name.isEmpty() ? it.key() : name);
+        }
+        if (!students.isEmpty())
+            text += "  Ученики: " + students.join(", ") + "\n";
+        text += "\n";
+    }
+
+    QMessageBox box(this);
+    box.setWindowTitle("Результаты опроса");
+    box.setIcon(QMessageBox::Information);
+    box.setText(text);
+    box.setStandardButtons(QMessageBox::Ok);
+    box.exec();
 }
 
 void TeacherWindow::sendChat(bool privateMessage) {
