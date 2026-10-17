@@ -19,6 +19,7 @@ use App\Http\Controllers\CompetitionParticipationController;
 use App\Http\Controllers\AdminAccessController;
 use App\Http\Controllers\AdminAuditController;
 use App\Http\Controllers\AdminBackupController;
+use App\Http\Controllers\AdminTrashController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\AdminDocumentController;
 use App\Http\Controllers\QuestionController;
@@ -124,6 +125,9 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::get('/backups',[AdminBackupController::class,'index'])->name('backups');
     Route::get('/backups/database',[AdminBackupController::class,'database'])->name('backups.database');
     Route::get('/backups/files',[AdminBackupController::class,'files'])->name('backups.files');
+    Route::get('/trash',[AdminTrashController::class,'index'])->name('trash');
+    Route::patch('/trash/{type}/{id}/restore',[AdminTrashController::class,'restore'])->name('trash.restore');
+    Route::delete('/trash/{type}/{id}',[AdminTrashController::class,'purge'])->name('trash.purge');
     Route::get('/documents',[AdminDocumentController::class,'index'])->name('documents');
     Route::get('/questions',[AdminQuestionController::class,'index'])->name('questions');
     Route::get('/contacts',[AdminContactController::class,'edit'])->name('contacts');
