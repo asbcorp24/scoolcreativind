@@ -9,6 +9,7 @@ use App\Models\PortfolioItem;
 use App\Models\ScheduleLesson;
 use App\Models\Studio;
 use App\Models\SubjectLesson;
+use App\Models\TeacherProfile;
 use Illuminate\Http\Request;
 
 class SearchController extends Controller
@@ -100,6 +101,31 @@ class SearchController extends Controller
                     'title'=>$item->title,
                     'text'=>$item->subtitle,
                     'url'=>route('studios.show',$item),
+                ]);
+            }
+
+            $teachers=TeacherProfile::with(['user','studio'])
+                ->where('is_public',true)
+                ->whereHas('user',function($query) use($q){
+                    $query->where('name','like','%'.$q.'%');
+                })
+                ->orWhere(function($query) use($q){
+                    $query->where('is_public',true)
+                        ->where(function($inner) use($q){
+                            $inner->where('headline','like','%'.$q.'%')
+                                ->orWhere('bio','like','%'.$q.'%')
+                                ->orWhere('competencies','like','%'.$q.'%');
+                        });
+                })
+                ->take(10)
+                ->get();
+
+            foreach($teachers as $item){
+                $results->push([
+                    'type'=>'Преподаватель',
+                    'title'=>$item->user->name,
+                    'text'=>$item->headline ?: $item->competencies,
+                    'url'=>route('teachers.show',$item),
                 ]);
             }
 
