@@ -130,7 +130,8 @@ $filterParams=array_filter([
          <strong>{{ substr($lesson->starts_at,0,5) }} · {{ $lesson->title }}</strong>
          <span>{{ $lesson->group->name ?? 'Общее занятие' }} · {{ $lesson->studio->title ?? 'ШКИ' }}</span>
          @if($lesson->subject)<small>{{ $lesson->subject->title }}</small>@endif
-         @if($lesson->teacher_name)<small>Преподаватель: {{ $lesson->teacher_name }}</small>@endif
+         @if($lesson->display_teacher_name)<small>Преподаватель: {{ $lesson->display_teacher_name }}@if($lesson->substituteTeacher) <span class="text-warning">(замена)</span>@endif</small>@endif
+         @if($lesson->substitution_note)<small class="text-warning">{{ $lesson->substitution_note }}</small>@endif
          @if($lesson->room)<small>Ауд. {{ $lesson->room }}</small>@endif
          @if($lesson->status!=='planned')<small><strong>{{ $lesson->status_label }}</strong>@if($lesson->status_note) · {{ $lesson->status_note }}@endif</small>@endif
         </div>
@@ -151,7 +152,7 @@ $filterParams=array_filter([
         <div class="text-white-50 mt-1">
          {{ $lesson->group->name ?? 'Общее занятие' }}
          @if($lesson->subject) · {{ $lesson->subject->title }}@endif
-         @if($lesson->teacher_name) · {{ $lesson->teacher_name }}@endif
+         @if($lesson->display_teacher_name) · {{ $lesson->display_teacher_name }}@if($lesson->substituteTeacher) (замена)@endif @endif
          @if($lesson->room) · ауд. {{ $lesson->room }}@endif
         </div>
         @if($lesson->planLesson)<div class="small mt-1">КТП №{{ $lesson->planLesson->lesson_number }} · {{ $lesson->planLesson->title }}</div>@endif
