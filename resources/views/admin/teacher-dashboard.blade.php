@@ -85,8 +85,20 @@
      @forelse($progress as $row)
       <div class="py-3 border-bottom border-secondary-subtle">
        <div class="d-flex justify-content-between gap-3">
-        <div><strong>{{ $row['group']->name }}</strong><div class="small text-white-50">{{ $row['subject']->title }}</div></div>
-        <strong>{{ $row['conducted'] }} / {{ $row['total'] }}</strong>
+        <div>
+         <strong>{{ $row['group']->name }}</strong>
+         <div class="small text-white-50">{{ $row['subject']->title }}</div>
+        </div>
+        <div class="text-end">
+         <strong>{{ $row['conducted'] }} / {{ $row['total'] }}</strong>
+         <div class="small {{ $row['delta'] < 0 ? 'text-warning' : 'text-white-50' }}">
+          По расписанию к сегодня: {{ $row['planned'] }}
+          @if($row['delta'] < 0) · отставание {{ abs($row['delta']) }}
+          @elseif($row['delta'] > 0) · опережение {{ $row['delta'] }}
+          @else · по плану
+          @endif
+         </div>
+        </div>
        </div>
        <div class="progress mt-2" style="height:8px"><div class="progress-bar" style="width:{{ $row['percent'] }}%"></div></div>
        <div class="d-flex gap-2 mt-3">
