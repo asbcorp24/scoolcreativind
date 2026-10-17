@@ -22,9 +22,14 @@ class User extends Authenticatable
         'activated_at'=>'datetime',
     ];
 
+    public function isTeacherRole(): bool
+    {
+        return (bool)$this->is_teacher || $this->teacherGroups()->exists();
+    }
+
     public function isActivated(): bool
     {
-        return $this->is_admin || $this->isSectionAdmin() || $this->registration_status === 'active';
+        return $this->is_admin || $this->isSectionAdmin() || $this->isTeacherRole() || $this->registration_status === 'active';
     }
 
     public function isPendingActivation(): bool
@@ -50,7 +55,7 @@ class User extends Authenticatable
     public function adminLandingRoute(): string
     {
         if ($this->is_admin) return 'admin.dashboard';
-        if ($this->is_teacher) return 'admin.journal';
+        if ($this->isTeacherRole()) return 'admin.journal';
 
         $map=[
             'studios'=>'admin.dashboard',
