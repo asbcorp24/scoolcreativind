@@ -32,8 +32,10 @@ class TeacherDashboardController extends Controller
             $groupIds=$directGroups->merge($substituteGroups)->filter()->unique()->values();
 
             $scheduleBase=ScheduleLesson::where(function($q) use($user){
-                $q->where('teacher_id',$user->id)
-                  ->orWhere('substitute_teacher_id',$user->id);
+                $q->where(function($own) use($user){
+                    $own->where('teacher_id',$user->id)
+                        ->whereNull('substitute_teacher_id');
+                })->orWhere('substitute_teacher_id',$user->id);
             });
         }
 
@@ -127,6 +129,7 @@ class TeacherDashboardController extends Controller
 
         $announcements=Announcement::with(['author','group'])
             ->where('is_published',true)
+            ->when(!$user->is_admin,fn($q)=>$q->whereIn('audience',['all','teachers']))
             ->where(function($q) use($groupIds){
                 $q->whereNull('study_group_id')
                   ->orWhereIn('study_group_id',$groupIds);
