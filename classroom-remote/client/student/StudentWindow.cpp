@@ -511,6 +511,7 @@ void StudentWindow::onMessage(const QJsonObject& obj) {
         status_->setText("● ICE/TURN получен, устанавливаю WebRTC...");
         rtc_->start("student", iceServers);
         loadQuickFiles();
+        loadServerScreenshotTasks();
         return;
     }
 
@@ -858,18 +859,22 @@ void StudentWindow::discoverLocalTeacher() {
 }
 
 void StudentWindow::showScreenshotTask(const QJsonObject& obj) {
+    const qint64 taskId = qint64(obj.value("id").toDouble());
     const qint64 fileId = qint64(obj.value("file_id").toDouble());
+    const qint64 createdAt = qint64(obj.value("created_at").toDouble());
     const QString taskText = obj.value("text").toString().trimmed();
     const QString titleText = obj.value("title").toString("Задание преподавателя");
     const QString originalName = obj.value("name").toString("task.png");
     if (fileId <= 0)
+        return;
+    if (taskId > 0 && hasSavedScreenshotTask(taskId))
         return;
 
     QNetworkRequest req(quickFileUrl(fileId));
     req.setRawHeader("Authorization", "Bearer " + token_->text().toUtf8());
     auto* reply = network_->get(req);
     connect(reply, &QNetworkReply::finished, this,
-            [this, reply, taskText, titleText, originalName] {
+            [this, reply, taskId, createdAt, taskText, titleText, originalName] {
         const QByteArray data = reply->readAll();
         if (reply->error() != QNetworkReply::NoError) {
             status_->setText("Не удалось загрузить скрин-задание: " + reply->errorString());
@@ -877,7 +882,7 @@ void StudentWindow::showScreenshotTask(const QJsonObject& obj) {
             return;
         }
 
-        saveScreenshotTask(titleText, taskText, data, originalName);
+        saveScreenshotTask(taskId, titleText, taskText, data, originalName, createdAt);
         loadSavedScreenshotTasks();
         if (screenshotTasks_ && screenshotTasks_->count() > 0)
             screenshotTasks_->setCurrentRow(0);
@@ -906,8 +911,9 @@ QString StudentWindow::screenshotTasksIndexPath() const {
     return QDir(screenshotTasksDir()).filePath("index.json");
 }
 
-void StudentWindow::saveScreenshotTask(const QString& title, const QString& text,
-                                       const QByteArray& imageData, const QString& originalName) {
+void StudentWindow::saveScreenshotTask(qint64 taskId, const QString& title, const QString& text,
+                                       const QByteArray& imageData, const QString& originalName,
+                                       qint64 createdAt) {
     QDir dir;
     dir.mkpath(screenshotTasksDir());
 
@@ -915,7 +921,7 @@ void StudentWindow::saveScreenshotTask(const QString& title, const QString& text
     if (ext.isEmpty() || ext.size() > 8)
         ext = "png";
 
-    const qint64 ts = QDateTime::currentMSecsSinceEpoch();
+    const qint64 ts = createdAt > 0 ? createdAt : QDateTime::currentMSecsSinceEpoch();
     const QString fileName = QString("%1.%2").arg(ts).arg(ext);
     const QString imagePath = QDir(screenshotTasksDir()).filePath(fileName);
 
@@ -936,6 +942,7 @@ void StudentWindow::saveScreenshotTask(const QString& title, const QString& text
     }
 
     QJsonObject item{
+        {"server_task_id", double(taskId)},
         {"title", title},
         {"text", text},
         {"file", fileName},
@@ -949,6 +956,64 @@ void StudentWindow::saveScreenshotTask(const QString& title, const QString& text
         indexFile.write(QJsonDocument(items).toJson(QJsonDocument::Indented));
         indexFile.close();
     }
+}
+
+bool StudentWindow::hasSavedScreenshotTask(qint64 taskId) const {
+    if (taskId <= 0)
+        return false;
+
+    QFile indexFile(screenshotTasksIndexPath());
+    if (!indexFile.open(QIODevice::ReadOnly))
+        return false;
+    const QJsonDocument doc = QJsonDocument::fromJson(indexFile.readAll());
+    indexFile.close();
+    if (!doc.isArray())
+        return false;
+
+    for (const QJsonValue& value : doc.array()) {
+        if (qint64(value.toObject().value("server_task_id").toDouble()) == taskId)
+            return true;
+    }
+    return false;
+}
+
+void StudentWindow::loadServerScreenshotTasks() {
+    if (httpUrl_->text().trimmed().isEmpty() || token_->text().trimmed().isEmpty())
+        return;
+
+    QUrl url(httpUrl_->text());
+    url.setPath(QString("/api/v1/classrooms/%1/screenshot-tasks").arg(lesson_->text()));
+    url.setQuery(QString());
+    url.setFragment(QString());
+
+    QNetworkRequest req(url);
+    req.setRawHeader("Authorization", "Bearer " + token_->text().toUtf8());
+    auto* reply = network_->get(req);
+    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+        const QByteArray body = reply->readAll();
+        if (reply->error() != QNetworkReply::NoError) {
+            reply->deleteLater();
+            return;
+        }
+
+        const QJsonDocument doc = QJsonDocument::fromJson(body);
+        if (!doc.isArray()) {
+            reply->deleteLater();
+            return;
+        }
+
+        // Сервер отдаёт новые задания первыми. Загружаем от старых к новым,
+        // чтобы локальный список сохранил естественный порядок поступления.
+        const QJsonArray items = doc.array();
+        for (int i = items.size() - 1; i >= 0; --i) {
+            const QJsonObject item = items.at(i).toObject();
+            const qint64 taskId = qint64(item.value("id").toDouble());
+            if (taskId > 0 && hasSavedScreenshotTask(taskId))
+                continue;
+            showScreenshotTask(item);
+        }
+        reply->deleteLater();
+    });
 }
 
 void StudentWindow::loadSavedScreenshotTasks() {
