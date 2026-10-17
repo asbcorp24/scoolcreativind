@@ -114,6 +114,15 @@ class AdminTeacherController extends Controller
 
             $teacher->save();
 
+            TeacherProfile::firstOrCreate(
+                ['user_id'=>$teacher->id],
+                [
+                    'slug'=>(Str::slug($teacher->name) ?: 'teacher-'.$teacher->id).'-'.$teacher->id,
+                    'headline'=>'Преподаватель ШКИ',
+                    'is_public'=>false,
+                ]
+            );
+
             // Обновляем только роль teacher, не затрагивая возможную роль student.
             DB::table('study_group_user')
                 ->where('user_id',$teacher->id)
