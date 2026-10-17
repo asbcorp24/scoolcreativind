@@ -281,6 +281,8 @@ $musicPlaylist=$musicTracks->map(function($track){
     <div class="admin-side-group {{ request()->routeIs('admin.teachers*','admin.groups*','admin.subjects*','admin.schedule*','admin.journal*','admin.attendance*','admin.reports*','admin.parent-reports*','admin.homework*','admin.students*','admin.competitions*','admin.achievements*','admin.quizzes*') ? 'open' : '' }}">
       <button type="button" class="admin-side-group-title" data-admin-group-toggle><span>▦</span><strong>Обучение</strong><i>⌄</i></button>
       <div class="admin-side-group-body">
+        @if(auth()->user()->isTeacherRole() && !auth()->user()->is_admin)<a class="{{ request()->routeIs('admin.teacher-dashboard') ? 'active' : '' }}" href="{{ route('admin.teacher-dashboard') }}">Сегодня</a>@endif
+        @if(auth()->user()->isTeacherRole() && !auth()->user()->is_admin)<a class="{{ request()->routeIs('admin.teacher-groups','admin.teacher-students.*') ? 'active' : '' }}" href="{{ route('admin.teacher-groups') }}">Мои группы</a>@endif
         @if(auth()->user()->is_admin)<a class="{{ request()->routeIs('admin.academic-years*') ? 'active' : '' }}" href="{{ route('admin.academic-years') }}">Учебные годы</a>@endif
         @if(auth()->user()->is_admin)<a class="{{ request()->routeIs('admin.teachers*') ? 'active' : '' }}" href="{{ route('admin.teachers') }}">Преподаватели</a>@endif
         @if(auth()->user()->canAdminSection('groups'))<a class="{{ request()->routeIs('admin.groups*') ? 'active' : '' }}" href="{{ route('admin.groups') }}">Учебные группы</a>@endif
