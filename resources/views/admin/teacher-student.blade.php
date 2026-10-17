@@ -14,11 +14,12 @@
 <section class="pb-5">
  <div class="container">
   <div class="row g-3 mb-5">
-   <div class="col-6 col-lg"><div class="glass-card p-3 h-100"><div class="small text-white-50">Уроков</div><strong class="fs-3">{{ $summary['lessons'] }}</strong></div></div>
-   <div class="col-6 col-lg"><div class="glass-card p-3 h-100"><div class="small text-white-50">Посещаемость</div><strong class="fs-3">{{ $summary['attendance']!==null ? $summary['attendance'].'%' : '—' }}</strong></div></div>
-   <div class="col-6 col-lg"><div class="glass-card p-3 h-100"><div class="small text-white-50">Пропуски</div><strong class="fs-3 text-danger">{{ $summary['absent'] }}</strong></div></div>
-   <div class="col-6 col-lg"><div class="glass-card p-3 h-100"><div class="small text-white-50">Опоздания</div><strong class="fs-3 text-warning">{{ $summary['late'] }}</strong></div></div>
-   <div class="col-6 col-lg"><div class="glass-card p-3 h-100"><div class="small text-white-50">Средняя оценка</div><strong class="fs-3">{{ $summary['avg_grade'] ?? '—' }}</strong></div></div>
+   <div class="col-6 col-xl-2"><div class="glass-card p-3 h-100"><div class="small text-white-50">Уроков</div><strong class="fs-3">{{ $summary['lessons'] }}</strong></div></div>
+   <div class="col-6 col-xl-2"><div class="glass-card p-3 h-100"><div class="small text-white-50">Посещаемость</div><strong class="fs-3">{{ $summary['attendance']!==null ? $summary['attendance'].'%' : '—' }}</strong></div></div>
+   <div class="col-6 col-xl-2"><div class="glass-card p-3 h-100"><div class="small text-white-50">Пропуски</div><strong class="fs-3 text-danger">{{ $summary['absent'] }}</strong></div></div>
+   <div class="col-6 col-xl-2"><div class="glass-card p-3 h-100"><div class="small text-white-50">Средняя оценка</div><strong class="fs-3">{{ $summary['avg_grade'] ?? '—' }}</strong></div></div>
+   <div class="col-6 col-xl-2"><div class="glass-card p-3 h-100"><div class="small text-white-50">Домашние задания</div><strong class="fs-3">{{ $summary['homework_submitted'] }} / {{ $summary['homework_total'] }}</strong></div></div>
+   <div class="col-6 col-xl-2"><div class="glass-card p-3 h-100"><div class="small text-white-50">Практические работы</div><strong class="fs-3">{{ $summary['portfolio_count'] }}</strong></div></div>
   </div>
 
   <div class="row g-4">
