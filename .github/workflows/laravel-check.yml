@@ -54,5 +54,10 @@ jobs:
       - name: Routes
         run: php artisan route:list
 
+      - name: Blade views
+        run: |
+          php artisan view:cache
+          php artisan view:clear
+
       - name: Fresh migration
         run: php artisan migrate:fresh --force
