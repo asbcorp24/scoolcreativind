@@ -38,7 +38,12 @@ class PublicController extends Controller
 
     public function team()
     {
-        return view('team', ['members'=>TeamMember::where('is_active',true)->with('studio')->orderBy('sort_order')->get()]);
+        return view('team', [
+            'members'=>TeamMember::where('is_active',true)
+                ->with(['studio','user.teacherProfile'])
+                ->orderBy('sort_order')
+                ->get()
+        ]);
     }
 
     public function equipment()
