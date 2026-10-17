@@ -89,6 +89,34 @@
   </div>
 
   <div class="glass-card p-4 mt-4">
+   <div class="eyebrow">Группа</div>
+   <h3 class="mt-2">Сводная успеваемость и посещаемость</h3>
+   <p class="text-white-50">Один лист по всей группе: количество занятий, пропуски, опоздания, процент посещаемости и средняя оценка каждого ученика.</p>
+   <form method="get" target="_blank" action="{{ route('admin.reports.group-progress.print') }}" class="row g-3 mt-2">
+    <div class="col-md-4">
+     <label class="form-label">Группа</label>
+     <select class="form-select" name="group_id" required>
+      <option value="">Выберите группу</option>
+      @foreach($groups as $group)
+       <option value="{{ $group->id }}">{{ $group->name }} · {{ $group->study_year }} год</option>
+      @endforeach
+     </select>
+    </div>
+    <div class="col-md-3">
+     <label class="form-label">С даты</label>
+     <input type="date" class="form-control" name="date_from" value="{{ now()->startOfMonth()->toDateString() }}">
+    </div>
+    <div class="col-md-3">
+     <label class="form-label">По дату</label>
+     <input type="date" class="form-control" name="date_to" value="{{ now()->toDateString() }}">
+    </div>
+    <div class="col-md-2 d-grid align-self-end">
+     <button class="btn btn-neon">Открыть ↗</button>
+    </div>
+   </form>
+  </div>
+
+  <div class="glass-card p-4 mt-4">
    <div class="eyebrow">Печать</div>
    <h4 class="mt-2">Формат отчётов</h4>
    <div class="row g-3 text-white-50">
