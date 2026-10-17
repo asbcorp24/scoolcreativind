@@ -144,7 +144,7 @@ $filterParams=array_filter([
    @php($days=$lessons->groupBy(fn($l)=>$l->lesson_date->format('Y-m-d')))
    @forelse($days as $date=>$dayLessons)
     <div class="glass-card p-4 mb-3">
-     <div class="eyebrow">{{ CarbonCarbon::parse($date)->translatedFormat('l, d F Y') }}</div>
+     <div class="eyebrow">{{ $dayLessons->first()->lesson_date->translatedFormat('l, d F Y') }}</div>
      @foreach($dayLessons as $lesson)
       <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap py-3 border-bottom border-secondary-subtle {{ $lesson->status==='cancelled' ? 'opacity-50' : '' }}">
        <div>
