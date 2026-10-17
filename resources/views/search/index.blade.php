@@ -26,7 +26,7 @@
       <a href="{{ $item['url'] }}" class="glass-card p-4 h-100 d-block text-decoration-none">
        <div class="eyebrow">{{ $item['type'] }}</div>
        <h3 class="mt-2">{{ $item['title'] }}</h3>
-       @if(!empty($item['text']))<p class="text-white-50 mb-0">{{ IlluminateSupportStr::limit(strip_tags($item['text']),220) }}</p>@endif
+       @if(!empty($item['text']))<p class="text-white-50 mb-0">{{ mb_strimwidth(strip_tags($item['text']),0,220,'…') }}</p>@endif
       </a>
      </div>
     @empty
