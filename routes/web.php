@@ -164,6 +164,7 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::get('/groups',[AdminAcademicController::class,'groups'])->name('groups');
     Route::post('/groups/save/{group?}',[AdminAcademicController::class,'saveGroup'])->name('groups.save');
     Route::post('/groups/{group}/students/create',[AdminAcademicController::class,'createStudent'])->name('groups.students.create');
+    Route::post('/groups/{group}/students/import-csv',[AdminAcademicController::class,'importStudentsCsv'])->name('groups.students.import-csv');
     Route::post('/groups/{group}/members',[AdminAcademicController::class,'addMember'])->name('groups.members.add');
     Route::delete('/groups/{group}/members/{user}/{role}',[AdminAcademicController::class,'removeMember'])->name('groups.members.remove');
     Route::get('/subjects',[AdminAcademicController::class,'subjects'])->name('subjects');
@@ -180,6 +181,7 @@ Route::prefix('admin')->name('admin.')->group(function(){
     Route::get('/attendance',[AdminAcademicController::class,'attendance'])->name('attendance');
     Route::get('/reports',[AdminAcademicController::class,'reports'])->name('reports');
     Route::get('/attendance/print',[AdminAcademicController::class,'printJournalReport'])->name('attendance.print');
+    Route::get('/attendance/export-csv',[AdminAcademicController::class,'exportJournalCsv'])->name('attendance.export-csv');
     Route::get('/attendance/ktp/{subject}/print',[AdminAcademicController::class,'printKtpReport'])->name('ktp.print');
     Route::get('/parent-reports',[AdminParentReportController::class,'index'])->name('parent-reports');
     Route::post('/parent-reports',[AdminParentReportController::class,'store'])->name('parent-reports.store');
