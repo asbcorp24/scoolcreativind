@@ -221,14 +221,27 @@
       </div>
       <div class="d-none d-lg-block table-responsive">
        <table class="table admin-table align-middle">
-        <thead><tr><th>Ученик</th><th>Посещение</th><th>Оценка</th><th>Комментарий</th><th></th></tr></thead>
+        <thead><tr><th>Ученик</th><th>ДЗ</th><th>Посещение</th><th>Оценка</th><th>Комментарий</th><th></th></tr></thead>
         <tbody>
          @foreach($group->students as $student)
           @continue($studentId && (int)$student->id !== (int)$studentId)
           @php($entry = $lesson->entries->firstWhere('student_id',$student->id))
+          @php($homeworkSubmission = $lesson->homeworkAssignment?->submissions?->firstWhere('student_id',$student->id))
           @if($entry)
            <tr>
             <td>{{ $student->name }}</td>
+            <td class="text-nowrap">
+             @if($lesson->homeworkAssignment)
+              @if($homeworkSubmission)
+               <strong>{{ $homeworkSubmission->score ?? '—' }}</strong>
+               <div class="small text-white-50">{{ ['submitted'=>'Сдано','reviewed'=>'Проверено','returned'=>'Возврат'][$homeworkSubmission->status] ?? $homeworkSubmission->status }}</div>
+              @else
+               <span class="text-warning">Не сдано</span>
+              @endif
+             @else
+              <span class="text-white-50">—</span>
+             @endif
+            </td>
             <td colspan="4">
              <form method="post" action="{{ route('admin.journal.entries.update',$entry) }}" class="journal-entry-form row g-2 align-items-center">
               @csrf
@@ -274,12 +287,25 @@
        @foreach($group->students as $student)
         @continue($studentId && (int)$student->id !== (int)$studentId)
         @php($entry = $lesson->entries->firstWhere('student_id',$student->id))
+        @php($homeworkSubmission = $lesson->homeworkAssignment?->submissions?->firstWhere('student_id',$student->id))
         @if($entry)
          <form method="post" action="{{ route('admin.journal.entries.update',$entry) }}" class="journal-entry-form journal-student-card">
           @csrf
           @method('PATCH')
           <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
-           <strong class="journal-student-name">{{ $student->name }}</strong>
+           <div>
+            <strong class="journal-student-name">{{ $student->name }}</strong>
+            @if($lesson->homeworkAssignment)
+             <div class="small mt-1">
+              ДЗ:
+              @if($homeworkSubmission)
+               <strong>{{ $homeworkSubmission->score ?? 'сдано' }}</strong>
+              @else
+               <span class="text-warning">не сдано</span>
+              @endif
+             </div>
+            @endif
+           </div>
            <span class="small journal-save-status text-white-50"></span>
           </div>
 
