@@ -211,7 +211,15 @@ class TeacherDashboardController extends Controller
 
         $groupIds=$user->is_admin
             ? StudyGroup::pluck('id')
-            : $user->teacherGroups()->pluck('study_groups.id');
+            : $user->teacherGroups()->pluck('study_groups.id')
+                ->merge(
+                    ScheduleLesson::where('substitute_teacher_id',$user->id)
+                        ->whereNotNull('study_group_id')
+                        ->pluck('study_group_id')
+                )
+                ->filter()
+                ->unique()
+                ->values();
 
         $groups=StudyGroup::with(['academicYear','studio','students','subjects'])
             ->whereIn('id',$groupIds)
@@ -221,10 +229,19 @@ class TeacherDashboardController extends Controller
         if(!$user->is_admin){
             $teacherId=$user->id;
             $groups->each(function($group) use($teacherId){
+                $substituteSubjectIds=ScheduleLesson::where('study_group_id',$group->id)
+                    ->where('substitute_teacher_id',$teacherId)
+                    ->whereNotNull('subject_id')
+                    ->pluck('subject_id')
+                    ->map(fn($id)=>(int)$id);
+
                 $group->setRelation(
                     'subjects',
                     $group->subjects
-                        ->filter(fn($subject)=>(int)($subject->pivot->teacher_id ?? 0)===$teacherId)
+                        ->filter(fn($subject)=>
+                            (int)($subject->pivot->teacher_id ?? 0)===$teacherId ||
+                            $substituteSubjectIds->contains((int)$subject->id)
+                        )
                         ->values()
                 );
             });
@@ -265,7 +282,15 @@ class TeacherDashboardController extends Controller
 
         $teacherGroupIds=$user->is_admin
             ? StudyGroup::pluck('id')
-            : $user->teacherGroups()->pluck('study_groups.id');
+            : $user->teacherGroups()->pluck('study_groups.id')
+                ->merge(
+                    ScheduleLesson::where('substitute_teacher_id',$user->id)
+                        ->whereNotNull('study_group_id')
+                        ->pluck('study_group_id')
+                )
+                ->filter()
+                ->unique()
+                ->values();
 
         $studentGroups=$student->studentGroups()
             ->whereIn('study_groups.id',$teacherGroupIds)
@@ -282,7 +307,16 @@ class TeacherDashboardController extends Controller
             $subjectIds=DB::table('group_subjects')
                 ->whereIn('study_group_id',$groupIds)
                 ->where('teacher_id',$user->id)
-                ->pluck('subject_id');
+                ->pluck('subject_id')
+                ->merge(
+                    ScheduleLesson::whereIn('study_group_id',$groupIds)
+                        ->where('substitute_teacher_id',$user->id)
+                        ->whereNotNull('subject_id')
+                        ->pluck('subject_id')
+                )
+                ->filter()
+                ->unique()
+                ->values();
         }
 
         $entries=JournalEntry::with(['lesson.subject','lesson.group'])
