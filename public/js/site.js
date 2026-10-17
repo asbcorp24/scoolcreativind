@@ -941,7 +941,18 @@ function initGlobalMusicPlayer(){
 
   audio.volume=Math.max(0,Math.min(1,Number(state.volume)||.65));
   if(volume)volume.value=String(audio.volume);
+  const renderCollapsed=()=>{
+    const isCollapsed=player.classList.contains('collapsed');
+    if(collapse){
+      collapse.textContent=isCollapsed?'›':'⌄';
+      collapse.setAttribute('aria-label',isCollapsed?'Развернуть плеер':'Свернуть плеер');
+      collapse.setAttribute('title',isCollapsed?'Развернуть плеер':'Свернуть плеер');
+      collapse.setAttribute('aria-expanded',String(!isCollapsed));
+    }
+  };
+
   player.classList.toggle('collapsed',!!state.collapsed);
+  renderCollapsed();
 
   const shouldResume=!!state.playing;
   const savedTime=Number(state.time)||0;
@@ -1023,8 +1034,11 @@ function initGlobalMusicPlayer(){
     save();
   });
 
-  collapse?.addEventListener('click',()=>{
+  collapse?.addEventListener('click',event=>{
+    event.preventDefault();
+    event.stopPropagation();
     player.classList.toggle('collapsed');
+    renderCollapsed();
     save();
   });
 
