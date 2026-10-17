@@ -128,11 +128,45 @@
    </div>
   @endif
 
+  <div class="section-head"><div><div class="eyebrow">Communication</div><h2>Новое объявление</h2></div></div>
+  <form method="post" action="{{ route('admin.teacher-dashboard.announcements.save') }}" class="form-shell mb-5">
+   @csrf
+   <div class="row g-3">
+    <div class="col-md-4">
+     <label class="form-label">Группа</label>
+     <select class="form-select" name="study_group_id" {{ auth()->user()->is_admin ? '' : 'required' }}>
+      @if(auth()->user()->is_admin)<option value="">Всем</option>@endif
+      @foreach($groups as $g)<option value="{{ $g->id }}">{{ $g->name }}</option>@endforeach
+     </select>
+    </div>
+    <div class="col-md-4">
+     <label class="form-label">Аудитория</label>
+     <select class="form-select" name="audience">
+      <option value="all">Все</option>
+      <option value="students">Ученики</option>
+      <option value="teachers">Преподаватели</option>
+     </select>
+    </div>
+    <div class="col-md-4"><label class="form-label">Показывать до</label><input type="datetime-local" class="form-control" name="expires_at"></div>
+    <div class="col-12"><label class="form-label">Заголовок</label><input class="form-control" name="title" required></div>
+    <div class="col-12"><label class="form-label">Текст</label><textarea class="form-control" rows="4" name="body" required></textarea></div>
+    <div class="col-12 text-end"><button class="btn btn-neon">Опубликовать</button></div>
+   </div>
+  </form>
+
   @if($announcements->count())
    <div class="section-head"><div><div class="eyebrow">Notice</div><h2>Объявления</h2></div></div>
    <div class="row g-3">
     @foreach($announcements as $notice)
-     <div class="col-md-6"><div class="glass-card p-4 h-100"><div class="eyebrow">{{ $notice->group->name ?? 'Всем' }}</div><h4>{{ $notice->title }}</h4><p class="text-white-50 mb-0">{{ $notice->body }}</p></div></div>
+     <div class="col-md-6"><div class="glass-card p-4 h-100">
+      <div class="d-flex justify-content-between gap-3 align-items-start">
+       <div><div class="eyebrow">{{ $notice->group->name ?? 'Всем' }} · {{ $notice->audience }}</div><h4>{{ $notice->title }}</h4></div>
+       @if(auth()->user()->is_admin || (int)$notice->author_id===auth()->id())
+        <form method="post" action="{{ route('admin.teacher-dashboard.announcements.delete',$notice) }}" onsubmit="return confirm('Удалить объявление?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">×</button></form>
+       @endif
+      </div>
+      <p class="text-white-50 mb-0">{{ $notice->body }}</p>
+     </div></div>
     @endforeach
    </div>
   @endif
