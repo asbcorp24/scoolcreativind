@@ -742,6 +742,9 @@ TeacherWindow::TeacherWindow(QWidget* parent)
         trayIcon_->setToolTip("Classroom Teacher");
 
         auto* trayMenu = new QMenu(this);
+        trayStatusAction_ = trayMenu->addAction("🟡 0 учеников · без трансляции");
+        trayStatusAction_->setEnabled(false);
+        trayMenu->addSeparator();
         auto* showAction = trayMenu->addAction("Показать");
         auto* hideAction = trayMenu->addAction("Скрыть в трей");
         trayMenu->addSeparator();
@@ -1070,10 +1073,14 @@ void TeacherWindow::updateTrayStatus() {
         return;
 
     const QString mode = broadcastActive_ ? "Трансляция" : "без трансляции";
-    trayIcon_->setToolTip(QString("%1 %2 учеников · %3")
+    const QString liveText = QString("%1 %2/%3 учеников · %4")
         .arg(signalingConnected_ ? "🟢" : "🟡")
         .arg(onlineStudentCount_)
-        .arg(mode));
+        .arg(qMax(onlineStudentCount_, knownStudentIds_.size()))
+        .arg(mode);
+    trayIcon_->setToolTip(liveText);
+    if (trayStatusAction_)
+        trayStatusAction_->setText(liveText);
 
     if (trayBroadcastAction_)
         trayBroadcastAction_->setText(broadcastActive_
@@ -1108,7 +1115,9 @@ void TeacherWindow::updateOperationalStatus() {
             : "QLabel{background:#3f2a0a;color:#fcd34d;padding:4px 7px;border:1px solid #a16207;border-radius:7px;font-size:11px;font-weight:700;}");
     }
     if (studentsStateLabel_)
-        studentsStateLabel_->setText(QString("Ученики %1").arg(onlineStudentCount_));
+        studentsStateLabel_->setText(QString("Ученики %1/%2")
+            .arg(onlineStudentCount_)
+            .arg(qMax(onlineStudentCount_, knownStudentIds_.size())));
     if (micStateLabel_) {
         const QString micText = !micOn_ ? "Микрофон ○" : (micMuted_ ? "Микрофон 🔇" : "Микрофон ●");
         micStateLabel_->setText(micText);
@@ -1314,6 +1323,7 @@ void TeacherWindow::onMessage(const QJsonObject& obj) {
             const QString id = u.value("id").toString();
             const QString name = u.value("name").toString();
             names_[id] = name;
+            knownStudentIds_.insert(id);
             ++studentCount;
 
             QStringList badges;
