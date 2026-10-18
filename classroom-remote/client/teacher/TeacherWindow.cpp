@@ -1849,7 +1849,8 @@ void TeacherWindow::sendScreenshotTask() {
 
     bool ok = false;
     const QStringList variants{
-        "Снять текущий экран преподавателя",
+        "Снять весь экран преподавателя",
+        "Выделить произвольную область экрана",
         "Выбрать изображение с диска"
     };
     const QString variant = QInputDialog::getItem(
@@ -1857,31 +1858,103 @@ void TeacherWindow::sendScreenshotTask() {
     if (!ok)
         return;
 
-    QByteArray imageData;
-    QString fileName = "task-screenshot.png";
     if (variant == variants[0]) {
         QScreen* screen = QGuiApplication::primaryScreen();
         if (!screen)
             return;
-        const QPixmap pix = screen->grabWindow(0);
+
+        QByteArray imageData;
         QBuffer buffer(&imageData);
         buffer.open(QIODevice::WriteOnly);
-        pix.save(&buffer, "PNG");
-    } else {
-        const QString path = QFileDialog::getOpenFileName(
-            this, "Выберите скриншот", QString(),
-            "Изображения (*.png *.jpg *.jpeg *.webp *.bmp)");
-        if (path.isEmpty())
-            return;
-        QFile file(path);
-        if (!file.open(QIODevice::ReadOnly)) {
-            QMessageBox::warning(this, "Скрин-задание", "Не удалось открыть изображение.");
-            return;
-        }
-        imageData = file.readAll();
-        fileName = QFileInfo(path).fileName();
+        screen->grabWindow(0).save(&buffer, "PNG");
+        uploadScreenshotTask(imageData, "task-screenshot.png", "image/png");
+        return;
     }
 
+    if (variant == variants[1]) {
+        const auto screens = QGuiApplication::screens();
+        if (screens.isEmpty())
+            return;
+
+        QScreen* screen = QGuiApplication::primaryScreen();
+        if (screens.size() > 1) {
+            QStringList labels;
+            for (int i = 0; i < screens.size(); ++i) {
+                QString name = screens[i]->name().trimmed();
+                if (name.isEmpty())
+                    name = QString("Экран %1").arg(i + 1);
+                labels << QString("%1 — %2×%3")
+                              .arg(name)
+                              .arg(screens[i]->geometry().width())
+                              .arg(screens[i]->geometry().height());
+            }
+
+            const int initial = qMax(0, screens.indexOf(screen));
+            const QString selected = QInputDialog::getItem(
+                this, "Скрин-задание", "На каком экране выделить область:",
+                labels, initial, false, &ok);
+            if (!ok)
+                return;
+
+            const int index = labels.indexOf(selected);
+            if (index >= 0)
+                screen = screens[index];
+        }
+
+        QScreen* selectedScreen = screen;
+        new RegionSelector(selectedScreen, [this, selectedScreen](const QRect& region) {
+            if (!selectedScreen || region.width() < 40 || region.height() < 40)
+                return;
+
+            const QPixmap pix = selectedScreen->grabWindow(
+                0, region.x(), region.y(), region.width(), region.height());
+            if (pix.isNull()) {
+                QMessageBox::warning(this, "Скрин-задание",
+                                     "Не удалось захватить выбранную область.");
+                return;
+            }
+
+            QByteArray imageData;
+            QBuffer buffer(&imageData);
+            buffer.open(QIODevice::WriteOnly);
+            pix.save(&buffer, "PNG");
+            uploadScreenshotTask(imageData, "task-region.png", "image/png");
+        });
+        return;
+    }
+
+    const QString path = QFileDialog::getOpenFileName(
+        this, "Выберите изображение", QString(),
+        "Изображения (*.png *.jpg *.jpeg *.webp *.bmp)");
+    if (path.isEmpty())
+        return;
+
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::warning(this, "Скрин-задание", "Не удалось открыть изображение.");
+        return;
+    }
+
+    const QString suffix = QFileInfo(path).suffix().toLower();
+    QString contentType = "image/png";
+    if (suffix == "jpg" || suffix == "jpeg")
+        contentType = "image/jpeg";
+    else if (suffix == "webp")
+        contentType = "image/webp";
+    else if (suffix == "bmp")
+        contentType = "image/bmp";
+
+    uploadScreenshotTask(file.readAll(), QFileInfo(path).fileName(), contentType);
+}
+
+void TeacherWindow::uploadScreenshotTask(const QByteArray& imageData, const QString& fileName,
+                                         const QString& contentType) {
+    if (imageData.isEmpty()) {
+        QMessageBox::warning(this, "Скрин-задание", "Получено пустое изображение.");
+        return;
+    }
+
+    bool ok = false;
     const QString task = QInputDialog::getMultiLineText(
         this, "Задание ученикам", "Текст задания / пояснение:",
         "Посмотрите на изображение и выполните задание.", &ok).trimmed();
@@ -1889,6 +1962,13 @@ void TeacherWindow::sendScreenshotTask() {
         return;
 
     auto* multi = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+
+    QHttpPart purposePart;
+    purposePart.setHeader(QNetworkRequest::ContentDispositionHeader,
+                          "form-data; name=\"purpose\"");
+    purposePart.setBody("screenshot_task");
+    multi->append(purposePart);
+
     auto* buffer = new QBuffer(multi);
     buffer->setData(imageData);
     buffer->open(QIODevice::ReadOnly);
@@ -1896,7 +1976,7 @@ void TeacherWindow::sendScreenshotTask() {
     QHttpPart part;
     part.setHeader(QNetworkRequest::ContentDispositionHeader,
                    QString("form-data; name=\"file\"; filename=\"%1\"").arg(fileName));
-    part.setHeader(QNetworkRequest::ContentTypeHeader, "image/png");
+    part.setHeader(QNetworkRequest::ContentTypeHeader, contentType);
     part.setBodyDevice(buffer);
     multi->append(part);
 
@@ -1905,7 +1985,7 @@ void TeacherWindow::sendScreenshotTask() {
     QNetworkRequest req(url);
     req.setRawHeader("Authorization", "Bearer " + token_->text().toUtf8());
 
-    status_->setText("Отправляю скриншот ученикам...");
+    status_->setText("Отправляю скрин-задание ученикам...");
     auto* reply = network_->post(req, multi);
     multi->setParent(reply);
     connect(reply, &QNetworkReply::finished, this, [this, reply, task, fileName] {
@@ -1916,6 +1996,7 @@ void TeacherWindow::sendScreenshotTask() {
             reply->deleteLater();
             return;
         }
+
         const QJsonObject result = QJsonDocument::fromJson(response).object();
         const qint64 fileId = qint64(result.value("id").toDouble());
         if (fileId <= 0) {
@@ -1923,6 +2004,7 @@ void TeacherWindow::sendScreenshotTask() {
             reply->deleteLater();
             return;
         }
+
         ws_->send(QJsonObject{
             {"type", "screenshot_task"},
             {"file_id", double(fileId)},
@@ -1930,7 +2012,7 @@ void TeacherWindow::sendScreenshotTask() {
             {"title", "Задание преподавателя"},
             {"text", task}
         });
-        status_->setText("Скрин-задание отправлено всем ученикам");
+        status_->setText("Скрин-задание отправлено и появится у учеников в разделе «Скрин-задания»");
         reply->deleteLater();
     });
 }
