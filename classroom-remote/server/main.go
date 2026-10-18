@@ -458,9 +458,11 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, st
 				h.mu.Lock()
 				h.pollAnswers[lessonID+"|"+pollID] = map[string]bool{}
 				h.mu.Unlock()
+				fullscreen, _ := m["fullscreen"].(bool)
 				h.sendLesson(lessonID, map[string]any{
 					"type": "poll_start", "poll_id": pollID,
 					"question": question, "options": options,
+					"fullscreen": fullscreen,
 				}, func(x *Client) bool { return x.Role == "student" })
 
 			case "poll_answer":
