@@ -9,6 +9,7 @@ struct ClientConfig {
     QString lessonId;
     QString displayName;
     bool localNetwork{false};
+    bool fullscreenQuestions{false};
 
     static QString filePath();
     static ClientConfig load(const QString& defaultName);
