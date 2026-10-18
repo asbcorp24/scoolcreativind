@@ -106,6 +106,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
       lessonTimer_(new QTimer(this)),
       taskTimer_(new QTimer(this)),
       broadcastElapsedTimer_(new QTimer(this)),
+      pollTimer_(new QTimer(this)),
       network_(new QNetworkAccessManager(this)) {
 
     auto* root = new QWidget;
@@ -647,13 +648,36 @@ TeacherWindow::TeacherWindow(QWidget* parent)
 
     auto* pollRow = new QHBoxLayout;
     auto* pollBtn = new QPushButton("Запустить быстрый опрос");
-    auto* pollResultsBtn = new QPushButton("Результаты опроса");
+    auto* pollResultsBtn = new QPushButton("Результаты");
+    auto* pollShowBtn = new QPushButton("Показать на экране");
+    pollAutoCloseSeconds_ = new QSpinBox;
+    pollAutoCloseSeconds_->setRange(0, 600);
+    pollAutoCloseSeconds_->setValue(30);
+    pollAutoCloseSeconds_->setSuffix(" с");
+    pollAutoCloseSeconds_->setSpecialValueText("без автозакрытия");
+    pollAutoCloseSeconds_->setToolTip("0 — опрос не закрывается автоматически");
     pollStatus_ = new QLabel("Опрос не запущен");
     pollStatus_->setWordWrap(true);
     pollRow->addWidget(pollBtn);
+    pollRow->addWidget(new QLabel("Автозакрытие:"));
+    pollRow->addWidget(pollAutoCloseSeconds_);
     pollRow->addWidget(pollResultsBtn);
+    pollRow->addWidget(pollShowBtn);
     pollRow->addWidget(pollStatus_, 1);
     interactiveLayout->addLayout(pollRow);
+
+    pollTimer_->setInterval(1000);
+    connect(pollTimer_, &QTimer::timeout, this, [this] {
+        if (activePollId_.isEmpty()) {
+            pollTimer_->stop();
+            return;
+        }
+        if (pollRemainingSeconds_ > 0)
+            --pollRemainingSeconds_;
+        updatePollStatus();
+        if (pollRemainingSeconds_ <= 0)
+            closeActivePoll(true);
+    });
 
     auto* chatControls = new QHBoxLayout;
     chatToggle_ = new QPushButton("Общий чат: ВКЛ");
@@ -833,6 +857,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
 
     connect(pollBtn, &QPushButton::clicked, this, &TeacherWindow::startPoll);
     connect(pollResultsBtn, &QPushButton::clicked, this, &TeacherWindow::showPollResults);
+    connect(pollShowBtn, &QPushButton::clicked, this, &TeacherWindow::sendPollResultsToStudents);
     connect(quickFileBtn, &QPushButton::clicked, this, &TeacherWindow::uploadQuickFile);
     connect(attendanceBtn, &QPushButton::clicked, this, &TeacherWindow::showAttendance);
     connect(chatToggle_, &QPushButton::clicked, this, [this] {
@@ -2601,6 +2626,12 @@ void TeacherWindow::launchQuickPoll(const QString& question, const QStringList& 
     pollStudentAnswers_.clear();
     pollStudentNames_.clear();
     pollResponses_ = 0;
+    pollTargetStudents_ = onlineStudentCount_;
+    pollRemainingSeconds_ = pollAutoCloseSeconds_ ? pollAutoCloseSeconds_->value() : 0;
+    if (pollRemainingSeconds_ > 0)
+        pollTimer_->start();
+    else
+        pollTimer_->stop();
 
     QJsonArray arr;
     QStringList clean;
@@ -2619,7 +2650,8 @@ void TeacherWindow::launchQuickPoll(const QString& question, const QStringList& 
         {"poll_id", activePollId_},
         {"question", activePollQuestion_},
         {"options", arr},
-        {"fullscreen", config_.fullscreenQuestions}
+        {"fullscreen", config_.fullscreenQuestions},
+        {"auto_close_seconds", pollRemainingSeconds_}
     });
     pollStatus_->setProperty("options", clean);
     updatePollStatus();
@@ -2646,7 +2678,15 @@ void TeacherWindow::startPoll() {
     activePollId_ = QUuid::createUuid().toString(QUuid::WithoutBraces);
     activePollQuestion_ = question;
     pollCounts_.clear();
+    pollStudentAnswers_.clear();
+    pollStudentNames_.clear();
     pollResponses_ = 0;
+    pollTargetStudents_ = onlineStudentCount_;
+    pollRemainingSeconds_ = pollAutoCloseSeconds_ ? pollAutoCloseSeconds_->value() : 0;
+    if (pollRemainingSeconds_ > 0)
+        pollTimer_->start();
+    else
+        pollTimer_->stop();
 
     QJsonArray arr;
     for (const QString& option : options)
@@ -2656,7 +2696,8 @@ void TeacherWindow::startPoll() {
         {"poll_id", activePollId_},
         {"question", question},
         {"options", arr},
-        {"fullscreen", config_.fullscreenQuestions}
+        {"fullscreen", config_.fullscreenQuestions},
+        {"auto_close_seconds", pollRemainingSeconds_}
     });
     pollStatus_->setProperty("options", options);
     updatePollStatus();
@@ -2670,8 +2711,69 @@ void TeacherWindow::updatePollStatus() {
         const int percent = pollResponses_ > 0 ? qRound(100.0 * count / pollResponses_) : 0;
         parts << QString("%1 — %2 (%3%)").arg(options.at(i)).arg(count).arg(percent);
     }
-    pollStatus_->setText(activePollQuestion_ + " | Ответов: " +
-                         QString::number(pollResponses_) + " | " + parts.join(" · "));
+
+    const int target = qMax(pollTargetStudents_, pollResponses_);
+    const int answeredPercent = target > 0 ? qRound(100.0 * pollResponses_ / target) : 0;
+    QString timerText;
+    if (pollTimer_->isActive() || pollRemainingSeconds_ > 0)
+        timerText = QString(" · осталось %1 с").arg(pollRemainingSeconds_);
+
+    pollStatus_->setText(QString("%1 | Ответили: %2/%3 (%4%)%5 | %6")
+        .arg(activePollQuestion_)
+        .arg(pollResponses_)
+        .arg(target)
+        .arg(answeredPercent)
+        .arg(timerText)
+        .arg(parts.join(" · ")));
+}
+
+void TeacherWindow::closeActivePoll(bool autoClosed) {
+    if (activePollId_.isEmpty())
+        return;
+
+    pollTimer_->stop();
+    pollRemainingSeconds_ = 0;
+    if (ws_->isConnected()) {
+        ws_->send(QJsonObject{
+            {"type", "poll_close"},
+            {"poll_id", activePollId_}
+        });
+    }
+    updatePollStatus();
+    status_->setText(autoClosed ? "Опрос автоматически закрыт" : "Опрос закрыт");
+}
+
+void TeacherWindow::sendPollResultsToStudents() {
+    if (activePollId_.isEmpty() || !ws_->isConnected()) {
+        QMessageBox::information(this, "Опрос", "Нет активного или завершённого опроса.");
+        return;
+    }
+
+    const QStringList options = pollStatus_->property("options").toStringList();
+    QJsonArray resultOptions;
+    for (int i = 0; i < options.size(); ++i) {
+        const int count = pollCounts_.value(i);
+        const int percent = pollResponses_ > 0 ? qRound(100.0 * count / pollResponses_) : 0;
+        resultOptions.append(QJsonObject{
+            {"text", options.at(i)},
+            {"count", count},
+            {"percent", percent}
+        });
+    }
+
+    const int target = qMax(pollTargetStudents_, pollResponses_);
+    const int answeredPercent = target > 0 ? qRound(100.0 * pollResponses_ / target) : 0;
+    ws_->send(QJsonObject{
+        {"type", "poll_results"},
+        {"poll_id", activePollId_},
+        {"question", activePollQuestion_},
+        {"responses", pollResponses_},
+        {"target", target},
+        {"answered_percent", answeredPercent},
+        {"options", resultOptions},
+        {"fullscreen", true}
+    });
+    status_->setText("Результаты опроса показаны ученикам");
 }
 
 void TeacherWindow::showPollResults() {
