@@ -88,6 +88,8 @@ private:
     QUrl httpBaseUrl() const;
     void updatePollStatus();
     void showPollResults();
+    void sendPollResultsToStudents();
+    void closeActivePoll(bool autoClosed = false);
     void launchQuickPoll(const QString& question, const QStringList& options);
     void refreshCaptureSources();
     void applySelectedQuality();
@@ -155,6 +157,7 @@ private:
     QLineEdit* chatInput_{};
     QPushButton* chatToggle_{};
     QLabel* pollStatus_{};
+    QSpinBox* pollAutoCloseSeconds_{};
     bool publicChatEnabled_{true};
     QString activePollId_;
     QString activePollQuestion_;
@@ -162,11 +165,14 @@ private:
     QHash<QString, int> pollStudentAnswers_;
     QHash<QString, QString> pollStudentNames_;
     int pollResponses_{0};
+    int pollTargetStudents_{0};
+    int pollRemainingSeconds_{0};
 
     QTimer* screenTimer_{};
     QTimer* lessonTimer_{};
     QTimer* taskTimer_{};
     QTimer* broadcastElapsedTimer_{};
+    QTimer* pollTimer_{};
     QNetworkAccessManager* network_{};
     QProcess* localServerProcess_{};
     QUdpSocket* lanDiscovery_{};
