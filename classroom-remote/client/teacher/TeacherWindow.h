@@ -43,6 +43,7 @@ class QDialog;
 class QProcess;
 class QUdpSocket;
 class QSystemTrayIcon;
+class QAction;
 class QEvent;
 
 class TeacherWindow final : public QMainWindow {
@@ -102,6 +103,9 @@ private:
     QString localServerExecutable() const;
     void setBroadcastState(bool active, const QString& mode = {});
     void restoreFromTray();
+    void updateOperationalStatus();
+    void updateTrayStatus();
+    void toggleMicrophoneFromTray();
 
     WsClient* ws_{};
     RtcRelayClient* rtc_{};
@@ -117,6 +121,11 @@ private:
     QLineEdit* token_{};
     QLineEdit* teacherName_{};
     QLabel* status_{};
+    QLabel* serverStateLabel_{};
+    QLabel* rtcStateLabel_{};
+    QLabel* studentsStateLabel_{};
+    QLabel* micStateLabel_{};
+    QLabel* broadcastTimeLabel_{};
     QLabel* broadcastStatus_{};
     QLabel* lecturePreview_{};
     QDialog* tvWindow_{};
@@ -156,10 +165,13 @@ private:
     QTimer* screenTimer_{};
     QTimer* lessonTimer_{};
     QTimer* taskTimer_{};
+    QTimer* broadcastElapsedTimer_{};
     QNetworkAccessManager* network_{};
     QProcess* localServerProcess_{};
     QUdpSocket* lanDiscovery_{};
     QSystemTrayIcon* trayIcon_{};
+    QAction* trayBroadcastAction_{};
+    QAction* trayMuteAction_{};
     QCamera* camera_{};
     QMediaCaptureSession* captureSession_{};
     QVideoSink* videoSink_{};
@@ -184,9 +196,13 @@ private:
     QString activeStudent_;
     QString privateAudioTarget_;
     bool micOn_{false};
+    bool signalingConnected_{false};
+    bool rtcReady_{false};
     bool micMuted_{false};
     int lessonElapsedSeconds_{0};
     int taskRemainingSeconds_{0};
+    int broadcastElapsedSeconds_{0};
+    int onlineStudentCount_{0};
     QByteArray systemAudioBuffer_;
     qint64 lastCameraSendMs_{0};
     qint64 lastWindowSendMs_{0};
