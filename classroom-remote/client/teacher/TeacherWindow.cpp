@@ -995,7 +995,7 @@ void TeacherWindow::openInviteUrl(const QUrl& rawUrl) {
     status_->setText("Проверяю ссылку приглашения...");
 
     auto* reply = network_->get(QNetworkRequest(endpoint));
-    connect(reply, &QNetworkReply::finished, this, [this, reply, pin] {
+    connect(reply, &QNetworkReply::finished, this, [this, reply] {
         const QByteArray body = reply->readAll();
         if (reply->error() != QNetworkReply::NoError) {
             QMessageBox::warning(this, "Ссылка",
@@ -1066,7 +1066,7 @@ void TeacherWindow::loginWithPIN() {
 
     status_->setText("Проверяю пароль...");
     auto* reply = network_->post(req, body);
-    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, pin] {
         const QByteArray data = reply->readAll();
         if (reply->error() != QNetworkReply::NoError) {
             if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 429)
