@@ -70,8 +70,13 @@ func listQuickFiles(store *Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		classroomID := chi.URLParam(r, "lesson")
 		rows, err := store.db.Query(`
-SELECT id,original_name,mime_type,size_bytes,created_at
-FROM quick_files WHERE classroom_id=? ORDER BY created_at DESC, id DESC`, classroomID)
+SELECT q.id,q.original_name,q.mime_type,q.size_bytes,q.created_at
+FROM quick_files q
+WHERE q.classroom_id=?
+  AND NOT EXISTS (
+      SELECT 1 FROM screenshot_tasks st WHERE st.file_id=q.id
+  )
+ORDER BY q.created_at DESC, q.id DESC`, classroomID)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
@@ -121,13 +126,16 @@ VALUES(?,?,?,?,?,?)`,
 			return
 		}
 		id, _ := res.LastInsertId()
-		hub.sendLesson(classroomID, map[string]any{
-			"type": "quick_file",
-			"id": id,
-			"name": cleanFilename(header.Filename),
-			"size_bytes": size,
-			"created_at": now,
-		}, func(c *Client) bool { return c.Role == "student" })
+		purpose := strings.TrimSpace(r.FormValue("purpose"))
+		if purpose != "screenshot_task" {
+			hub.sendLesson(classroomID, map[string]any{
+				"type": "quick_file",
+				"id": id,
+				"name": cleanFilename(header.Filename),
+				"size_bytes": size,
+				"created_at": now,
+			}, func(c *Client) bool { return c.Role == "student" })
+		}
 		w.WriteHeader(http.StatusCreated)
 		writeJSON(w, map[string]any{"id": id, "name": cleanFilename(header.Filename), "size_bytes": size})
 	}
