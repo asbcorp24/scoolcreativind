@@ -725,6 +725,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
 
     auto* viewBtn = new QPushButton("Посмотреть экран");
     auto* controlBtn = new QPushButton("Управлять");
+    auto* fullScreenRemoteBtn = new QPushButton("⛶ Во весь экран");
     auto* stopBtn = new QPushButton("Отключиться от ученика");
     auto* audioBtn = new QPushButton("Аудиодиалог");
     auto* downloadBtn = new QPushButton("Скачать запись MP4");
@@ -743,6 +744,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     stopBtn->setProperty("accent", "danger");
     rv->addWidget(viewBtn);
     rv->addWidget(controlBtn);
+    rv->addWidget(fullScreenRemoteBtn);
     rv->addWidget(audioBtn);
     rv->addWidget(downloadBtn);
     rv->addWidget(downloadZipBtn);
@@ -995,8 +997,12 @@ TeacherWindow::TeacherWindow(QWidget* parent)
         }
         activeStudent_ = id;
         remoteView_->setTarget({});
+        if (remoteFullScreenView_)
+            remoteFullScreenView_->setTarget({});
         ws_->send(QJsonObject{{"type", "remote_request"}, {"target", id}, {"mode", "view"}});
     });
+    connect(fullScreenRemoteBtn, &QPushButton::clicked, this, &TeacherWindow::openRemoteFullScreen);
+
     connect(controlBtn, &QPushButton::clicked, this, [this] {
         const auto id = selectedStudentId();
         if (id.isEmpty()) {
@@ -1005,6 +1011,8 @@ TeacherWindow::TeacherWindow(QWidget* parent)
         }
         activeStudent_ = id;
         remoteView_->setTarget(id);
+        if (remoteFullScreenView_)
+            remoteFullScreenView_->setTarget(id);
         ws_->send(QJsonObject{{"type", "remote_request"}, {"target", id}, {"mode", "control"}});
         remoteView_->setFocus();
     });
@@ -1013,6 +1021,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
         activeStudent_.clear();
         remoteView_->setTarget({});
         remoteView_->setText("Экран выбранного ученика");
+        closeRemoteFullScreen();
     });
     connect(audioBtn, &QPushButton::clicked, this, [this, audioBtn] {
         const auto id = selectedStudentId();
@@ -1086,6 +1095,78 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     });
     connect(rtc_, &RtcRelayClient::videoFrameReceived, this, &TeacherWindow::onRtcVideo);
     connect(rtc_, &RtcRelayClient::audioFrameReceived, this, &TeacherWindow::onRtcAudio);
+}
+
+void TeacherWindow::openRemoteFullScreen() {
+    if (activeStudent_.isEmpty()) {
+        QMessageBox::information(this, "Экран ученика",
+            "Сначала выберите ученика и нажмите «Посмотреть экран» или «Управлять».");
+        return;
+    }
+
+    if (!remoteFullScreenDialog_) {
+        remoteFullScreenDialog_ = new QDialog(this);
+        remoteFullScreenDialog_->setAttribute(Qt::WA_DeleteOnClose, false);
+        remoteFullScreenDialog_->setWindowTitle("Экран ученика — полноэкранный режим");
+        remoteFullScreenDialog_->setWindowFlags(
+            Qt::Dialog | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+        remoteFullScreenDialog_->setStyleSheet(
+            "QDialog{background:#020617;} QPushButton{font-weight:800;padding:7px 14px;}");
+
+        auto* layout = new QVBoxLayout(remoteFullScreenDialog_);
+        layout->setContentsMargins(0, 0, 0, 0);
+        layout->setSpacing(0);
+
+        auto* topBar = new QWidget(remoteFullScreenDialog_);
+        topBar->setStyleSheet("background:rgba(2,6,23,225);");
+        auto* topLayout = new QHBoxLayout(topBar);
+        topLayout->setContentsMargins(12, 8, 12, 8);
+
+        auto* title = new QLabel("Экран ученика");
+        title->setStyleSheet("color:white;font-size:15px;font-weight:800;");
+        auto* hint = new QLabel("Esc — выход из полноэкранного режима");
+        hint->setStyleSheet("color:#94a3b8;");
+        auto* closeBtn = new QPushButton("⛶ Выйти из полного экрана");
+
+        topLayout->addWidget(title);
+        topLayout->addSpacing(14);
+        topLayout->addWidget(hint);
+        topLayout->addStretch();
+        topLayout->addWidget(closeBtn);
+
+        remoteFullScreenView_ = new RemoteView(remoteFullScreenDialog_);
+        remoteFullScreenView_->setMinimumSize(0, 0);
+        remoteFullScreenView_->setStyleSheet("background:#020617;color:#94a3b8;border:none;");
+
+        layout->addWidget(topBar);
+        layout->addWidget(remoteFullScreenView_, 1);
+
+        connect(closeBtn, &QPushButton::clicked, this, &TeacherWindow::closeRemoteFullScreen);
+        auto* esc = new QShortcut(QKeySequence(Qt::Key_Escape), remoteFullScreenDialog_);
+        connect(esc, &QShortcut::activated, this, &TeacherWindow::closeRemoteFullScreen);
+        connect(remoteFullScreenView_, &RemoteView::remoteEvent, this, [this](const QJsonObject& e) {
+            rtc_->sendText(e);
+        });
+    }
+
+    remoteFullScreenView_->setTarget(remoteView_->target());
+    if (const QPixmap current = remoteView_->pixmap(Qt::ReturnByValue); !current.isNull()) {
+        remoteFullScreenView_->setPixmap(current.scaled(
+            remoteFullScreenView_->size().isEmpty() ? QSize(1280, 720) : remoteFullScreenView_->size(),
+            Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    }
+
+    remoteFullScreenDialog_->showFullScreen();
+    remoteFullScreenDialog_->raise();
+    remoteFullScreenDialog_->activateWindow();
+
+    if (!remoteFullScreenView_->target().isEmpty())
+        remoteFullScreenView_->setFocus();
+}
+
+void TeacherWindow::closeRemoteFullScreen() {
+    if (remoteFullScreenDialog_)
+        remoteFullScreenDialog_->hide();
 }
 
 void TeacherWindow::toggleMicrophoneFromTray() {
@@ -2592,8 +2673,13 @@ void TeacherWindow::onRtcVideo(const QString& trackId, const QByteArray& h264) {
 
     const QImage image = codec_->decodeVideo(h264);
     if (!image.isNull()) {
-        remoteView_->setPixmap(QPixmap::fromImage(image).scaled(
+        const QPixmap pix = QPixmap::fromImage(image);
+        remoteView_->setPixmap(pix.scaled(
             remoteView_->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        if (remoteFullScreenView_ && remoteFullScreenDialog_ && remoteFullScreenDialog_->isVisible()) {
+            remoteFullScreenView_->setPixmap(pix.scaled(
+                remoteFullScreenView_->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        }
     }
 }
 
