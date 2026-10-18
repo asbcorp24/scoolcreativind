@@ -1031,7 +1031,7 @@ void TeacherWindow::openInviteUrl(const QUrl& rawUrl) {
 
 void TeacherWindow::editConnectionSettings() {
     QString error;
-    if (!config_.edit(this, "Настройки подключения", &error)) {
+    if (!config_.edit(this, "Настройки подключения", true, &error)) {
         if (!error.isEmpty())
             QMessageBox::warning(this, "Настройки", error);
         return;
