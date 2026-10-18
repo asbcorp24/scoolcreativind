@@ -8,6 +8,7 @@ struct ClientConfig {
     QString serverUrl;
     QString lessonId;
     QString displayName;
+    QString pin;
     bool localNetwork{false};
     bool fullscreenQuestions{false};
 
