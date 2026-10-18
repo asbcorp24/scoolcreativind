@@ -105,6 +105,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
       screenTimer_(new QTimer(this)),
       lessonTimer_(new QTimer(this)),
       taskTimer_(new QTimer(this)),
+      broadcastElapsedTimer_(new QTimer(this)),
       network_(new QNetworkAccessManager(this)) {
 
     auto* root = new QWidget;
@@ -439,6 +440,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     connect(muteButton_, &QPushButton::toggled, this, [this](bool checked) {
         micMuted_ = checked;
         muteButton_->setText(checked ? "🔇 Muted" : "🔊 Mute");
+        updateOperationalStatus();
     });
     connect(audio_, &AudioPipe::levelChanged, this, [this](int level) {
         if (micLevel_)
@@ -459,6 +461,27 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     broadcastRow->addWidget(new QLabel("Уровень:"));
     broadcastRow->addWidget(micLevel_);
     outer->addLayout(broadcastRow);
+
+    auto* liveStatusRow = new QHBoxLayout;
+    liveStatusRow->setSpacing(4);
+    serverStateLabel_ = new QLabel("Сервер ○");
+    rtcStateLabel_ = new QLabel("WebRTC ○");
+    studentsStateLabel_ = new QLabel("Ученики 0");
+    micStateLabel_ = new QLabel("Микрофон ○");
+    broadcastTimeLabel_ = new QLabel("Трансляция 00:00:00");
+    for (auto* label : {serverStateLabel_, rtcStateLabel_, studentsStateLabel_, micStateLabel_, broadcastTimeLabel_}) {
+        label->setStyleSheet("QLabel{background:#111827;color:#cbd5e1;padding:4px 7px;border:1px solid #334155;border-radius:7px;font-size:11px;font-weight:700;}");
+        liveStatusRow->addWidget(label);
+    }
+    liveStatusRow->addStretch();
+    outer->addLayout(liveStatusRow);
+
+    broadcastElapsedTimer_->setInterval(1000);
+    connect(broadcastElapsedTimer_, &QTimer::timeout, this, [this] {
+        if (broadcastActive_)
+            ++broadcastElapsedSeconds_;
+        updateOperationalStatus();
+    });
 
     auto* lessonTools = new QHBoxLayout;
     lessonTimerLabel_ = new QLabel("Урок: 00:00:00");
@@ -722,11 +745,19 @@ TeacherWindow::TeacherWindow(QWidget* parent)
         auto* showAction = trayMenu->addAction("Показать");
         auto* hideAction = trayMenu->addAction("Скрыть в трей");
         trayMenu->addSeparator();
+        trayBroadcastAction_ = trayMenu->addAction("▶ Начать трансляцию");
+        trayMuteAction_ = trayMenu->addAction("🎤 Включить микрофон");
+        trayMenu->addSeparator();
         auto* quitAction = trayMenu->addAction("Выход");
         trayIcon_->setContextMenu(trayMenu);
 
         connect(showAction, &QAction::triggered, this, &TeacherWindow::restoreFromTray);
         connect(hideAction, &QAction::triggered, this, &QWidget::hide);
+        connect(trayBroadcastAction_, &QAction::triggered, this, [this] {
+            if (broadcastToggleButton_)
+                broadcastToggleButton_->click();
+        });
+        connect(trayMuteAction_, &QAction::triggered, this, &TeacherWindow::toggleMicrophoneFromTray);
         connect(quitAction, &QAction::triggered, qApp, &QCoreApplication::quit);
         connect(trayIcon_, &QSystemTrayIcon::activated, this,
                 [this](QSystemTrayIcon::ActivationReason reason) {
@@ -735,6 +766,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
                 restoreFromTray();
         });
         trayIcon_->show();
+        updateTrayStatus();
     }
 
     if (!codec_->initialize())
@@ -836,6 +868,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
             audio_->stopCapture();
         }
         micButton_->setText(micOn_ ? "🎤 Микрофон: ВКЛ" : "🎤 Микрофон");
+        updateOperationalStatus();
     });
 
     connect(systemAudio_, &SystemAudioCapture::captured, this, [this](const QByteArray& pcm) {
@@ -995,12 +1028,16 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     });
 
     connect(ws_, &WsClient::connected, this, [this] {
+        signalingConnected_ = true;
         status_->setText("● Сигналинг подключён, получаю ICE/TURN конфигурацию...");
+        updateOperationalStatus();
     });
     connect(ws_, &WsClient::disconnected, this, [this] {
-        status_->setText("○ Отключено");
+        signalingConnected_ = false;
+        rtcReady_ = false;
+        status_->setText("○ Связь потеряна — переподключаюсь автоматически...");
         rtc_->stop();
-        stopLecture();
+        updateOperationalStatus();
     });
     connect(ws_, &WsClient::errorText, this, [this](const QString& e) {
         status_->setText("Ошибка: " + e);
@@ -1008,13 +1045,85 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     connect(ws_, &WsClient::message, this, &TeacherWindow::onMessage);
 
     connect(rtc_, &RtcRelayClient::opened, this, [this] {
+        rtcReady_ = true;
         status_->setText("● WebRTC готов");
+        updateOperationalStatus();
+    });
+    connect(rtc_, &RtcRelayClient::closed, this, [this] {
+        rtcReady_ = false;
+        updateOperationalStatus();
     });
     connect(rtc_, &RtcRelayClient::stateText, this, [this](const QString& s) {
         status_->setText(s);
     });
     connect(rtc_, &RtcRelayClient::videoFrameReceived, this, &TeacherWindow::onRtcVideo);
     connect(rtc_, &RtcRelayClient::audioFrameReceived, this, &TeacherWindow::onRtcAudio);
+}
+
+void TeacherWindow::toggleMicrophoneFromTray() {
+    if (micButton_)
+        micButton_->click();
+}
+
+void TeacherWindow::updateTrayStatus() {
+    if (!trayIcon_)
+        return;
+
+    const QString mode = broadcastActive_ ? "Трансляция" : "без трансляции";
+    trayIcon_->setToolTip(QString("%1 %2 учеников · %3")
+        .arg(signalingConnected_ ? "🟢" : "🟡")
+        .arg(onlineStudentCount_)
+        .arg(mode));
+
+    if (trayBroadcastAction_)
+        trayBroadcastAction_->setText(broadcastActive_
+            ? "⏹ Остановить трансляцию"
+            : "▶ Начать трансляцию");
+
+    if (trayMuteAction_) {
+        if (!micOn_)
+            trayMuteAction_->setText("🎤 Включить микрофон");
+        else if (micMuted_)
+            trayMuteAction_->setText("🔊 Включить звук микрофона");
+        else
+            trayMuteAction_->setText("🔇 Выключить микрофон");
+    }
+}
+
+void TeacherWindow::updateOperationalStatus() {
+    const auto badge = [](bool ok, const QString& on, const QString& off) {
+        return QString("%1 %2").arg(ok ? "●" : "○", ok ? on : off);
+    };
+
+    if (serverStateLabel_) {
+        serverStateLabel_->setText(badge(signalingConnected_, "Сервер", "Сервер"));
+        serverStateLabel_->setStyleSheet(signalingConnected_
+            ? "QLabel{background:#052e1b;color:#86efac;padding:4px 7px;border:1px solid #16a34a;border-radius:7px;font-size:11px;font-weight:700;}"
+            : "QLabel{background:#3f1d1d;color:#fca5a5;padding:4px 7px;border:1px solid #991b1b;border-radius:7px;font-size:11px;font-weight:700;}");
+    }
+    if (rtcStateLabel_) {
+        rtcStateLabel_->setText(badge(rtcReady_, "WebRTC", "WebRTC"));
+        rtcStateLabel_->setStyleSheet(rtcReady_
+            ? "QLabel{background:#052e1b;color:#86efac;padding:4px 7px;border:1px solid #16a34a;border-radius:7px;font-size:11px;font-weight:700;}"
+            : "QLabel{background:#3f2a0a;color:#fcd34d;padding:4px 7px;border:1px solid #a16207;border-radius:7px;font-size:11px;font-weight:700;}");
+    }
+    if (studentsStateLabel_)
+        studentsStateLabel_->setText(QString("Ученики %1").arg(onlineStudentCount_));
+    if (micStateLabel_) {
+        const QString micText = !micOn_ ? "Микрофон ○" : (micMuted_ ? "Микрофон 🔇" : "Микрофон ●");
+        micStateLabel_->setText(micText);
+    }
+    if (broadcastTimeLabel_) {
+        const int h = broadcastElapsedSeconds_ / 3600;
+        const int m = (broadcastElapsedSeconds_ % 3600) / 60;
+        const int s = broadcastElapsedSeconds_ % 60;
+        broadcastTimeLabel_->setText(QString("Трансляция %1:%2:%3")
+            .arg(h, 2, 10, QChar('0'))
+            .arg(m, 2, 10, QChar('0'))
+            .arg(s, 2, 10, QChar('0')));
+    }
+
+    updateTrayStatus();
 }
 
 void TeacherWindow::restoreFromTray() {
@@ -1196,6 +1305,7 @@ void TeacherWindow::onMessage(const QJsonObject& obj) {
         names_.clear();
 
         bool selectedStillOnline = false;
+        int studentCount = 0;
         for (const auto& v : obj.value("users").toArray()) {
             const auto u = v.toObject();
             if (u.value("role").toString() != "student")
@@ -1204,10 +1314,12 @@ void TeacherWindow::onMessage(const QJsonObject& obj) {
             const QString id = u.value("id").toString();
             const QString name = u.value("name").toString();
             names_[id] = name;
+            ++studentCount;
 
             QStringList badges;
             if (u.value("hand_raised").toBool()) badges << "✋ рука";
-            if (!u.value("rtc_ready").toBool()) badges << "RTC?";
+            if (u.value("confused").toBool()) badges << "❓ не понял";
+            if (!u.value("rtc_ready").toBool()) badges << "RTC нет";
             if (!u.value("watching").toBool()) badges << "не смотрит";
             if (u.value("homework_busy").toBool()) badges << "сдаёт ДЗ";
             const QString state = u.value("status").toString();
@@ -1260,6 +1372,9 @@ void TeacherWindow::onMessage(const QJsonObject& obj) {
             }
         }
 
+        onlineStudentCount_ = studentCount;
+        updateOperationalStatus();
+
         if (!selectedStillOnline) {
             selectedStudentId_.clear();
             selectedStudentLabel_->setText("Никто не выбран");
@@ -1277,6 +1392,7 @@ void TeacherWindow::onMessage(const QJsonObject& obj) {
         } else {
             status_->setText((name.isEmpty() ? QString("Ученик") : name) + " снял отметку «Не понял»");
         }
+        updateOperationalStatus();
     } else if (type == "poll_answer") {
         if (obj.value("poll_id").toString() == activePollId_) {
             const int answer = obj.value("answer").toInt(-1);
@@ -1810,8 +1926,15 @@ void TeacherWindow::stopLecture() {
 }
 
 void TeacherWindow::setBroadcastState(bool active, const QString& mode) {
+    const bool wasActive = broadcastActive_;
     broadcastActive_ = active;
     broadcastMode_ = active ? mode : QString();
+    if (active && !wasActive) {
+        broadcastElapsedSeconds_ = 0;
+        broadcastElapsedTimer_->start();
+    } else if (!active) {
+        broadcastElapsedTimer_->stop();
+    }
 
     if (broadcastToggleButton_) {
         if (active) {
@@ -1822,6 +1945,8 @@ void TeacherWindow::setBroadcastState(bool active, const QString& mode) {
             broadcastToggleButton_->setStyleSheet("QPushButton{font-weight:900;padding:8px 16px;border-radius:10px;background:#16a34a;color:white;border:1px solid #22c55e;} QPushButton:hover{background:#15803d;}");
         }
     }
+
+    updateOperationalStatus();
 
     if (!broadcastStatus_)
         return;
