@@ -1076,7 +1076,7 @@ void TeacherWindow::updateTrayStatus() {
     const QString liveText = QString("%1 %2/%3 учеников · %4")
         .arg(signalingConnected_ ? "🟢" : "🟡")
         .arg(onlineStudentCount_)
-        .arg(qMax(onlineStudentCount_, knownStudentIds_.size()))
+        .arg(qMax(onlineStudentCount_, int(knownStudentIds_.size())))
         .arg(mode);
     trayIcon_->setToolTip(liveText);
     if (trayStatusAction_)
@@ -1117,7 +1117,7 @@ void TeacherWindow::updateOperationalStatus() {
     if (studentsStateLabel_)
         studentsStateLabel_->setText(QString("Ученики %1/%2")
             .arg(onlineStudentCount_)
-            .arg(qMax(onlineStudentCount_, knownStudentIds_.size())));
+            .arg(qMax(onlineStudentCount_, int(knownStudentIds_.size()))));
     if (micStateLabel_) {
         const QString micText = !micOn_ ? "Микрофон ○" : (micMuted_ ? "Микрофон 🔇" : "Микрофон ●");
         micStateLabel_->setText(micText);
