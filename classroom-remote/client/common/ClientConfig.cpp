@@ -37,6 +37,7 @@ ClientConfig ClientConfig::load(const QString& defaultName) {
     const QString lesson = obj.value("lesson_id").toString().trimmed();
     const QString name = obj.value("display_name").toString().trimmed();
     cfg.localNetwork = obj.value("local_network").toBool(false);
+    cfg.fullscreenQuestions = obj.value("fullscreen_questions").toBool(false);
     if (!server.isEmpty()) cfg.serverUrl = server;
     if (!lesson.isEmpty()) cfg.lessonId = lesson;
     if (!name.isEmpty()) cfg.displayName = name;
@@ -48,7 +49,8 @@ bool ClientConfig::save(QString* error) const {
         {"server_url", serverUrl.trimmed()},
         {"lesson_id", lessonId.trimmed()},
         {"display_name", displayName.trimmed()},
-        {"local_network", localNetwork}
+        {"local_network", localNetwork},
+        {"fullscreen_questions", fullscreenQuestions}
     };
     QFile f(filePath());
     if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
@@ -75,16 +77,20 @@ bool ClientConfig::edit(QWidget* parent, const QString& title, QString* error) {
     auto* name = new QLineEdit(displayName);
     auto* localMode = new QCheckBox("Работа в локальной сети — искать преподавателя автоматически");
     localMode->setChecked(localNetwork);
+    auto* fullscreenQuestionsBox = new QCheckBox("Показывать вопросы и опросы ученикам на весь экран");
+    fullscreenQuestionsBox->setChecked(fullscreenQuestions);
 
     form->addRow("Сервер:", server);
     form->addRow("Занятие / класс:", lesson);
     form->addRow("Имя:", name);
     form->addRow("", localMode);
+    form->addRow("", fullscreenQuestionsBox);
     layout->addLayout(form);
 
     auto* hint = new QLabel(
         "В config.json сохраняются только настройки подключения. "
-        "PIN и внутренний токен доступа не сохраняются. В локальном режиме адрес преподавателя ищется автоматически; поле сервера используется как запасной адрес.");
+        "PIN и внутренний токен доступа не сохраняются. В локальном режиме адрес преподавателя ищется автоматически; поле сервера используется как запасной адрес. "
+        "Параметр полноэкранных вопросов используется приложением преподавателя.");
     hint->setWordWrap(true);
     hint->setProperty("muted", true);
     layout->addWidget(hint);
@@ -109,6 +115,7 @@ bool ClientConfig::edit(QWidget* parent, const QString& title, QString* error) {
 
     serverUrl = base;
     localNetwork = localMode->isChecked();
+    fullscreenQuestions = fullscreenQuestionsBox->isChecked();
     lessonId = lesson->text().trimmed().isEmpty() ? "101" : lesson->text().trimmed();
     displayName = name->text().trimmed();
     if (displayName.isEmpty())
