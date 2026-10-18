@@ -36,11 +36,13 @@ ClientConfig ClientConfig::load(const QString& defaultName) {
     const QString server = obj.value("server_url").toString().trimmed();
     const QString lesson = obj.value("lesson_id").toString().trimmed();
     const QString name = obj.value("display_name").toString().trimmed();
+    const QString pin = obj.value("pin").toString().trimmed();
     cfg.localNetwork = obj.value("local_network").toBool(false);
     cfg.fullscreenQuestions = obj.value("fullscreen_questions").toBool(false);
     if (!server.isEmpty()) cfg.serverUrl = server;
     if (!lesson.isEmpty()) cfg.lessonId = lesson;
     if (!name.isEmpty()) cfg.displayName = name;
+    if (!pin.isEmpty()) cfg.pin = pin;
     return cfg;
 }
 
@@ -49,6 +51,7 @@ bool ClientConfig::save(QString* error) const {
         {"server_url", serverUrl.trimmed()},
         {"lesson_id", lessonId.trimmed()},
         {"display_name", displayName.trimmed()},
+        {"pin", pin.trimmed()},
         {"local_network", localNetwork},
         {"fullscreen_questions", fullscreenQuestions}
     };
@@ -92,11 +95,12 @@ bool ClientConfig::edit(QWidget* parent, const QString& title, bool showFullscre
     layout->addLayout(form);
 
     const QString hintText = showFullscreenQuestions
-        ? "В config.json сохраняются только настройки подключения. "
-          "PIN и внутренний токен доступа не сохраняются. В локальном режиме адрес преподавателя ищется автоматически; поле сервера используется как запасной адрес. "
+        ? "В config.json сохраняются настройки подключения и последний успешно использованный PIN. "
+          "Внутренний токен доступа не сохраняется. В локальном режиме адрес преподавателя ищется автоматически; поле сервера используется как запасной адрес. "
           "Полноэкранный режим вопросов задаёт преподаватель для всех учеников."
-        : "В config.json сохраняются только настройки подключения. "
-          "PIN и внутренний токен доступа не сохраняются. В локальном режиме адрес преподавателя ищется автоматически; поле сервера используется как запасной адрес.";
+        : "В config.json сохраняются настройки подключения и последний успешно использованный PIN. "
+          "Внутренний токен доступа не сохраняется. В локальном режиме адрес преподавателя ищется автоматически; поле сервера используется как запасной адрес.";
+
     auto* hint = new QLabel(hintText);
     hint->setWordWrap(true);
     hint->setProperty("muted", true);
