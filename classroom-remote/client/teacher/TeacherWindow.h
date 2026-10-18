@@ -86,6 +86,8 @@ private:
     void applySelectedQuality();
     void openTVWindow();
     void sendScreenshotTask();
+    void uploadScreenshotTask(const QByteArray& imageData, const QString& fileName,
+                              const QString& contentType);
     void startLocalServer();
     void stopLocalServer();
     void checkLocalServerReady(int attempt = 1);
