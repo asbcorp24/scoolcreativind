@@ -2,6 +2,7 @@
 
 #include <QMainWindow>
 #include <QHash>
+#include <QSet>
 #include <QByteArray>
 #include <QJsonObject>
 #include "../common/ClientConfig.h"
@@ -170,6 +171,7 @@ private:
     QProcess* localServerProcess_{};
     QUdpSocket* lanDiscovery_{};
     QSystemTrayIcon* trayIcon_{};
+    QAction* trayStatusAction_{};
     QAction* trayBroadcastAction_{};
     QAction* trayMuteAction_{};
     QCamera* camera_{};
@@ -192,6 +194,7 @@ private:
     QAudioBufferOutput* fileAudioBuffer_{};
 
     QHash<QString, QString> names_;
+    QSet<QString> knownStudentIds_;
     QString selectedStudentId_;
     QString activeStudent_;
     QString privateAudioTarget_;
