@@ -471,6 +471,33 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, st
 					"fullscreen": fullscreen,
 				}, func(x *Client) bool { return x.Role == "student" })
 
+			case "poll_close":
+				if c.Role != "teacher" {
+					continue
+				}
+				pollID := strings.TrimSpace(fmt.Sprint(m["poll_id"]))
+				if pollID == "" {
+					continue
+				}
+				h.mu.Lock()
+				delete(h.pollAnswers, lessonID+"|"+pollID)
+				h.mu.Unlock()
+				h.sendLesson(lessonID, map[string]any{
+					"type": "poll_close",
+					"poll_id": pollID,
+				}, func(x *Client) bool { return x.Role == "student" })
+
+			case "poll_results":
+				if c.Role != "teacher" || !jsonMessageSizeOK(m, 32*1024) {
+					continue
+				}
+				pollID := strings.TrimSpace(fmt.Sprint(m["poll_id"]))
+				question := strings.TrimSpace(fmt.Sprint(m["question"]))
+				if pollID == "" || question == "" {
+					continue
+				}
+				h.sendLesson(lessonID, m, func(x *Client) bool { return x.Role == "student" })
+
 			case "poll_answer":
 				if c.Role != "student" {
 					continue
