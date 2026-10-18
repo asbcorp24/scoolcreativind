@@ -64,7 +64,7 @@ bool ClientConfig::save(QString* error) const {
     return true;
 }
 
-bool ClientConfig::edit(QWidget* parent, const QString& title, QString* error) {
+bool ClientConfig::edit(QWidget* parent, const QString& title, bool showFullscreenQuestions, QString* error) {
     QDialog dlg(parent);
     dlg.setWindowTitle(title);
     dlg.setMinimumWidth(480);
@@ -77,20 +77,27 @@ bool ClientConfig::edit(QWidget* parent, const QString& title, QString* error) {
     auto* name = new QLineEdit(displayName);
     auto* localMode = new QCheckBox("Работа в локальной сети — искать преподавателя автоматически");
     localMode->setChecked(localNetwork);
-    auto* fullscreenQuestionsBox = new QCheckBox("Показывать вопросы и опросы ученикам на весь экран");
-    fullscreenQuestionsBox->setChecked(fullscreenQuestions);
+    QCheckBox* fullscreenQuestionsBox = nullptr;
+    if (showFullscreenQuestions) {
+        fullscreenQuestionsBox = new QCheckBox("Показывать вопросы и опросы ученикам на весь экран");
+        fullscreenQuestionsBox->setChecked(fullscreenQuestions);
+    }
 
     form->addRow("Сервер:", server);
     form->addRow("Занятие / класс:", lesson);
     form->addRow("Имя:", name);
     form->addRow("", localMode);
-    form->addRow("", fullscreenQuestionsBox);
+    if (fullscreenQuestionsBox)
+        form->addRow("", fullscreenQuestionsBox);
     layout->addLayout(form);
 
-    auto* hint = new QLabel(
-        "В config.json сохраняются только настройки подключения. "
-        "PIN и внутренний токен доступа не сохраняются. В локальном режиме адрес преподавателя ищется автоматически; поле сервера используется как запасной адрес. "
-        "Параметр полноэкранных вопросов используется приложением преподавателя.");
+    const QString hintText = showFullscreenQuestions
+        ? "В config.json сохраняются только настройки подключения. "
+          "PIN и внутренний токен доступа не сохраняются. В локальном режиме адрес преподавателя ищется автоматически; поле сервера используется как запасной адрес. "
+          "Полноэкранный режим вопросов задаёт преподаватель для всех учеников."
+        : "В config.json сохраняются только настройки подключения. "
+          "PIN и внутренний токен доступа не сохраняются. В локальном режиме адрес преподавателя ищется автоматически; поле сервера используется как запасной адрес.";
+    auto* hint = new QLabel(hintText);
     hint->setWordWrap(true);
     hint->setProperty("muted", true);
     layout->addWidget(hint);
@@ -115,7 +122,8 @@ bool ClientConfig::edit(QWidget* parent, const QString& title, QString* error) {
 
     serverUrl = base;
     localNetwork = localMode->isChecked();
-    fullscreenQuestions = fullscreenQuestionsBox->isChecked();
+    if (fullscreenQuestionsBox)
+        fullscreenQuestions = fullscreenQuestionsBox->isChecked();
     lessonId = lesson->text().trimmed().isEmpty() ? "101" : lesson->text().trimmed();
     displayName = name->text().trimmed();
     if (displayName.isEmpty())
