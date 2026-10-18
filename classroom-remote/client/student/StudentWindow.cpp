@@ -697,6 +697,93 @@ void StudentWindow::onMessage(const QJsonObject& obj) {
         return;
     }
 
+    if (type == "poll_close") {
+        const QString pollId = obj.value("poll_id").toString();
+        if (pollId.isEmpty() || pollId == activePollId_) {
+            pollAnswerButton_->setEnabled(false);
+            pollQuestion_->setText(pollQuestion_->text() + " — опрос закрыт");
+            activePollId_.clear();
+            if (pollDialog_)
+                pollDialog_->accept();
+        }
+        return;
+    }
+
+    if (type == "poll_results") {
+        const QString question = obj.value("question").toString("Результаты опроса");
+        const int responses = obj.value("responses").toInt();
+        const int target = obj.value("target").toInt();
+        const int answeredPercent = obj.value("answered_percent").toInt();
+        const QJsonArray results = obj.value("options").toArray();
+
+        auto* resultsDialog = new QDialog(this);
+        resultsDialog->setAttribute(Qt::WA_DeleteOnClose, true);
+        resultsDialog->setModal(false);
+        resultsDialog->setWindowFlags(
+            Qt::Dialog | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+        resultsDialog->setStyleSheet(
+            "QDialog{background:#06070b;}"
+            "QLabel{color:#f5f7ff;}"
+            "QPushButton{font-size:20px;font-weight:800;min-height:52px;padding:8px 24px;}");
+
+        auto* layout = new QVBoxLayout(resultsDialog);
+        layout->setContentsMargins(90, 60, 90, 60);
+        layout->setSpacing(18);
+
+        auto* eyebrow = new QLabel("CLASSROOM / РЕЗУЛЬТАТЫ ОПРОСА");
+        eyebrow->setAlignment(Qt::AlignCenter);
+        eyebrow->setStyleSheet(
+            "font-size:14px;font-weight:800;letter-spacing:2px;color:#00e5ff;");
+
+        auto* questionLabel = new QLabel(question);
+        questionLabel->setAlignment(Qt::AlignCenter);
+        questionLabel->setWordWrap(true);
+        questionLabel->setStyleSheet("font-size:34px;font-weight:850;padding:14px;");
+
+        auto* responseLabel = new QLabel(
+            QString("Ответили: %1/%2 (%3%)").arg(responses).arg(target).arg(answeredPercent));
+        responseLabel->setAlignment(Qt::AlignCenter);
+        responseLabel->setStyleSheet("font-size:22px;font-weight:700;color:#cbd5e1;");
+
+        layout->addStretch();
+        layout->addWidget(eyebrow);
+        layout->addWidget(questionLabel);
+        layout->addWidget(responseLabel);
+
+        for (const auto& v : results) {
+            const QJsonObject row = v.toObject();
+            const QString text = row.value("text").toString();
+            const int count = row.value("count").toInt();
+            const int percent = row.value("percent").toInt();
+
+            auto* result = new QLabel(
+                QString("<b>%1</b><br><span style='font-size:18px'>%2 голосов · %3%</span>")
+                    .arg(text.toHtmlEscaped())
+                    .arg(count)
+                    .arg(percent));
+            result->setTextFormat(Qt::RichText);
+            result->setAlignment(Qt::AlignCenter);
+            result->setStyleSheet(
+                "background:#111827;border:1px solid #334155;border-radius:14px;"
+                "padding:14px;font-size:26px;");
+            layout->addWidget(result);
+        }
+
+        auto* closeButton = new QPushButton("ЗАКРЫТЬ");
+        closeButton->setProperty("accent", "primary");
+        closeButton->setMinimumWidth(220);
+        layout->addSpacing(10);
+        layout->addWidget(closeButton, 0, Qt::AlignHCenter);
+        layout->addStretch();
+
+        connect(closeButton, &QPushButton::clicked, resultsDialog, &QDialog::accept);
+        resultsDialog->showFullScreen();
+        resultsDialog->raise();
+        resultsDialog->activateWindow();
+        QApplication::beep();
+        return;
+    }
+
     if (type == "chat_control") {
         publicChatEnabled_ = obj.value("enabled").toBool();
         chatState_->setText(publicChatEnabled_
