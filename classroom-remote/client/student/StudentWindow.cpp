@@ -401,7 +401,7 @@ void StudentWindow::openInviteUrl(const QUrl& rawUrl) {
 
 void StudentWindow::editConnectionSettings() {
     QString error;
-    if (!config_.edit(this, "Настройки подключения", &error)) {
+    if (!config_.edit(this, "Настройки подключения", false, &error)) {
         if (!error.isEmpty())
             QMessageBox::warning(this, "Настройки", error);
         return;
