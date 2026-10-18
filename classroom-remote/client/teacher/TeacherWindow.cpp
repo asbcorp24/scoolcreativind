@@ -2336,7 +2336,8 @@ void TeacherWindow::launchQuickPoll(const QString& question, const QStringList& 
         {"type", "poll_start"},
         {"poll_id", activePollId_},
         {"question", activePollQuestion_},
-        {"options", arr}
+        {"options", arr},
+        {"fullscreen", config_.fullscreenQuestions}
     });
     pollStatus_->setProperty("options", clean);
     updatePollStatus();
@@ -2372,7 +2373,8 @@ void TeacherWindow::startPoll() {
         {"type", "poll_start"},
         {"poll_id", activePollId_},
         {"question", question},
-        {"options", arr}
+        {"options", arr},
+        {"fullscreen", config_.fullscreenQuestions}
     });
     pollStatus_->setProperty("options", options);
     updatePollStatus();
