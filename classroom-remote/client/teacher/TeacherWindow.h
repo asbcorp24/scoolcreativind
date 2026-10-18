@@ -42,6 +42,8 @@ class SystemAudioCapture;
 class QDialog;
 class QProcess;
 class QUdpSocket;
+class QSystemTrayIcon;
+class QEvent;
 
 class TeacherWindow final : public QMainWindow {
     Q_OBJECT
@@ -49,6 +51,9 @@ public:
     explicit TeacherWindow(QWidget* parent = nullptr);
     ~TeacherWindow() override;
     void openInviteUrl(const QUrl& url);
+
+protected:
+    void changeEvent(QEvent* event) override;
 
 private:
     void loginWithPIN();
@@ -96,6 +101,7 @@ private:
     QString localIPv4Address() const;
     QString localServerExecutable() const;
     void setBroadcastState(bool active, const QString& mode = {});
+    void restoreFromTray();
 
     WsClient* ws_{};
     RtcRelayClient* rtc_{};
@@ -153,6 +159,7 @@ private:
     QNetworkAccessManager* network_{};
     QProcess* localServerProcess_{};
     QUdpSocket* lanDiscovery_{};
+    QSystemTrayIcon* trayIcon_{};
     QCamera* camera_{};
     QMediaCaptureSession* captureSession_{};
     QVideoSink* videoSink_{};
