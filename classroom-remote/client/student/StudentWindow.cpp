@@ -92,6 +92,7 @@ StudentWindow::StudentWindow(QWidget* parent)
     loginTitle->setObjectName("sciEyebrow");
     pin_ = new QLineEdit;
     pin_->setPlaceholderText("Числовой пароль");
+    pin_->setText(config_.pin);
     pin_->setEchoMode(QLineEdit::Password);
     pin_->setMaxLength(10);
     pin_->setMinimumWidth(180);
@@ -440,7 +441,7 @@ void StudentWindow::loginWithPIN() {
 
     status_->setText("Проверяю пароль...");
     auto* reply = network_->post(req, body);
-    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, pin] {
         const QByteArray data = reply->readAll();
         if (reply->error() != QNetworkReply::NoError) {
             const int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
@@ -486,7 +487,11 @@ void StudentWindow::loginWithPIN() {
         wsUrl_->setText(obj.value("ws_url").toString());
         httpUrl_->setText(obj.value("http_url").toString());
         name_->setText(config_.displayName);
-        pin_->clear();
+        config_.pin = pin;
+        QString saveError;
+        if (!config_.save(&saveError))
+            status_->setText("PIN принят, но не удалось сохранить config.json: " + saveError);
+        pin_->setText(config_.pin);
         status_->setText("Пароль принят, подключаюсь...");
         if (config_.localNetwork)
             showLanConnectDialog("PIN принят. Подключаюсь к занятию...");
