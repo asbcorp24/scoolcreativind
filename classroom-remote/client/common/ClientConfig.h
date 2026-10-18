@@ -14,5 +14,5 @@ struct ClientConfig {
     static QString filePath();
     static ClientConfig load(const QString& defaultName);
     bool save(QString* error = nullptr) const;
-    bool edit(QWidget* parent, const QString& title, QString* error = nullptr);
+    bool edit(QWidget* parent, const QString& title, bool showFullscreenQuestions = false, QString* error = nullptr);
 };
