@@ -263,6 +263,8 @@ StudentWindow::StudentWindow(QWidget* parent)
         });
         pollAnswerButton_->setEnabled(false);
         pollQuestion_->setText(pollQuestion_->text() + " — ответ отправлен");
+        if (pollDialog_)
+            pollDialog_->accept();
     });
 
     connect(chatInput_, &QLineEdit::returnPressed, this, &StudentWindow::sendChat);
@@ -581,12 +583,112 @@ void StudentWindow::onMessage(const QJsonObject& obj) {
 
     if (type == "poll_start") {
         activePollId_ = obj.value("poll_id").toString();
-        pollQuestion_->setText(obj.value("question").toString());
+        const QString question = obj.value("question").toString();
+        const QJsonArray options = obj.value("options").toArray();
+        const bool fullscreen = obj.value("fullscreen").toBool(false);
+
+        pollQuestion_->setText(question);
         pollOptions_->clear();
-        for (const auto& v : obj.value("options").toArray())
+        for (const auto& v : options)
             pollOptions_->addItem(v.toString());
         pollAnswerButton_->setEnabled(pollOptions_->count() > 0);
         mainTabs_->setCurrentIndex(3);
+
+        if (fullscreen) {
+            if (pollDialog_) {
+                pollDialog_->close();
+                pollDialog_->deleteLater();
+                pollDialog_ = nullptr;
+            }
+
+            pollDialog_ = new QDialog(this);
+            pollDialog_->setModal(false);
+            pollDialog_->setWindowFlags(
+                Qt::Dialog | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+            pollDialog_->setStyleSheet(
+                "QDialog{background:#06070b;}"
+                "QLabel{color:#f5f7ff;}"
+                "QListWidget{font-size:24px;padding:12px;background:#0d1017;"
+                "border:1px solid rgba(255,255,255,28);border-radius:18px;}"
+                "QListWidget::item{padding:18px 22px;margin:5px;border-radius:14px;}"
+                "QListWidget::item:selected{background:#8a5cff;color:white;}"
+                "QPushButton{font-size:22px;font-weight:800;min-height:58px;padding:10px 28px;}");
+
+            auto* layout = new QVBoxLayout(pollDialog_);
+            layout->setContentsMargins(80, 60, 80, 60);
+            layout->setSpacing(22);
+
+            auto* eyebrow = new QLabel("CLASSROOM / ВОПРОС ПРЕПОДАВАТЕЛЯ");
+            eyebrow->setAlignment(Qt::AlignCenter);
+            eyebrow->setStyleSheet(
+                "font-size:14px;font-weight:800;letter-spacing:2px;color:#00e5ff;");
+
+            auto* questionLabel = new QLabel(question);
+            questionLabel->setAlignment(Qt::AlignCenter);
+            questionLabel->setWordWrap(true);
+            questionLabel->setStyleSheet("font-size:38px;font-weight:850;padding:20px;");
+
+            auto* popupOptions = new QListWidget;
+            popupOptions->setSelectionMode(QAbstractItemView::SingleSelection);
+            popupOptions->setMinimumHeight(220);
+            popupOptions->setMaximumWidth(900);
+            for (const auto& v : options)
+                popupOptions->addItem(v.toString());
+
+            auto* answerButton = new QPushButton("ОТВЕТИТЬ");
+            answerButton->setProperty("accent", "primary");
+            answerButton->setEnabled(false);
+            answerButton->setMinimumWidth(260);
+
+            layout->addStretch();
+            layout->addWidget(eyebrow);
+            layout->addWidget(questionLabel);
+            layout->addWidget(popupOptions, 0, Qt::AlignHCenter);
+            layout->addWidget(answerButton, 0, Qt::AlignHCenter);
+            layout->addStretch();
+
+            connect(popupOptions, &QListWidget::currentRowChanged,
+                    answerButton, [answerButton](int row) {
+                answerButton->setEnabled(row >= 0);
+            });
+
+            connect(popupOptions, &QListWidget::itemDoubleClicked,
+                    answerButton, [answerButton](QListWidgetItem*) {
+                answerButton->click();
+            });
+
+            connect(answerButton, &QPushButton::clicked, this,
+                    [this, popupOptions, question] {
+                const int row = popupOptions->currentRow();
+                if (row < 0 || activePollId_.isEmpty())
+                    return;
+
+                ws_->send(QJsonObject{
+                    {"type", "poll_answer"},
+                    {"poll_id", activePollId_},
+                    {"answer", row}
+                });
+
+                pollOptions_->setCurrentRow(row);
+                pollAnswerButton_->setEnabled(false);
+                pollQuestion_->setText(question + " — ответ отправлен");
+
+                if (pollDialog_)
+                    pollDialog_->accept();
+            });
+
+            connect(pollDialog_, &QDialog::finished, this, [this] {
+                if (pollDialog_) {
+                    pollDialog_->deleteLater();
+                    pollDialog_ = nullptr;
+                }
+            });
+
+            pollDialog_->showFullScreen();
+            pollDialog_->raise();
+            pollDialog_->activateWindow();
+            QApplication::beep();
+        }
         return;
     }
 
