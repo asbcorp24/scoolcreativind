@@ -82,6 +82,7 @@ private:
     QPushButton* hand_{};
     QTabWidget* mainTabs_{};
     QDialog* attentionDialog_{};
+    QDialog* pollDialog_{};
     QDialog* lanConnectDialog_{};
     QLabel* lanConnectStatus_{};
 
