@@ -109,6 +109,8 @@ private:
     void updateOperationalStatus();
     void updateTrayStatus();
     void toggleMicrophoneFromTray();
+    void openRemoteFullScreen();
+    void closeRemoteFullScreen();
 
     WsClient* ws_{};
     RtcRelayClient* rtc_{};
@@ -134,6 +136,8 @@ private:
     QDialog* tvWindow_{};
     QLabel* tvPreview_{};
     RemoteView* remoteView_{};
+    QDialog* remoteFullScreenDialog_{};
+    RemoteView* remoteFullScreenView_{};
     TeacherLessonsWidget* lessonsWidget_{};
     AnnotationOverlay* annotationOverlay_{};
     QListWidget* students_{};
