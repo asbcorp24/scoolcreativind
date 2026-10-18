@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
     InviteLink::registerProtocol("classroomteacher", "Classroom Teacher Invite");
 
     TeacherWindow w;
-    w.resize(1100, 720);
+    w.resize(980, 640);
     w.show();
 
     if (argc > 1) {
