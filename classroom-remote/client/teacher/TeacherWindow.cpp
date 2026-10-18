@@ -42,6 +42,7 @@
 #include <QDateTime>
 #include <QGuiApplication>
 #include <QHBoxLayout>
+#include <QGridLayout>
 #include <QJsonValue>
 #include <QHttpMultiPart>
 #include <QStackedLayout>
@@ -86,6 +87,11 @@
 #include <QVideoFrame>
 #include <QVideoSink>
 #include <QWidget>
+#include <QSystemTrayIcon>
+#include <QMenu>
+#include <QAction>
+#include <QEvent>
+#include <QStyle>
 
 static QImage drawCursorOnFrame(const QImage& source, const QRect& capturedGeometry);
 
@@ -103,8 +109,14 @@ TeacherWindow::TeacherWindow(QWidget* parent)
 
     auto* root = new QWidget;
     auto* outer = new QVBoxLayout(root);
-    outer->setContentsMargins(10, 8, 10, 8);
-    outer->setSpacing(6);
+    outer->setContentsMargins(6, 5, 6, 5);
+    outer->setSpacing(4);
+    root->setStyleSheet(
+        "QPushButton{min-height:24px;padding:3px 7px;}"
+        "QComboBox,QLineEdit,QSpinBox{min-height:24px;}"
+        "QTabBar::tab{padding:5px 10px;}"
+    );
+    setMinimumSize(760, 520);
 
     config_ = ClientConfig::load("Преподаватель");
 
@@ -152,26 +164,26 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     connect(pin_, &QLineEdit::returnPressed, this, &TeacherWindow::loginWithPIN);
     connect(settingsBtn, &QPushButton::clicked, this, &TeacherWindow::editConnectionSettings);
 
-    auto* toolbar = new QHBoxLayout;
-    auto* screenBtn = new QPushButton("🖥 Источник: экран");
-    auto* cameraBtn = new QPushButton("🎥 Источник: камера");
-    auto* fileBtn = new QPushButton("▶ Источник: видео");
+    auto* toolbar = new QGridLayout;
+    auto* screenBtn = new QPushButton("🖥 Экран");
+    auto* cameraBtn = new QPushButton("🎥 Камера");
+    auto* fileBtn = new QPushButton("▶ Видео");
     auto* presentationBtn = new QPushButton("📊 PPT/PDF");
     auto* regionBtn = new QPushButton("▱ Область");
-    auto* tvBtn = new QPushButton("📺 Окно на ТВ");
-    auto* screenshotTaskBtn = new QPushButton("🖼 Скрин-задание");
-    auto* localServerBtn = new QPushButton("📡 Локальный сервер");
+    auto* tvBtn = new QPushButton("📺 ТВ");
+    auto* screenshotTaskBtn = new QPushButton("🖼 Скрин");
+    auto* localServerBtn = new QPushButton("📡 LAN");
     auto* stopLectureBtn = new QPushButton("⏹ СТОП");
     stopLectureBtn->hide();
     broadcastToggleButton_ = new QPushButton("▶ НАЧАТЬ ТРАНСЛЯЦИЮ");
-    broadcastToggleButton_->setMinimumHeight(38);
-    broadcastToggleButton_->setStyleSheet("QPushButton{font-weight:900;padding:8px 16px;border-radius:10px;background:#16a34a;color:white;border:1px solid #22c55e;} QPushButton:hover{background:#15803d;}");
+    broadcastToggleButton_->setMinimumHeight(30);
+    broadcastToggleButton_->setStyleSheet("QPushButton{font-weight:900;padding:5px 10px;border-radius:8px;background:#16a34a;color:white;border:1px solid #22c55e;} QPushButton:hover{background:#15803d;}");
     micButton_ = new QPushButton("🎤 Микрофон");
 
     cameraCombo_ = new QComboBox;
     micCombo_ = new QComboBox;
-    cameraCombo_->setMinimumWidth(150);
-    micCombo_->setMinimumWidth(150);
+    cameraCombo_->setMinimumWidth(110);
+    micCombo_->setMinimumWidth(110);
 
     QSettings deviceSettings("SHKI", "ClassroomRemoteTeacher");
     const QByteArray savedCameraId = deviceSettings.value("devices/camera_id").toByteArray();
@@ -300,25 +312,27 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     });
 
 
-    toolbar->setSpacing(5);
+    toolbar->setHorizontalSpacing(4);
+    toolbar->setVerticalSpacing(3);
 
-    broadcastStatus_ = new QLabel("● ТРАНСЛЯЦИЯ ОСТАНОВЛЕНА");
+    broadcastStatus_ = new QLabel("● ТРАНСЛЯЦИЯ ВЫКЛ");
     broadcastStatus_->setAlignment(Qt::AlignCenter);
-    broadcastStatus_->setMinimumWidth(230);
-    broadcastStatus_->setStyleSheet("QLabel{background:#311217;color:#ff8a98;font-weight:800;padding:7px 12px;border:1px solid #7f1d2d;border-radius:9px;}");
-    toolbar->addWidget(broadcastStatus_);
-    toolbar->addWidget(broadcastToggleButton_);
-    toolbar->addWidget(screenBtn);
-    toolbar->addWidget(cameraBtn);
-    toolbar->addWidget(fileBtn);
-    toolbar->addWidget(presentationBtn);
-    toolbar->addWidget(regionBtn);
-    toolbar->addWidget(tvBtn);
-    toolbar->addWidget(screenshotTaskBtn);
-    toolbar->addWidget(localServerBtn);
-    toolbar->addWidget(stopLectureBtn);
-    toolbar->addWidget(micButton_);
-    toolbar->addStretch();
+    broadcastStatus_->setMinimumWidth(150);
+    broadcastStatus_->setStyleSheet("QLabel{background:#311217;color:#ff8a98;font-weight:800;padding:5px 8px;border:1px solid #7f1d2d;border-radius:8px;}");
+    toolbar->addWidget(broadcastStatus_, 0, 0);
+    toolbar->addWidget(broadcastToggleButton_, 0, 1);
+    toolbar->addWidget(screenBtn, 0, 2);
+    toolbar->addWidget(cameraBtn, 0, 3);
+    toolbar->addWidget(fileBtn, 0, 4);
+    toolbar->addWidget(presentationBtn, 0, 5);
+    toolbar->addWidget(regionBtn, 0, 6);
+
+    toolbar->addWidget(tvBtn, 1, 0);
+    toolbar->addWidget(screenshotTaskBtn, 1, 1);
+    toolbar->addWidget(localServerBtn, 1, 2);
+    toolbar->addWidget(stopLectureBtn, 1, 3);
+    toolbar->addWidget(micButton_, 1, 4);
+    toolbar->setColumnStretch(7, 1);
     outer->addLayout(toolbar);
 
     auto* devicesRow = new QHBoxLayout;
@@ -333,8 +347,8 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     sourceCombo_ = new QComboBox;
     qualityCombo_ = new QComboBox;
     auto* refreshSourcesBtn = new QPushButton("↻");
-    auto* previewSourceBtn = new QPushButton("👁 Предпросмотр");
-    sourceCombo_->setMinimumWidth(210);
+    auto* previewSourceBtn = new QPushButton("👁");
+    sourceCombo_->setMinimumWidth(150);
     qualityCombo_->addItem("Авто / 720p · 10 FPS", "1280x720@10");
     qualityCombo_->addItem("480p · 10 FPS", "854x480@10");
     qualityCombo_->addItem("720p · 5 FPS", "1280x720@5");
@@ -588,7 +602,7 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     previewStack->setStackingMode(QStackedLayout::StackAll);
     lecturePreview_ = new QLabel("Предпросмотр лекции");
     lecturePreview_->setAlignment(Qt::AlignCenter);
-    lecturePreview_->setMinimumSize(640, 360);
+    lecturePreview_->setMinimumSize(420, 236);
     lecturePreview_->setStyleSheet("background:#0c0f16;color:#f5f7ff;font-size:22px;border:1px solid rgba(255,255,255,28);border-radius:18px;");
     annotationOverlay_ = new AnnotationOverlay;
     annotationOverlay_->setEditable(true);
@@ -695,6 +709,33 @@ TeacherWindow::TeacherWindow(QWidget* parent)
 
     setCentralWidget(root);
     setWindowTitle("Classroom Teacher");
+
+    if (QSystemTrayIcon::isSystemTrayAvailable()) {
+        trayIcon_ = new QSystemTrayIcon(this);
+        QIcon trayIcon = windowIcon();
+        if (trayIcon.isNull())
+            trayIcon = style()->standardIcon(QStyle::SP_ComputerIcon);
+        trayIcon_->setIcon(trayIcon);
+        trayIcon_->setToolTip("Classroom Teacher");
+
+        auto* trayMenu = new QMenu(this);
+        auto* showAction = trayMenu->addAction("Показать");
+        auto* hideAction = trayMenu->addAction("Скрыть в трей");
+        trayMenu->addSeparator();
+        auto* quitAction = trayMenu->addAction("Выход");
+        trayIcon_->setContextMenu(trayMenu);
+
+        connect(showAction, &QAction::triggered, this, &TeacherWindow::restoreFromTray);
+        connect(hideAction, &QAction::triggered, this, &QWidget::hide);
+        connect(quitAction, &QAction::triggered, qApp, &QCoreApplication::quit);
+        connect(trayIcon_, &QSystemTrayIcon::activated, this,
+                [this](QSystemTrayIcon::ActivationReason reason) {
+            if (reason == QSystemTrayIcon::Trigger ||
+                reason == QSystemTrayIcon::DoubleClick)
+                restoreFromTray();
+        });
+        trayIcon_->show();
+    }
 
     if (!codec_->initialize())
         status_->setText("Ошибка инициализации OpenH264/Opus");
@@ -976,6 +1017,25 @@ TeacherWindow::TeacherWindow(QWidget* parent)
     connect(rtc_, &RtcRelayClient::audioFrameReceived, this, &TeacherWindow::onRtcAudio);
 }
 
+void TeacherWindow::restoreFromTray() {
+    showNormal();
+    raise();
+    activateWindow();
+}
+
+void TeacherWindow::changeEvent(QEvent* event) {
+    QMainWindow::changeEvent(event);
+    if (event->type() == QEvent::WindowStateChange && isMinimized() && trayIcon_) {
+        QTimer::singleShot(0, this, [this] {
+            hide();
+            if (trayIcon_)
+                trayIcon_->showMessage("Classroom Teacher",
+                    "Приложение продолжает работать в системном трее.",
+                    QSystemTrayIcon::Information, 1800);
+        });
+    }
+}
+
 TeacherWindow::~TeacherWindow() {
     stopRecording();
     stopLecture();
@@ -1156,7 +1216,7 @@ void TeacherWindow::onMessage(const QJsonObject& obj) {
 
             auto* item = new QListWidgetItem;
             item->setData(Qt::UserRole, id);
-            item->setSizeHint(QSize(260, badges.isEmpty() ? 46 : 62));
+            item->setSizeHint(QSize(210, badges.isEmpty() ? 40 : 54));
             students_->addItem(item);
 
             auto* row = new QWidget;
