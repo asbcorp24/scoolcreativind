@@ -33,6 +33,7 @@ type Client struct {
 	Watching     bool
 	HomeworkBusy bool
 	HandRaised   bool
+	Confused     bool
 	AttendanceID int64
 }
 
@@ -111,6 +112,7 @@ func (h *Hub) broadcastPresence(lessonID string) {
 		Watching     bool   `json:"watching,omitempty"`
 		HomeworkBusy bool   `json:"homework_busy,omitempty"`
 		HandRaised   bool   `json:"hand_raised,omitempty"`
+		Confused     bool   `json:"confused,omitempty"`
 	}
 	var users []item
 	h.mu.RLock()
@@ -119,7 +121,7 @@ func (h *Hub) broadcastPresence(lessonID string) {
 			users = append(users, item{
 				ID: c.ID, Name: c.Name, Role: c.Role,
 				Status: c.Status, RTCReady: c.RTCReady, Watching: c.Watching,
-				HomeworkBusy: c.HomeworkBusy, HandRaised: c.HandRaised,
+				HomeworkBusy: c.HomeworkBusy, HandRaised: c.HandRaised, Confused: c.Confused,
 			})
 		}
 	}
@@ -296,12 +298,16 @@ func wsHandler(h *Hub, rtcRelay *RTCRelay, auth authConfig, iceURLs []string, st
 					continue
 				}
 				active, _ := m["active"].(bool)
+				h.mu.Lock()
+				c.Confused = active
+				h.mu.Unlock()
 				h.sendLesson(lessonID, map[string]any{
 					"type": "student_confused",
 					"active": active,
 					"student_id": c.ID,
 					"student_name": c.Name,
 				}, func(x *Client) bool { return x.Role == "teacher" })
+				h.broadcastPresence(lessonID)
 			case "rtc_offer":
 				sdp, _ := m["sdp"].(string)
 				if sdp == "" {
