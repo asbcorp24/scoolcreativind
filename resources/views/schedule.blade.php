@@ -115,7 +115,11 @@ $filterParams=array_filter([
   </div>
 
   @if($viewMode==='month')
-   @php($days=$lessons->groupBy(fn($l)=>$l->lesson_date->format('Y-m-d')))
+   @php
+    $days = $lessons->groupBy(function ($lesson) {
+     return $lesson->lesson_date->format('Y-m-d');
+    });
+   @endphp
    <div class="calendar-grid">
     @for($d=1;$d<=$start->daysInMonth;$d++)
      @php
@@ -141,7 +145,11 @@ $filterParams=array_filter([
     @endfor
    </div>
   @else
-   @php($days=$lessons->groupBy(fn($l)=>$l->lesson_date->format('Y-m-d')))
+   @php
+    $days = $lessons->groupBy(function ($lesson) {
+     return $lesson->lesson_date->format('Y-m-d');
+    });
+   @endphp
    @forelse($days as $date=>$dayLessons)
     <div class="glass-card p-4 mb-3">
      <div class="eyebrow">{{ $dayLessons->first()->lesson_date->translatedFormat('l, d F Y') }}</div>
