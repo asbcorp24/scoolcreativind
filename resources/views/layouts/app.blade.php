@@ -59,11 +59,10 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
 
     <div class="desktop-nav-shell ms-auto">
       <a class="desktop-nav-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}"><span>01</span>Главная</a>
-      <a class="desktop-nav-link {{ request()->routeIs('projects.*') ? 'active' : '' }}" href="{{ route('projects.index') }}"><span>02</span>Работы</a>
-      <a class="desktop-nav-link {{ request()->routeIs('competitions') ? 'active' : '' }}" href="{{ route('competitions') }}"><span>03</span>Конкурсы</a>
-      <a class="desktop-nav-link {{ request()->routeIs('quizzes.*') ? 'active' : '' }}" href="{{ route('quizzes.index') }}"><span>04</span>Викторины</a>
-      <a class="desktop-nav-link {{ request()->routeIs('schedule') ? 'active' : '' }}" href="{{ route('schedule') }}"><span>05</span>Расписание</a>
-      <a class="desktop-nav-link" href="{{ route('home') }}#studios"><span>06</span>Студии</a>
+      <a class="desktop-nav-link {{ request()->routeIs('competitions') ? 'active' : '' }}" href="{{ route('competitions') }}"><span>02</span>Конкурсы</a>
+      <a class="desktop-nav-link {{ request()->routeIs('quizzes.*') ? 'active' : '' }}" href="{{ route('quizzes.index') }}"><span>03</span>Викторины</a>
+      <a class="desktop-nav-link {{ request()->routeIs('schedule') ? 'active' : '' }}" href="{{ route('schedule') }}"><span>04</span>Расписание</a>
+      <a class="desktop-nav-link" href="{{ route('home') }}#studios"><span>05</span>Студии</a>
 
       @foreach(($customMenuPages ?? collect()) as $customPage)
         @if($customPage->children->count())
@@ -112,6 +111,7 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
       <div class="desktop-nav-more dropdown">
         <button class="desktop-nav-more-btn" data-bs-toggle="dropdown" aria-expanded="false">Ещё <span>＋</span></button>
         <div class="dropdown-menu dropdown-menu-dark sci-dropdown dropdown-menu-end">
+          <a class="dropdown-item {{ request()->routeIs('projects.*') ? 'active' : '' }}" href="{{ route('projects.index') }}">Работы</a>
           <a class="dropdown-item" href="{{ route('search') }}">Поиск по сайту</a>
           <a class="dropdown-item" href="{{ route('team') }}">Команда</a>
           <a class="dropdown-item" href="{{ route('teachers.index') }}">Преподаватели</a>
@@ -137,6 +137,11 @@ $twitterCard=$siteSettings['seo_twitter_card'] ?? 'summary_large_image';
         </div>
       </div>
 
+      @auth
+        <a class="desktop-apply-btn" href="{{ route('cabinet') }}"><span>◉</span> Личный кабинет</a>
+      @else
+        <a class="desktop-apply-btn" href="{{ route('login') }}"><span>◉</span> Войти</a>
+      @endauth
       <a class="desktop-apply-btn" href="{{ route('apply') }}"><span>✦</span> Поступить</a>
     </div>
   </div>
