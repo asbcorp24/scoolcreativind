@@ -44,18 +44,18 @@
       @php
        $owner=$media->attachable;
        $section=match($media->attachable_type){
-        AppModelsStudio::class=>'Студия',
-        AppModelsPortfolioItem::class=>'Работа',
-        AppModelsNewsPost::class=>'Новость',
-        AppModelsCustomPage::class=>'Страница',
-        AppModelsSubjectLesson::class=>'Урок / КТП',
+        \App\Models\Studio::class=>'Студия',
+        \App\Models\PortfolioItem::class=>'Работа',
+        \App\Models\NewsPost::class=>'Новость',
+        \App\Models\CustomPage::class=>'Страница',
+        \App\Models\SubjectLesson::class=>'Урок / КТП',
         default=>'Раздел',
        };
        $ownerTitle=$owner?->title ?? 'Удалённый раздел';
       @endphp
       <tr>
        <td><span class="badge-soft">{{ ['photo'=>'Фото','panorama'=>'360°','video'=>'Видео','model'=>'3D','audio'=>'Аудио','file'=>'Файл','link'=>'Ссылка'][$media->type] ?? $media->type }}</span></td>
-       <td><strong>{{ $media->title ?: ($media->file_name ?: 'Без названия') }}</strong><div class="small text-white-50">{{ $media->human_file_size ?: IlluminateSupportStr::limit($media->url,70) }}</div></td>
+       <td><strong>{{ $media->title ?: ($media->file_name ?: 'Без названия') }}</strong><div class="small text-white-50">{{ $media->human_file_size ?: \Illuminate\Support\Str::limit($media->url,70) }}</div></td>
        <td><div class="small text-white-50">{{ $section }}</div><strong>{{ $ownerTitle }}</strong></td>
        <td><span class="{{ $media->is_visible ? 'text-success' : 'text-white-50' }}">{{ $media->is_visible ? 'На сайте' : 'Скрыто' }}</span>@if($media->is_featured)<div class="small text-info">Главное</div>@endif</td>
        <td class="text-end"><a class="btn btn-sm btn-ghost" href="{{ $media->display_url }}" target="_blank" rel="noopener">Открыть ↗</a></td>
